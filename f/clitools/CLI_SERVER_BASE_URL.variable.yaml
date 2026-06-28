@@ -1,0 +1,3 @@
+description: Base URL for the shared Printing Press CLI server.
+value: http://automation-cli-server-zr3888-ec4a46-84-8-132-135.sslip.io
+is_secret: false

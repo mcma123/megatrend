@@ -1,0 +1,14 @@
+
+> web-research-agent@1.0.0 dev
+> node scripts/mastra-openrouter.mjs dev
+
+[1m[36m◐[39m[22m Preparing development environment...
+[1m[32m✓[39m[22m [32mInitial bundle complete[39m
+[1m[34m◇[39m[22m [34mStarting Mastra dev server...[39m
+
+[7m[32m mastra [39m[27m [32m1.13.0[39m [90mready in[39m 10358 ms
+
+[2m│[22m [1mStudio:[22m [36mhttp://localhost:4111[39m
+[2m│[22m [1mAPI:[22m    http://localhost:4111/api
+
+[2m◯[22m [2mwatching for file changes...[22m

@@ -1,0 +1,131 @@
+summary: Company Goat CLI wrapper for agents
+description: Call the hosted company-goat-pp-cli through the shared CLI server.
+lock: '!inline f/clitools/company_goat_for_agent.script.lock'
+kind: script
+schema:
+  $schema: https://json-schema.org/draft/2020-12/schema
+  type: object
+  properties:
+    batch:
+      type: string
+      description: ''
+      default: null
+      originalType: string
+    cik:
+      type: string
+      description: ''
+      default: null
+      originalType: string
+    compact:
+      type: boolean
+      description: ''
+      default: false
+    company:
+      type: string
+      description: ''
+      default: null
+      originalType: string
+    dataSource:
+      type: string
+      description: ''
+      default: auto
+      enum:
+        - auto
+        - live
+        - local
+      originalType: enum
+    domain:
+      type: string
+      description: ''
+      default: null
+      originalType: string
+    dryRun:
+      type: boolean
+      description: ''
+      default: false
+    industry:
+      type: string
+      description: ''
+      default: null
+      originalType: string
+    max:
+      type: number
+      description: ''
+      default: null
+    operation:
+      type: string
+      description: ''
+      default: snapshot
+      enum:
+        - resolve
+        - funding
+        - funding_trend
+        - engineering
+        - legal
+        - domain
+        - yc
+        - wiki
+        - mentions
+        - launches
+        - snapshot
+        - signal
+        - search
+        - compare
+        - filings_list
+        - doctor
+        - custom
+      originalType: enum
+    otherCompany:
+      type: string
+      description: ''
+      default: null
+      originalType: string
+    person:
+      type: string
+      description: ''
+      default: null
+      originalType: string
+    pick:
+      type: number
+      description: ''
+      default: null
+    query:
+      type: string
+      description: ''
+      default: null
+      originalType: string
+    rawArgs:
+      type: array
+      description: ''
+      default: null
+      items:
+        type: string
+      originalType: string[]
+    region:
+      type: string
+      description: ''
+      default: auto
+      enum:
+        - auto
+        - us
+        - uk
+      originalType: enum
+    select:
+      type: string
+      description: ''
+      default: null
+      originalType: string
+    since:
+      type: number
+      description: ''
+      default: null
+    skip:
+      type: string
+      description: ''
+      default: null
+      originalType: string
+    timeoutSeconds:
+      type: integer
+      description: ''
+      default: 30
+  required: []
