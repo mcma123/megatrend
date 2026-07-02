@@ -1,0 +1,198 @@
+# Architecture Coupling Analysis Skill
+
+## Purpose
+
+Use this skill when designing, reviewing, or modifying software architecture. The goal is to keep the system easy to change by identifying and managing coupling between components.
+
+The core principle is:
+
+Software quality is strongly connected to the cost of change. The cost of change is heavily affected by coupling. Coupling cannot be eliminated, but it must be made deliberate, visible, and manageable.
+
+## Core Rule
+
+Tighten coupling around stable things. Loosen coupling around unstable things.
+
+Stable things may include:
+
+* Mature platform APIs
+* Well-defined domain contracts
+* Versioned backend functions
+* Auth and permission policies
+* Stable event schemas
+
+Unstable things may include:
+
+* Early database schemas
+* New product features
+* Experimental agent workflows
+* LLM response formats
+* Third-party API payloads
+* UI layout and copy
+* Business rules still being discovered
+
+## The Five Coupling Types
+
+### 1. Operational Coupling
+
+Operational coupling exists when one component cannot run unless another component is available at runtime.
+
+Check:
+
+* Does the frontend fail completely if an automation service is down?
+* Does an agent fail completely if one tool is unavailable?
+* Does a user action wait synchronously on a slow background process?
+* Can the system degrade gracefully?
+
+Preferred design:
+
+* Use async jobs for long-running tasks.
+* Store job state in the backend.
+* Let the frontend show pending, processing, completed, failed, or needs_review.
+* Add retries and error states.
+* Avoid making the frontend wait directly for automation servers or external APIs.
+
+### 2. Developmental Coupling
+
+Developmental coupling exists when two or more components must be changed together.
+
+Check:
+
+* If the database schema changes, must React, agents, and automations all change?
+* Are multiple systems depending on raw database fields?
+* Are shared types forcing unrelated modules to release together?
+* Are teams blocked because their changes must be coordinated?
+
+Preferred design:
+
+* Hide database internals behind backend functions.
+* Expose stable queries, mutations, actions, and tool wrappers.
+* Use versioned contracts for events and webhooks.
+* Keep business state transitions in the backend.
+
+### 3. Semantic Coupling
+
+Semantic coupling exists when different parts of the system share a concept and must agree on its meaning.
+
+Check:
+
+* Does “lead,” “customer,” “account,” “task,” “approved,” or “completed” mean the same thing everywhere?
+* Are agents using the same vocabulary as the database and UI?
+* Are automations using different statuses from the frontend?
+* Is there a domain dictionary?
+
+Preferred design:
+
+* Create a domain glossary.
+* Define canonical meanings for business concepts.
+* Use the same terminology in UI labels, backend schema, agent prompts, and automation payloads.
+* Avoid letting agents invent business meanings.
+
+### 4. Functional Coupling
+
+Functional coupling exists when multiple parts of the system solve the same problem in different ways.
+
+Check:
+
+* Is validation duplicated in React, backend, agents, and automations?
+* Are permissions checked in more than one inconsistent way?
+* Is lead scoring, invoice status, or document classification implemented multiple times?
+* Are there competing versions of the same business rule?
+
+Preferred design:
+
+* Put authoritative business rules in backend functions.
+* Let React display results.
+* Let agents call approved backend tools.
+* Let automations use backend-validated state.
+* Do not duplicate core business rules in prompts or scripts.
+
+### 5. Incidental Coupling
+
+Incidental coupling exists when a component depends on something it should not know about.
+
+Check:
+
+* Is code depending on display text?
+* Is a workflow parsing free-text LLM output?
+* Is an agent relying on HTML layout or CSS classes?
+* Is an automation reading internal database fields directly?
+* Is a webhook payload unversioned?
+
+Preferred design:
+
+* Use structured JSON outputs.
+* Use schemas for tool inputs and outputs.
+* Use explicit event contracts.
+* Avoid depending on UI text, internal implementation details, or temporary structures.
+* Validate external data at the boundary.
+
+## Architecture Review Questions
+
+Before accepting a design, ask:
+
+1. What parts are coupled?
+2. Is this coupling operational, developmental, semantic, functional, or incidental?
+3. Is the thing we are coupling to stable or unstable?
+4. If this changes tomorrow, what else must change?
+5. Can this fail independently without taking down the whole system?
+6. Is the business rule implemented in one authoritative place?
+7. Are agents using structured outputs and approved tools?
+8. Are external payloads validated at the boundary?
+9. Is the feedback loop fast enough to safely change this?
+10. Are we in the danger zone: strong coupling plus slow feedback?
+
+## Recommended Pattern for React + Convex + Mastra + Windmill
+
+React should handle:
+
+* UI rendering
+* User input
+* Client-side convenience validation
+* Status display
+
+Convex should handle:
+
+* Database state
+* Business rules
+* Permissions
+* Validation
+* Stable API boundaries
+* Job records
+* State transitions
+
+Mastra agents should handle:
+
+* Reasoning
+* Planning
+* Natural language interaction
+* Calling approved backend tools
+* Creating structured requests
+
+Windmill should handle:
+
+* Background jobs
+* Scheduled jobs
+* Webhooks
+* External API calls
+* Long-running automations
+* Retryable workflows
+
+Avoid allowing React, Mastra, and Windmill to each own separate versions of the same business logic.
+
+## Output Format for Architecture Analysis
+
+When reviewing a feature, respond using this structure:
+
+1. Feature Summary
+2. Main Components Involved
+3. Coupling Map
+4. Coupling Risks
+5. Recommended Boundaries
+6. What Logic Belongs in React
+7. What Logic Belongs in Convex
+8. What Logic Belongs in Mastra
+9. What Logic Belongs in Windmill
+10. Recommended Event or Job Flow
+11. Failure and Retry Strategy
+12. Permission and Identity Checks
+13. Final Architecture Recommendation

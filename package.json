@@ -1,32 +1,33 @@
 {
-  "name": "web-research-agent",
-  "version": "1.0.0",
-  "private": true,
-  "type": "module",
-  "engines": {
-    "node": ">=22.13.0"
-  },
-  "scripts": {
-    "dev": "concurrently -k -n MASTRA,WEB -c cyan,magenta \"npm run dev:mastra\" \"npm run dev:web\"",
-    "dev:mastra": "node scripts/mastra-openrouter.mjs dev",
-    "dev:web": "npm run dev --prefix insightful-property-hub",
-    "studio": "node scripts/mastra-openrouter.mjs studio",
-    "build": "node scripts/mastra-openrouter.mjs build --studio",
-    "start": "node scripts/mastra-openrouter.mjs start",
-    "wmill:pull": "wmill sync pull --workspace megatrend --config-dir .wmill-config --yes --skip-branch-validation",
-    "wmill:push": "wmill sync push --workspace megatrend --config-dir .wmill-config --yes --skip-branch-validation"
-  },
-  "dependencies": {
-    "@mastra/ai-sdk": "^1.6.0",
-    "@mastra/core": "^1.43.0",
-    "@mastra/mcp": "^1.8.1",
-    "ai": "^6.0.207",
-    "zod": "^4.4.3"
-  },
-  "devDependencies": {
-    "@types/node": "^25.9.3",
-    "concurrently": "^10.0.3",
-    "mastra": "^1.13.0",
-    "typescript": "^6.0.3"
-  }
+    "name":  "web-research-agent",
+    "version":  "1.0.0",
+    "private":  true,
+    "type":  "module",
+    "engines":  {
+                    "node":  "\u003e=22.13.0"
+                },
+    "scripts":  {
+                    "dev":  "concurrently -k -n MASTRA,WEB -c cyan,magenta \"npm run dev:mastra\" \"npm run dev:web\"",
+                    "dev:mastra":  "node scripts/mastra-openrouter.mjs dev",
+                    "dev:web":  "npm run dev --prefix insightful-property-hub",
+                    "studio":  "node scripts/mastra-openrouter.mjs studio",
+                    "build":  "node scripts/mastra-openrouter.mjs build --studio",
+                    "start":  "node scripts/mastra-openrouter.mjs start",
+                    "wmill:pull":  "wmill sync pull --workspace megatrend --config-dir .wmill-config --yes --skip-branch-validation",
+                    "wmill:push":  "wmill sync push --workspace megatrend --config-dir .wmill-config --yes --skip-branch-validation"
+                },
+    "dependencies":  {
+                         "@mastra/ai-sdk":  "^1.6.0",
+                         "@mastra/core":  "^1.43.0",
+                         "@mastra/mcp":  "^1.8.1",
+                         "ai":  "^6.0.207",
+                         "zod":  "^4.4.3",
+                         "convex":  "^1.42.1"
+                     },
+    "devDependencies":  {
+                            "@types/node":  "^25.9.3",
+                            "concurrently":  "^10.0.3",
+                            "mastra":  "^1.13.0",
+                            "typescript":  "^6.0.3"
+                        }
 }
