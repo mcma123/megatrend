@@ -10,11 +10,15 @@ import {
   ChevronDown,
   ExternalLink,
   Loader2,
+  Maximize2,
+  Minimize2,
   Search,
   Sparkles,
   Square,
   Wrench,
+  X,
 } from "lucide-react";
+import { useAdminAssistant } from "@/components/admin-assistant/admin-assistant-context";
 import { getAdminAssistantPageContext } from "@/components/admin-assistant/page-context";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -32,7 +36,9 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 
 const DEFAULT_MODEL = "openai/gpt-4.1-mini";
+const DEFAULT_AGENT = "web-research-agent";
 const MODEL_STORAGE_KEY = "megatrend-assistant:selected-model";
+const AGENT_STORAGE_KEY = "megatrend-assistant:selected-agent";
 
 type ModelOption = {
   id: string;
@@ -43,12 +49,28 @@ type ModelOption = {
   supportsReasoning: boolean;
 };
 
+type AgentOption = {
+  id: string;
+  name: string;
+  description: string;
+  placeholder: string;
+  intro: string;
+  suggestions: string[];
+};
+
 type ModelsResponse = {
   models?: ModelOption[];
 };
 
-type AssistantPart = UIMessagePart<Record<string, never>, Record<string, { input: unknown; output: unknown }>>;
-type AssistantMessage = UIMessage<unknown, Record<string, never>, Record<string, { input: unknown; output: unknown }>>;
+type AssistantPart = UIMessagePart<
+  Record<string, never>,
+  Record<string, { input: unknown; output: unknown }>
+>;
+type AssistantMessage = UIMessage<
+  unknown,
+  Record<string, never>,
+  Record<string, { input: unknown; output: unknown }>
+>;
 type ToolLikePart = AssistantPart & {
   type: "dynamic-tool" | `tool-${string}`;
   state: string;
@@ -58,6 +80,48 @@ type ToolLikePart = AssistantPart & {
   output?: unknown;
   errorText?: string;
 };
+
+const AGENT_OPTIONS: AgentOption[] = [
+  {
+    id: "web-research-agent",
+    name: "Web Research Agent",
+    description: "Search the web, scrape sources, and summarize current information.",
+    placeholder: "Search the web, summarize a page, or ask a research question...",
+    intro:
+      "Ask for research, summaries, source-finding, or next-step recommendations. This panel is connected directly to the `web-research-agent` in Mastra.",
+    suggestions: [
+      "Find recent sources on this topic",
+      "Summarize the most relevant findings",
+      "What should I investigate next?",
+    ],
+  },
+  {
+    id: "okf-agent",
+    name: "OKF Agent",
+    description: "Read and search documents from the OKF knowledge bucket.",
+    placeholder: "Ask about a parsed document, transcript, resume, or OKF bundle...",
+    intro:
+      "Ask about documents stored in the OKF bucket. This panel is connected directly to the `okf-agent` in Mastra and can search bundle markdown, fetch bundle files, and inspect exact OKF documents.",
+    suggestions: [
+      "What OKF bundles are available?",
+      "Search the OKF documents for transcript details",
+      "Summarize the contents of a specific bundle",
+    ],
+  },
+  {
+    id: "facebook-marketplace-agent",
+    name: "Facebook Marketplace Agent",
+    description: "Use the Marketplace tools for search, listing review, and drafting.",
+    placeholder: "Search Marketplace, inspect a listing, or draft a listing description...",
+    intro:
+      "Use Marketplace-specific tools through the `facebook-marketplace-agent` in Mastra. This is best for listing research, listing detail lookups, and drafting Marketplace copy.",
+    suggestions: [
+      "Check if the Marketplace tools are configured",
+      "Search Marketplace for a specific item",
+      "Draft a Marketplace listing from my notes",
+    ],
+  },
+];
 
 function getUserMessageText(message: AssistantMessage) {
   return message.parts
@@ -140,23 +204,35 @@ function ToolCard({ part }: { part: ToolLikePart }) {
             </div>
             <div className="min-w-0">
               <p className="truncate text-sm font-medium text-foreground">{toolName}</p>
-              <p className="text-xs uppercase tracking-[0.12em] text-muted-foreground">{statusLabel}</p>
+              <p className="text-xs uppercase tracking-[0.12em] text-muted-foreground">
+                {statusLabel}
+              </p>
             </div>
           </div>
-          {hasDetails ? <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform data-[state=open]:rotate-180" /> : null}
+          {hasDetails ? (
+            <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform data-[state=open]:rotate-180" />
+          ) : null}
         </CollapsibleTrigger>
         {hasDetails ? (
           <CollapsibleContent className="space-y-3 pt-3">
             {inputText ? (
               <div>
-                <p className="mb-1 text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">Input</p>
-                <pre className="overflow-x-auto rounded-xl bg-muted/60 p-3 text-xs leading-5 text-foreground">{inputText}</pre>
+                <p className="mb-1 text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+                  Input
+                </p>
+                <pre className="overflow-x-auto rounded-xl bg-muted/60 p-3 text-xs leading-5 text-foreground">
+                  {inputText}
+                </pre>
               </div>
             ) : null}
             {outputText ? (
               <div>
-                <p className="mb-1 text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">Output</p>
-                <pre className="overflow-x-auto rounded-xl bg-muted/60 p-3 text-xs leading-5 text-foreground">{outputText}</pre>
+                <p className="mb-1 text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+                  Output
+                </p>
+                <pre className="overflow-x-auto rounded-xl bg-muted/60 p-3 text-xs leading-5 text-foreground">
+                  {outputText}
+                </pre>
               </div>
             ) : null}
             {errorText ? (
@@ -184,7 +260,10 @@ function AssistantMessageView({ message }: { message: AssistantMessage }) {
         {visibleParts.map((part, index) => {
           if (part.type === "text") {
             return (
-              <div key={`${message.id}-text-${index}`} className="rounded-[28px] border border-border/80 bg-card px-4 py-3 text-sm text-foreground shadow-sm">
+              <div
+                key={`${message.id}-text-${index}`}
+                className="rounded-[28px] border border-border/80 bg-card px-4 py-3 text-sm text-foreground shadow-sm"
+              >
                 <p className="whitespace-pre-wrap leading-6">{part.text}</p>
               </div>
             );
@@ -222,15 +301,19 @@ function AssistantMessageView({ message }: { message: AssistantMessage }) {
 
 export function AdminAssistantPanel() {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const { close, expanded, toggleExpanded } = useAdminAssistant();
   const pageContext = getAdminAssistantPageContext(pathname);
   const [draft, setDraft] = useState("");
   const [models, setModels] = useState<ModelOption[]>([]);
   const [isModelsLoading, setIsModelsLoading] = useState(true);
   const [modelsError, setModelsError] = useState<string | null>(null);
   const [selectedModel, setSelectedModel] = useState(DEFAULT_MODEL);
+  const [selectedAgent, setSelectedAgent] = useState(DEFAULT_AGENT);
   const [isModelPickerOpen, setIsModelPickerOpen] = useState(false);
+  const [isAgentPickerOpen, setIsAgentPickerOpen] = useState(false);
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const { messages, sendMessage, status, stop, error } = useChat<AssistantMessage>({
+    id: `megatrend-assistant:${selectedAgent}`,
     transport: new DefaultChatTransport({
       api: "/api/chat",
     }),
@@ -241,18 +324,36 @@ export function AdminAssistantPanel() {
     () => models.find((model) => model.id === selectedModel) ?? null,
     [models, selectedModel],
   );
-  const modelSupportsReasoning = selectedModel.includes("deepseek") || selectedModelOption?.supportsReasoning === true;
+  const selectedAgentOption = useMemo(
+    () => AGENT_OPTIONS.find((agent) => agent.id === selectedAgent) ?? AGENT_OPTIONS[0],
+    [selectedAgent],
+  );
+  const activeSuggestions =
+    selectedAgent === "web-research-agent"
+      ? pageContext.suggestions
+      : selectedAgentOption.suggestions;
+  const modelSupportsReasoning =
+    selectedModel.includes("deepseek") || selectedModelOption?.supportsReasoning === true;
 
   useEffect(() => {
     const savedModel = window.localStorage.getItem(MODEL_STORAGE_KEY);
     if (savedModel) {
       setSelectedModel(savedModel);
     }
+
+    const savedAgent = window.localStorage.getItem(AGENT_STORAGE_KEY);
+    if (savedAgent && AGENT_OPTIONS.some((agent) => agent.id === savedAgent)) {
+      setSelectedAgent(savedAgent);
+    }
   }, []);
 
   useEffect(() => {
     window.localStorage.setItem(MODEL_STORAGE_KEY, selectedModel);
-  }, []);
+  }, [selectedModel]);
+
+  useEffect(() => {
+    window.localStorage.setItem(AGENT_STORAGE_KEY, selectedAgent);
+  }, [selectedAgent]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -274,18 +375,25 @@ export function AdminAssistantPanel() {
         const nextModels = payload.models ?? [];
         setModels(nextModels);
 
-        if (!nextModels.some((model) => model.id === selectedModel)) {
-          const fallbackModel = nextModels.find((model) => model.id === DEFAULT_MODEL)?.id ?? nextModels[0]?.id;
-          if (fallbackModel) {
-            setSelectedModel(fallbackModel);
+        setSelectedModel((currentModel) => {
+          if (nextModels.some((model) => model.id === currentModel)) {
+            return currentModel;
           }
-        }
+
+          return (
+            nextModels.find((model) => model.id === DEFAULT_MODEL)?.id ??
+            nextModels[0]?.id ??
+            currentModel
+          );
+        });
       } catch (loadError) {
         if (controller.signal.aborted) {
           return;
         }
 
-        setModelsError(loadError instanceof Error ? loadError.message : "Failed to load OpenRouter models.");
+        setModelsError(
+          loadError instanceof Error ? loadError.message : "Failed to load OpenRouter models.",
+        );
       } finally {
         if (!controller.signal.aborted) {
           setIsModelsLoading(false);
@@ -310,6 +418,7 @@ export function AdminAssistantPanel() {
   const getRequestOptions = () => ({
     body: {
       requestContext: {
+        selectedAgent,
         selectedModel,
       },
       providerOptions: modelSupportsReasoning
@@ -367,25 +476,112 @@ export function AdminAssistantPanel() {
                   {pageContext.title}
                 </p>
               </div>
-              <div
-                className={cn(
-                  "rounded-full px-2 py-1 font-mono text-[10px] uppercase tracking-[0.14em]",
-                  isBusy ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground",
-                )}
-              >
-                {isBusy ? "Thinking" : "Ready"}
+              <div className="flex items-center gap-1">
+                <div
+                  className={cn(
+                    "rounded-full px-2 py-1 font-mono text-[10px] uppercase tracking-[0.14em]",
+                    isBusy ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground",
+                  )}
+                >
+                  {isBusy ? "Thinking" : expanded ? "Full Page" : "Ready"}
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 rounded-full"
+                  onClick={toggleExpanded}
+                  aria-label={
+                    expanded ? "Collapse assistant to sidebar" : "Expand assistant to full page"
+                  }
+                  title={expanded ? "Collapse to sidebar" : "Expand to full page"}
+                >
+                  {expanded ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 rounded-full"
+                  onClick={close}
+                  aria-label="Close assistant"
+                  title="Close assistant"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
               </div>
             </div>
-            <p className="mt-2 text-sm leading-6 text-muted-foreground">{pageContext.description}</p>
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">
+              {pageContext.description}
+            </p>
           </div>
         </div>
       </div>
 
       <div className="border-b border-border/70 px-5 py-3">
         <div className="mb-3 flex flex-wrap items-center gap-2">
+          <Popover open={isAgentPickerOpen} onOpenChange={setIsAgentPickerOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                type="button"
+                variant="outline"
+                className="max-w-full justify-between gap-2 rounded-full"
+              >
+                <div className="flex min-w-0 items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-primary" />
+                  <span className="truncate text-left">{selectedAgentOption.name}</span>
+                </div>
+                <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="start" className="w-[360px] p-0">
+              <Command>
+                <CommandInput placeholder="Search Mastra agents..." />
+                <CommandList>
+                  <CommandEmpty>No agents found.</CommandEmpty>
+                  <CommandGroup>
+                    {AGENT_OPTIONS.map((agent) => (
+                      <CommandItem
+                        key={agent.id}
+                        value={`${agent.id} ${agent.name} ${agent.description}`}
+                        onSelect={() => {
+                          setSelectedAgent(agent.id);
+                          setIsAgentPickerOpen(false);
+                        }}
+                        className="items-start gap-3 py-3"
+                      >
+                        <Check
+                          className={cn(
+                            "mt-0.5 h-4 w-4",
+                            selectedAgent === agent.id ? "opacity-100" : "opacity-0",
+                          )}
+                        />
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-medium text-foreground">
+                            {agent.name}
+                          </p>
+                          <p className="line-clamp-2 text-xs leading-5 text-muted-foreground">
+                            {agent.description}
+                          </p>
+                          <p className="mt-2 truncate text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
+                            {agent.id}
+                          </p>
+                        </div>
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
+
           <Popover open={isModelPickerOpen} onOpenChange={setIsModelPickerOpen}>
             <PopoverTrigger asChild>
-              <Button type="button" variant="outline" className="max-w-full justify-between gap-2 rounded-full">
+              <Button
+                type="button"
+                variant="outline"
+                className="max-w-full justify-between gap-2 rounded-full"
+              >
                 <div className="flex min-w-0 items-center gap-2">
                   <Bot className="h-4 w-4 text-primary" />
                   <span className="truncate text-left">{selectedModel}</span>
@@ -409,12 +605,21 @@ export function AdminAssistantPanel() {
                         }}
                         className="items-start gap-3 py-3"
                       >
-                        <Check className={cn("mt-0.5 h-4 w-4", selectedModel === model.id ? "opacity-100" : "opacity-0")} />
+                        <Check
+                          className={cn(
+                            "mt-0.5 h-4 w-4",
+                            selectedModel === model.id ? "opacity-100" : "opacity-0",
+                          )}
+                        />
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-sm font-medium text-foreground">{model.id}</p>
-                          <p className="line-clamp-2 text-xs leading-5 text-muted-foreground">{model.description || model.name}</p>
+                          <p className="line-clamp-2 text-xs leading-5 text-muted-foreground">
+                            {model.description || model.name}
+                          </p>
                           <div className="mt-2 flex flex-wrap gap-2 text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
-                            {model.contextLength ? <span>{formatContextLength(model.contextLength)} context</span> : null}
+                            {model.contextLength ? (
+                              <span>{formatContextLength(model.contextLength)} context</span>
+                            ) : null}
                             {model.supportsTools ? <span>tools</span> : null}
                             {model.supportsReasoning ? <span>reasoning</span> : null}
                           </div>
@@ -427,11 +632,18 @@ export function AdminAssistantPanel() {
             </PopoverContent>
           </Popover>
 
+          <span className="rounded-full bg-muted px-3 py-1 text-xs text-muted-foreground">
+            {selectedAgentOption.name}
+          </span>
           {selectedModelOption?.supportsTools ? (
-            <span className="rounded-full bg-muted px-3 py-1 text-xs text-muted-foreground">Tools enabled</span>
+            <span className="rounded-full bg-muted px-3 py-1 text-xs text-muted-foreground">
+              Tools enabled
+            </span>
           ) : null}
           {modelSupportsReasoning ? (
-            <span className="rounded-full bg-primary/10 px-3 py-1 text-xs text-primary">Reasoning visible</span>
+            <span className="rounded-full bg-primary/10 px-3 py-1 text-xs text-primary">
+              Reasoning visible
+            </span>
           ) : null}
           {isModelsLoading ? (
             <span className="inline-flex items-center gap-2 rounded-full bg-muted px-3 py-1 text-xs text-muted-foreground">
@@ -453,7 +665,7 @@ export function AdminAssistantPanel() {
             <Input
               value={draft}
               onChange={(event) => setDraft(event.target.value)}
-              placeholder="Search the web, summarize a page, or ask a research question..."
+              placeholder={selectedAgentOption.placeholder}
               className="h-11 rounded-full border-border/80 bg-card pl-10 pr-4 text-sm shadow-sm"
             />
           </div>
@@ -477,13 +689,10 @@ export function AdminAssistantPanel() {
           {messages.length === 0 ? (
             <div className="space-y-4">
               <div className="rounded-[28px] border border-border/80 bg-card px-4 py-4 shadow-sm">
-                <p className="text-sm leading-6 text-foreground">
-                  Ask for research, summaries, source-finding, or next-step recommendations. This panel is connected
-                  directly to the `web-research-agent` in Mastra.
-                </p>
+                <p className="text-sm leading-6 text-foreground">{selectedAgentOption.intro}</p>
               </div>
               <div className="grid gap-2">
-                {pageContext.suggestions.map((suggestion) => (
+                {activeSuggestions.map((suggestion) => (
                   <button
                     key={suggestion}
                     type="button"
@@ -521,7 +730,7 @@ export function AdminAssistantPanel() {
             <div className="flex justify-start">
               <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-2 text-xs text-muted-foreground shadow-sm">
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                Researching...
+                Thinking...
               </div>
             </div>
           ) : null}
@@ -536,7 +745,7 @@ export function AdminAssistantPanel() {
 
       <div className="border-t border-border bg-background px-5 py-4">
         <div className="flex flex-wrap gap-2">
-          {pageContext.suggestions.map((suggestion) => (
+          {activeSuggestions.map((suggestion) => (
             <button
               key={suggestion}
               type="button"
@@ -551,8 +760,3 @@ export function AdminAssistantPanel() {
     </div>
   );
 }
-
-
-
-
-

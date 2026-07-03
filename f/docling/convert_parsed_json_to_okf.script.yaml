@@ -1,0 +1,67 @@
+summary: Convert parsed DocLing JSON into OKF markdown bundle
+description: Reads parsed DocLing JSON from MinIO and writes an Open Knowledge
+  Format bundle into the OKF bucket.
+lock: '!inline f/docling/convert_parsed_json_to_okf.script.lock'
+kind: script
+schema:
+  $schema: https://json-schema.org/draft/2020-12/schema
+  type: object
+  properties:
+    bundle_prefix:
+      type: string
+      description: ''
+      default: null
+      originalType: string
+    concept_type:
+      type: string
+      description: ''
+      default: null
+      originalType: string
+    destination_bucket:
+      type: string
+      description: ''
+      default: null
+      originalType: string
+    minio_access_key:
+      type: string
+      description: ''
+      default: null
+      originalType: string
+    minio_endpoint:
+      type: string
+      description: ''
+      default: null
+      originalType: string
+    minio_region:
+      type: string
+      description: ''
+      default: null
+      originalType: string
+    minio_secret_key:
+      type: string
+      description: ''
+      default: null
+      originalType: string
+    minio_use_ssl:
+      type: boolean
+      description: ''
+      default: true
+    parsed_json_key:
+      type: string
+      description: ''
+      default: null
+      originalType: string
+    source_bucket:
+      type: string
+      description: ''
+      default: null
+      originalType: string
+    tags:
+      type: array
+      description: ''
+      default: null
+      items:
+        type: string
+      originalType: string[]
+  required:
+    - parsed_json_key

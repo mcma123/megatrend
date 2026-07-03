@@ -1,0 +1,73 @@
+summary: Read and search OKF bundles from MinIO
+description: Lists OKF bundles, fetches bundle files, and searches OKF markdown stored in the okfdata MinIO bucket for agent or tool use.
+lock: '!inline f/docling/read_okf_bucket.script.lock'
+kind: script
+schema:
+  $schema: https://json-schema.org/draft/2020-12/schema
+  type: object
+  properties:
+    bundle_root:
+      type: string
+      description: Optional OKF bundle root to scope listing, fetching, or searching.
+      default: null
+      originalType: string
+    include_full_content:
+      type: boolean
+      description: Include full markdown content in the response.
+      default: false
+    include_metadata:
+      type: boolean
+      description: Include files under metadata/ when fetching or searching.
+      default: false
+    list_only:
+      type: boolean
+      description: List bundle roots and keys instead of searching.
+      default: false
+    max_objects_to_scan:
+      type: integer
+      description: Maximum markdown objects to inspect during search.
+      default: 200
+    max_results:
+      type: integer
+      description: Maximum search matches to return.
+      default: 5
+    minio_access_key:
+      type: string
+      description: MinIO access key.
+      default: null
+      originalType: string
+    minio_endpoint:
+      type: string
+      description: MinIO API hostname.
+      default: null
+      originalType: string
+    minio_region:
+      type: string
+      description: MinIO region.
+      default: null
+      originalType: string
+    minio_secret_key:
+      type: string
+      description: MinIO secret key.
+      default: null
+      originalType: string
+    minio_use_ssl:
+      type: boolean
+      description: Whether to use HTTPS for MinIO.
+      default: true
+    object_key:
+      type: string
+      description: Exact markdown object key to fetch.
+      default: null
+      originalType: string
+    okf_bucket:
+      type: string
+      description: OKF bucket name.
+      default: null
+      originalType: string
+    query:
+      type: string
+      description: Natural-language or keyword query for OKF search.
+      default: null
+      originalType: string
+  required: []

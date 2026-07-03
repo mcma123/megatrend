@@ -1,0 +1,138 @@
+summary: Convert documents to markdown via DocLing
+description: Uploads PDF, Word, Excel, and similar documents to a DocLing server
+  and returns markdown output.
+lock: '!inline f/docling/convert_document_to_markdown.script.lock'
+kind: script
+schema:
+  $schema: https://json-schema.org/draft/2020-12/schema
+  type: object
+  properties:
+    do_ocr:
+      type: boolean
+      description: ''
+      default: true
+    docling_base_url:
+      type: string
+      description: ''
+      default: null
+      originalType: string
+    document_timeout:
+      type: number
+      description: ''
+      default: null
+    file:
+      type: object
+      description: ''
+      default: null
+      format: resource-s3_object
+    file_url:
+      type: string
+      description: ''
+      default: null
+      originalType: string
+    filename:
+      type: string
+      description: ''
+      default: null
+      originalType: string
+    force_ocr:
+      type: boolean
+      description: ''
+      default: false
+    from_format:
+      type: string
+      description: ''
+      default: null
+      originalType: string
+    image_export_mode:
+      type: string
+      description: ''
+      default: placeholder
+      originalType: string
+    include_images:
+      type: boolean
+      description: ''
+      default: false
+    include_page_images:
+      type: boolean
+      description: ''
+      default: false
+    minio_access_key:
+      type: string
+      description: ''
+      default: null
+      originalType: string
+    minio_bucket:
+      type: string
+      description: ''
+      default: null
+      originalType: string
+    minio_endpoint:
+      type: string
+      description: ''
+      default: null
+      originalType: string
+    minio_path_prefix:
+      type: string
+      description: ''
+      default: null
+      originalType: string
+    minio_region:
+      type: string
+      description: ''
+      default: null
+      originalType: string
+    minio_secret_key:
+      type: string
+      description: ''
+      default: null
+      originalType: string
+    minio_use_ssl:
+      type: boolean
+      description: ''
+      default: true
+    ocr_lang:
+      type: array
+      description: ''
+      default: null
+      items:
+        type: string
+      originalType: string[]
+    ocr_preset:
+      type: string
+      description: ''
+      default: auto
+      originalType: string
+    output_s3_path:
+      type: string
+      description: ''
+      default: null
+      originalType: string
+    pdf_backend:
+      type: string
+      description: ''
+      default: docling_parse
+      originalType: string
+    request_timeout_seconds:
+      type: integer
+      description: ''
+      default: 300
+    save_json_to_minio:
+      type: boolean
+      description: ''
+      default: true
+    save_markdown_to_s3:
+      type: boolean
+      description: ''
+      default: false
+    table_mode:
+      type: string
+      description: ''
+      default: accurate
+      originalType: string
+    tenant_id:
+      type: string
+      description: ''
+      default: null
+      originalType: string
+  required: []

@@ -1,23 +1,53 @@
-﻿import { createContext, useContext, useMemo, useState } from "react";
+import { createContext, useContext, useMemo, useState } from "react";
 
 type AdminAssistantContextValue = {
   open: boolean;
-  setOpen: (value: boolean) => void;
+  expanded: boolean;
+  openSidebar: () => void;
+  openFullPage: () => void;
+  close: () => void;
   toggleOpen: () => void;
+  toggleExpanded: () => void;
 };
 
 const AdminAssistantContext = createContext<AdminAssistantContextValue | null>(null);
 
 export function AdminAssistantProvider({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
+  const [expanded, setExpanded] = useState(false);
 
   const value = useMemo<AdminAssistantContextValue>(
     () => ({
       open,
-      setOpen,
-      toggleOpen: () => setOpen((current) => !current),
+      expanded,
+      openSidebar: () => {
+        setOpen(true);
+        setExpanded(false);
+      },
+      openFullPage: () => {
+        setOpen(true);
+        setExpanded(true);
+      },
+      close: () => {
+        setOpen(false);
+        setExpanded(false);
+      },
+      toggleOpen: () => {
+        setOpen((currentOpen) => {
+          if (currentOpen) {
+            setExpanded(false);
+            return false;
+          }
+
+          return true;
+        });
+      },
+      toggleExpanded: () => {
+        setOpen(true);
+        setExpanded((currentExpanded) => !currentExpanded);
+      },
     }),
-    [open],
+    [expanded, open],
   );
 
   return <AdminAssistantContext.Provider value={value}>{children}</AdminAssistantContext.Provider>;

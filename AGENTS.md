@@ -122,6 +122,7 @@ When the user requests a durable behavior change, record it here or in the relev
 - `megatrend/` -> `megatrend/AGENTS.md`: Secondary standalone TanStack Start app with its own source tree and tooling.
 
 Root-owned without a child AGENTS.md:
+- `f/`: Windmill scripts, flows, folder metadata, and deployed automation assets.
 - `scripts/`: Runtime wrapper scripts such as `mastra-openrouter.mjs`.
 - Root manifests and workspace config: `package.json`, `wmill.yaml`, `tsconfig*.json`, lockfiles, env files, `.wmill-config/`.
 - Tooling metadata and caches: `.agents/`, `.claude/`, `.mastra/`, `.mastra-temp/`, `.pnpm-store/`, `node_modules/`, and other generated runtime outputs.

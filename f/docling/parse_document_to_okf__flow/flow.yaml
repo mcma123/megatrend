@@ -1,0 +1,430 @@
+summary: Parse document(s), save parsed JSON, and convert result to OKF
+description: Queues up to 10 uploaded or URL-based documents, parses them through DocLing one at a time, stores parsed JSON in MinIO, and writes richer OKF bundles named from the original documents.
+value:
+  modules:
+    - id: normalize_documents
+      value:
+        type: rawscript
+        language: python3
+        input_transforms:
+          documents:
+            type: javascript
+            expr: flow_input.documents
+          file:
+            type: javascript
+            expr: flow_input.file
+          file_url:
+            type: javascript
+            expr: flow_input.file_url
+          filename:
+            type: javascript
+            expr: flow_input.filename
+          from_format:
+            type: javascript
+            expr: flow_input.from_format
+        content: |-
+          from typing import Any
+
+          def _append_document(
+              normalized: list[dict[str, Any]],
+              *,
+              item_file: dict[str, Any] | None,
+              item_url: str | None,
+              item_filename: str | None,
+              item_from_format: str | None,
+              source_label: str,
+          ) -> None:
+              if not item_file and not item_url:
+                  return
+              if item_file and item_url:
+                  raise ValueError(f"{source_label} must include only one of 'file' or 'file_url'.")
+
+              normalized.append(
+                  {
+                      "file": item_file,
+                      "file_url": item_url,
+                      "filename": item_filename,
+                      "from_format": item_from_format,
+                      "queue_position": len(normalized) + 1,
+                      "source_label": source_label,
+                  }
+              )
+
+          def main(
+              documents: list[dict[str, Any]] | None = None,
+              file: dict[str, Any] | None = None,
+              file_url: str | None = None,
+              filename: str | None = None,
+              from_format: str | None = None,
+          ) -> dict[str, Any]:
+              normalized: list[dict[str, Any]] = []
+
+              if documents is not None:
+                  if not isinstance(documents, list):
+                      raise ValueError("'documents' must be an array.")
+
+                  for index, item in enumerate(documents, start=1):
+                      if not isinstance(item, dict):
+                          raise ValueError(f"Document #{index} must be an object.")
+
+                      _append_document(
+                          normalized,
+                          item_file=item.get("file"),
+                          item_url=item.get("file_url"),
+                          item_filename=item.get("filename"),
+                          item_from_format=item.get("from_format"),
+                          source_label=f"documents[{index - 1}]",
+                      )
+
+              _append_document(
+                  normalized,
+                  item_file=file,
+                  item_url=file_url,
+                  item_filename=filename,
+                  item_from_format=from_format,
+                  source_label="top-level input",
+              )
+
+              if not normalized:
+                  raise ValueError("Provide at least one document using 'documents', 'file', or 'file_url'.")
+              if len(normalized) > 10:
+                  raise ValueError("You can process at most 10 documents per run.")
+
+              return {
+                  "documents": normalized,
+                  "document_count": len(normalized),
+                  "processing_mode": "queue",
+              }
+    - id: process_documents
+      value:
+        type: forloopflow
+        iterator:
+          type: javascript
+          expr: results.normalize_documents.documents
+        skip_failures: false
+        parallel: false
+        modules:
+          - id: parse_document
+            value:
+              type: script
+              path: f/docling/convert_document_to_markdown
+              input_transforms:
+                file:
+                  type: javascript
+                  expr: flow_input.iter.value.file
+                file_url:
+                  type: javascript
+                  expr: flow_input.iter.value.file_url
+                filename:
+                  type: javascript
+                  expr: flow_input.iter.value.filename
+                docling_base_url:
+                  type: javascript
+                  expr: flow_input.docling_base_url
+                from_format:
+                  type: javascript
+                  expr: flow_input.iter.value.from_format || flow_input.from_format
+                do_ocr:
+                  type: javascript
+                  expr: flow_input.do_ocr
+                force_ocr:
+                  type: javascript
+                  expr: flow_input.force_ocr
+                ocr_lang:
+                  type: javascript
+                  expr: flow_input.ocr_lang
+                ocr_preset:
+                  type: javascript
+                  expr: flow_input.ocr_preset
+                pdf_backend:
+                  type: javascript
+                  expr: flow_input.pdf_backend
+                table_mode:
+                  type: javascript
+                  expr: flow_input.table_mode
+                include_images:
+                  type: javascript
+                  expr: flow_input.include_images
+                include_page_images:
+                  type: javascript
+                  expr: flow_input.include_page_images
+                image_export_mode:
+                  type: javascript
+                  expr: flow_input.image_export_mode
+                document_timeout:
+                  type: javascript
+                  expr: flow_input.document_timeout
+                request_timeout_seconds:
+                  type: javascript
+                  expr: flow_input.request_timeout_seconds
+                tenant_id:
+                  type: javascript
+                  expr: flow_input.tenant_id
+                save_markdown_to_s3:
+                  type: static
+                  value: false
+                save_json_to_minio:
+                  type: static
+                  value: true
+                minio_endpoint:
+                  type: javascript
+                  expr: flow_input.minio_endpoint
+                minio_bucket:
+                  type: javascript
+                  expr: flow_input.parsed_json_bucket
+                minio_access_key:
+                  type: javascript
+                  expr: flow_input.minio_access_key
+                minio_secret_key:
+                  type: javascript
+                  expr: flow_input.minio_secret_key
+                minio_use_ssl:
+                  type: javascript
+                  expr: flow_input.minio_use_ssl
+                minio_region:
+                  type: javascript
+                  expr: flow_input.minio_region
+                minio_path_prefix:
+                  type: javascript
+                  expr: flow_input.parsed_json_prefix
+          - id: convert_to_okf
+            value:
+              type: script
+              path: f/docling/convert_parsed_json_to_okf
+              input_transforms:
+                parsed_json_key:
+                  type: javascript
+                  expr: results.parse_document.saved_json_to_minio.key
+                source_bucket:
+                  type: javascript
+                  expr: flow_input.parsed_json_bucket
+                destination_bucket:
+                  type: javascript
+                  expr: flow_input.okf_bucket
+                bundle_prefix:
+                  type: javascript
+                  expr: flow_input.okf_bundle_prefix
+                concept_type:
+                  type: javascript
+                  expr: flow_input.okf_concept_type
+                tags:
+                  type: javascript
+                  expr: flow_input.okf_tags
+                minio_endpoint:
+                  type: javascript
+                  expr: flow_input.minio_endpoint
+                minio_access_key:
+                  type: javascript
+                  expr: flow_input.minio_access_key
+                minio_secret_key:
+                  type: javascript
+                  expr: flow_input.minio_secret_key
+                minio_use_ssl:
+                  type: javascript
+                  expr: flow_input.minio_use_ssl
+                minio_region:
+                  type: javascript
+                  expr: flow_input.minio_region
+          - id: collect_iteration_result
+            value:
+              type: rawscript
+              language: python3
+              input_transforms:
+                current_document:
+                  type: javascript
+                  expr: flow_input.iter.value
+                parse_result:
+                  type: javascript
+                  expr: results.parse_document
+                okf_result:
+                  type: javascript
+                  expr: results.convert_to_okf
+              content: |-
+                from typing import Any
+
+                def main(
+                    current_document: dict[str, Any],
+                    parse_result: dict[str, Any],
+                    okf_result: dict[str, Any],
+                ) -> dict[str, Any]:
+                    return {
+                        "queue_position": current_document.get("queue_position"),
+                        "source_label": current_document.get("source_label"),
+                        "requested_filename": current_document.get("filename"),
+                        "source_kind": parse_result.get("source_kind"),
+                        "resolved_filename": parse_result.get("filename"),
+                        "parsed_json_key": (parse_result.get("saved_json_to_minio") or {}).get("key"),
+                        "okf_bundle_root": okf_result.get("bundle_root"),
+                        "okf_written_keys": okf_result.get("written_keys", []),
+                        "status": parse_result.get("status"),
+                        "errors": parse_result.get("errors", []),
+                    }
+    - id: summarize_results
+      value:
+        type: rawscript
+        language: python3
+        input_transforms:
+          queue_summary:
+            type: javascript
+            expr: results.normalize_documents
+          item_results:
+            type: javascript
+            expr: results.process_documents
+        content: |-
+          from typing import Any
+
+          def main(queue_summary: dict[str, Any], item_results: list[dict[str, Any]]) -> dict[str, Any]:
+              return {
+                  "processing_mode": queue_summary.get("processing_mode"),
+                  "document_count": queue_summary.get("document_count"),
+                  "processed_documents": item_results,
+              }
+schema:
+  $schema: https://json-schema.org/draft/2020-12/schema
+  type: object
+  properties:
+    documents:
+      type: array
+      description: Up to 10 queued documents. Items here are processed first, then any top-level single-document input is appended to the same queue.
+      maxItems: 10
+      items:
+        type: object
+        properties:
+          file:
+            type: object
+            format: resource-s3_object
+            description: Optional uploaded file for this queue item.
+          file_url:
+            type: string
+            description: Optional URL for this queue item.
+            default: null
+          filename:
+            type: string
+            description: Optional filename override used for parsed JSON and OKF naming.
+            default: null
+          from_format:
+            type: string
+            description: Optional source format hint for this queue item.
+            default: null
+        required: []
+      default: null
+    file:
+      type: object
+      format: resource-s3_object
+      description: Optional uploaded file appended to the queue after any items in documents.
+    file_url:
+      type: string
+      description: Optional URL appended to the queue after any items in documents.
+      default: null
+    filename:
+      type: string
+      description: Optional filename override for the top-level file or file_url input.
+      default: null
+    from_format:
+      type: string
+      description: Optional source format hint for the top-level file or file_url input.
+      default: null
+    do_ocr:
+      type: boolean
+      description: Whether DocLing OCR should run.
+      default: true
+    force_ocr:
+      type: boolean
+      description: Force OCR even when embedded text exists.
+      default: false
+    ocr_lang:
+      type: array
+      description: Optional OCR language codes.
+      items:
+        type: string
+      default: null
+    ocr_preset:
+      type: string
+      description: DocLing OCR preset.
+      default: auto
+    pdf_backend:
+      type: string
+      description: DocLing PDF backend.
+      default: docling_parse
+    table_mode:
+      type: string
+      description: DocLing table extraction mode.
+      default: accurate
+    include_images:
+      type: boolean
+      description: Include extracted images in DocLing output.
+      default: false
+    include_page_images:
+      type: boolean
+      description: Include full page images in DocLing output.
+      default: false
+    image_export_mode:
+      type: string
+      description: DocLing image export mode.
+      default: placeholder
+    docling_base_url:
+      type: string
+      description: DocLing server base URL.
+      default: http://rag-infrastucture-doclingserve-6e6e80-84-8-132-135.sslip.io
+    document_timeout:
+      type: number
+      description: Optional per-document DocLing timeout in seconds.
+      default: null
+    request_timeout_seconds:
+      type: integer
+      description: HTTP timeout for DocLing requests.
+      default: 300
+    tenant_id:
+      type: string
+      description: Optional DocLing tenant header.
+      default: null
+    minio_endpoint:
+      type: string
+      description: MinIO API hostname.
+      default: minio.mmfshub.co.za
+    minio_access_key:
+      type: string
+      description: MinIO access key.
+      default: minioadmin
+    minio_secret_key:
+      type: string
+      description: MinIO secret key.
+      default: bcskn3p8iwmkaxor
+    minio_use_ssl:
+      type: boolean
+      description: Whether to use HTTPS for MinIO.
+      default: true
+    minio_region:
+      type: string
+      description: MinIO region.
+      default: us-east-1
+    parsed_json_bucket:
+      type: string
+      description: Bucket that stores parsed DocLing JSON payloads.
+      default: parsedinjson
+    parsed_json_prefix:
+      type: string
+      description: Optional prefix inside the parsed JSON bucket.
+      default: null
+    okf_bucket:
+      type: string
+      description: Bucket that stores generated OKF bundles.
+      default: okfdata
+    okf_bundle_prefix:
+      type: string
+      description: Optional prefix inside the OKF bucket for generated bundles.
+      default: null
+    okf_concept_type:
+      type: string
+      description: OKF concept type for generated documents.
+      default: Parsed Document
+    okf_tags:
+      type: array
+      description: Tags written into OKF frontmatter.
+      items:
+        type: string
+      default:
+        - docling
+        - okf
+        - parsed-document
+  required: []
