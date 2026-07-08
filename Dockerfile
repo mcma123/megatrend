@@ -2,9 +2,11 @@ FROM node:22-bookworm-slim
 
 WORKDIR /app
 
-COPY package*.json ./
+RUN corepack enable
+
+COPY package.json pnpm-lock.yaml ./
 COPY insightful-property-hub/package*.json ./insightful-property-hub/
-RUN npm ci
+RUN pnpm install --frozen-lockfile
 RUN npm ci --prefix insightful-property-hub
 
 COPY . .
