@@ -2,6 +2,8 @@ FROM node:22-bookworm-slim
 
 WORKDIR /app
 
+RUN corepack enable && corepack prepare pnpm@10.17.1 --activate
+
 COPY package.json ./
 COPY insightful-property-hub/package*.json ./insightful-property-hub/
 RUN npm install
