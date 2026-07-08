@@ -5,7 +5,7 @@ WORKDIR /app
 COPY package.json ./
 COPY insightful-property-hub/package*.json ./insightful-property-hub/
 RUN npm install
-RUN npm ci --prefix insightful-property-hub
+RUN npm install --prefix insightful-property-hub
 
 COPY . .
 
