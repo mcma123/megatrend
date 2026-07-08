@@ -1,0 +1,14 @@
+node_modules
+insightful-property-hub/node_modules
+.git
+.pnpm-store
+.mastra
+.mastra-temp
+.wmill-config
+.output
+insightful-property-hub/.output
+insightful-property-hub/.tanstack
+insightful-property-hub/.wrangler
+npm-debug.log*
+*.log
+C:\tmp
