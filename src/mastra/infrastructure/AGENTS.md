@@ -11,6 +11,7 @@
 - Infrastructure implements ports from `../ports/`.
 - External provider details, environment variables, payload translations, and low-level parsing belong here.
 - Do not move agent instructions or application orchestration into this layer.
+- The Windmill-backed adapters in `windmill/` are the only place in this subtree that should know about Windmill MCP tool shapes, remote bucket names, or MinIO-backed OKF storage layouts.
 
 # Work Guidance
 
@@ -23,4 +24,5 @@
 
 # Child DOX Index
 
-- No child DOX docs yet.
+- `windmill/` -> `src/mastra/infrastructure/windmill/AGENTS.md`: Windmill MCP adapters, shared client wiring, and OKF/web-research provider translations.
+- `facebook-marketplace/` remains owned by this doc until it needs more specific local contracts.

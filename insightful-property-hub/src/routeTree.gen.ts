@@ -14,6 +14,7 @@ import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PortalIndexRouteImport } from './routes/portal.index'
 import { Route as PortalClientSlugRouteImport } from './routes/portal.$clientSlug'
+import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 import { Route as ApiModelsRouteImport } from './routes/api.models'
 import { Route as ApiChatRouteImport } from './routes/api.chat'
 import { Route as AppTasksRouteImport } from './routes/_app.tasks'
@@ -30,11 +31,16 @@ import { Route as AppClientsRouteImport } from './routes/_app.clients'
 import { Route as AppAutomationsRouteImport } from './routes/_app.automations'
 import { Route as PortalClientSlugIndexRouteImport } from './routes/portal.$clientSlug.index'
 import { Route as PortalClientSlugTeamRouteImport } from './routes/portal.$clientSlug.team'
+import { Route as PortalClientSlugInsightsRouteImport } from './routes/portal.$clientSlug.insights'
+import { Route as PortalClientSlugDocumentsRouteImport } from './routes/portal.$clientSlug.documents'
+import { Route as PortalClientSlugActionsRouteImport } from './routes/portal.$clientSlug.actions'
 import { Route as AppPropertiesIdRouteImport } from './routes/_app.properties.$id'
 import { Route as AppLeasesIdRouteImport } from './routes/_app.leases.$id'
 import { Route as AppDocumentsIdRouteImport } from './routes/_app.documents.$id'
 import { Route as AppClientsIdRouteImport } from './routes/_app.clients.$id'
 import { Route as AppAutomationsIdRouteImport } from './routes/_app.automations.$id'
+import { Route as PortalClientSlugPropertiesPropertyIdRouteImport } from './routes/portal.$clientSlug.properties.$propertyId'
+import { Route as PortalClientSlugPropertiesPropertyIdLeaseRouteImport } from './routes/portal.$clientSlug.properties.$propertyId.lease'
 
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
@@ -58,6 +64,11 @@ const PortalIndexRoute = PortalIndexRouteImport.update({
 const PortalClientSlugRoute = PortalClientSlugRouteImport.update({
   id: '/portal/$clientSlug',
   path: '/portal/$clientSlug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthCallbackRoute = AuthCallbackRouteImport.update({
+  id: '/auth/callback',
+  path: '/auth/callback',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiModelsRoute = ApiModelsRouteImport.update({
@@ -140,6 +151,23 @@ const PortalClientSlugTeamRoute = PortalClientSlugTeamRouteImport.update({
   path: '/team',
   getParentRoute: () => PortalClientSlugRoute,
 } as any)
+const PortalClientSlugInsightsRoute =
+  PortalClientSlugInsightsRouteImport.update({
+    id: '/insights',
+    path: '/insights',
+    getParentRoute: () => PortalClientSlugRoute,
+  } as any)
+const PortalClientSlugDocumentsRoute =
+  PortalClientSlugDocumentsRouteImport.update({
+    id: '/documents',
+    path: '/documents',
+    getParentRoute: () => PortalClientSlugRoute,
+  } as any)
+const PortalClientSlugActionsRoute = PortalClientSlugActionsRouteImport.update({
+  id: '/actions',
+  path: '/actions',
+  getParentRoute: () => PortalClientSlugRoute,
+} as any)
 const AppPropertiesIdRoute = AppPropertiesIdRouteImport.update({
   id: '/$id',
   path: '/$id',
@@ -165,6 +193,18 @@ const AppAutomationsIdRoute = AppAutomationsIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => AppAutomationsRoute,
 } as any)
+const PortalClientSlugPropertiesPropertyIdRoute =
+  PortalClientSlugPropertiesPropertyIdRouteImport.update({
+    id: '/properties/$propertyId',
+    path: '/properties/$propertyId',
+    getParentRoute: () => PortalClientSlugRoute,
+  } as any)
+const PortalClientSlugPropertiesPropertyIdLeaseRoute =
+  PortalClientSlugPropertiesPropertyIdLeaseRouteImport.update({
+    id: '/lease',
+    path: '/lease',
+    getParentRoute: () => PortalClientSlugPropertiesPropertyIdRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -183,6 +223,7 @@ export interface FileRoutesByFullPath {
   '/tasks': typeof AppTasksRoute
   '/api/chat': typeof ApiChatRoute
   '/api/models': typeof ApiModelsRoute
+  '/auth/callback': typeof AuthCallbackRoute
   '/portal/$clientSlug': typeof PortalClientSlugRouteWithChildren
   '/portal/': typeof PortalIndexRoute
   '/automations/$id': typeof AppAutomationsIdRoute
@@ -190,8 +231,13 @@ export interface FileRoutesByFullPath {
   '/documents/$id': typeof AppDocumentsIdRoute
   '/leases/$id': typeof AppLeasesIdRoute
   '/properties/$id': typeof AppPropertiesIdRoute
+  '/portal/$clientSlug/actions': typeof PortalClientSlugActionsRoute
+  '/portal/$clientSlug/documents': typeof PortalClientSlugDocumentsRoute
+  '/portal/$clientSlug/insights': typeof PortalClientSlugInsightsRoute
   '/portal/$clientSlug/team': typeof PortalClientSlugTeamRoute
   '/portal/$clientSlug/': typeof PortalClientSlugIndexRoute
+  '/portal/$clientSlug/properties/$propertyId': typeof PortalClientSlugPropertiesPropertyIdRouteWithChildren
+  '/portal/$clientSlug/properties/$propertyId/lease': typeof PortalClientSlugPropertiesPropertyIdLeaseRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -210,14 +256,20 @@ export interface FileRoutesByTo {
   '/tasks': typeof AppTasksRoute
   '/api/chat': typeof ApiChatRoute
   '/api/models': typeof ApiModelsRoute
+  '/auth/callback': typeof AuthCallbackRoute
   '/portal': typeof PortalIndexRoute
   '/automations/$id': typeof AppAutomationsIdRoute
   '/clients/$id': typeof AppClientsIdRoute
   '/documents/$id': typeof AppDocumentsIdRoute
   '/leases/$id': typeof AppLeasesIdRoute
   '/properties/$id': typeof AppPropertiesIdRoute
+  '/portal/$clientSlug/actions': typeof PortalClientSlugActionsRoute
+  '/portal/$clientSlug/documents': typeof PortalClientSlugDocumentsRoute
+  '/portal/$clientSlug/insights': typeof PortalClientSlugInsightsRoute
   '/portal/$clientSlug/team': typeof PortalClientSlugTeamRoute
   '/portal/$clientSlug': typeof PortalClientSlugIndexRoute
+  '/portal/$clientSlug/properties/$propertyId': typeof PortalClientSlugPropertiesPropertyIdRouteWithChildren
+  '/portal/$clientSlug/properties/$propertyId/lease': typeof PortalClientSlugPropertiesPropertyIdLeaseRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -238,6 +290,7 @@ export interface FileRoutesById {
   '/_app/tasks': typeof AppTasksRoute
   '/api/chat': typeof ApiChatRoute
   '/api/models': typeof ApiModelsRoute
+  '/auth/callback': typeof AuthCallbackRoute
   '/portal/$clientSlug': typeof PortalClientSlugRouteWithChildren
   '/portal/': typeof PortalIndexRoute
   '/_app/automations/$id': typeof AppAutomationsIdRoute
@@ -245,8 +298,13 @@ export interface FileRoutesById {
   '/_app/documents/$id': typeof AppDocumentsIdRoute
   '/_app/leases/$id': typeof AppLeasesIdRoute
   '/_app/properties/$id': typeof AppPropertiesIdRoute
+  '/portal/$clientSlug/actions': typeof PortalClientSlugActionsRoute
+  '/portal/$clientSlug/documents': typeof PortalClientSlugDocumentsRoute
+  '/portal/$clientSlug/insights': typeof PortalClientSlugInsightsRoute
   '/portal/$clientSlug/team': typeof PortalClientSlugTeamRoute
   '/portal/$clientSlug/': typeof PortalClientSlugIndexRoute
+  '/portal/$clientSlug/properties/$propertyId': typeof PortalClientSlugPropertiesPropertyIdRouteWithChildren
+  '/portal/$clientSlug/properties/$propertyId/lease': typeof PortalClientSlugPropertiesPropertyIdLeaseRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -267,6 +325,7 @@ export interface FileRouteTypes {
     | '/tasks'
     | '/api/chat'
     | '/api/models'
+    | '/auth/callback'
     | '/portal/$clientSlug'
     | '/portal/'
     | '/automations/$id'
@@ -274,8 +333,13 @@ export interface FileRouteTypes {
     | '/documents/$id'
     | '/leases/$id'
     | '/properties/$id'
+    | '/portal/$clientSlug/actions'
+    | '/portal/$clientSlug/documents'
+    | '/portal/$clientSlug/insights'
     | '/portal/$clientSlug/team'
     | '/portal/$clientSlug/'
+    | '/portal/$clientSlug/properties/$propertyId'
+    | '/portal/$clientSlug/properties/$propertyId/lease'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -294,14 +358,20 @@ export interface FileRouteTypes {
     | '/tasks'
     | '/api/chat'
     | '/api/models'
+    | '/auth/callback'
     | '/portal'
     | '/automations/$id'
     | '/clients/$id'
     | '/documents/$id'
     | '/leases/$id'
     | '/properties/$id'
+    | '/portal/$clientSlug/actions'
+    | '/portal/$clientSlug/documents'
+    | '/portal/$clientSlug/insights'
     | '/portal/$clientSlug/team'
     | '/portal/$clientSlug'
+    | '/portal/$clientSlug/properties/$propertyId'
+    | '/portal/$clientSlug/properties/$propertyId/lease'
   id:
     | '__root__'
     | '/'
@@ -321,6 +391,7 @@ export interface FileRouteTypes {
     | '/_app/tasks'
     | '/api/chat'
     | '/api/models'
+    | '/auth/callback'
     | '/portal/$clientSlug'
     | '/portal/'
     | '/_app/automations/$id'
@@ -328,8 +399,13 @@ export interface FileRouteTypes {
     | '/_app/documents/$id'
     | '/_app/leases/$id'
     | '/_app/properties/$id'
+    | '/portal/$clientSlug/actions'
+    | '/portal/$clientSlug/documents'
+    | '/portal/$clientSlug/insights'
     | '/portal/$clientSlug/team'
     | '/portal/$clientSlug/'
+    | '/portal/$clientSlug/properties/$propertyId'
+    | '/portal/$clientSlug/properties/$propertyId/lease'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -338,6 +414,7 @@ export interface RootRouteChildren {
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   ApiChatRoute: typeof ApiChatRoute
   ApiModelsRoute: typeof ApiModelsRoute
+  AuthCallbackRoute: typeof AuthCallbackRoute
   PortalClientSlugRoute: typeof PortalClientSlugRouteWithChildren
   PortalIndexRoute: typeof PortalIndexRoute
 }
@@ -377,6 +454,13 @@ declare module '@tanstack/react-router' {
       path: '/portal/$clientSlug'
       fullPath: '/portal/$clientSlug'
       preLoaderRoute: typeof PortalClientSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth/callback': {
+      id: '/auth/callback'
+      path: '/auth/callback'
+      fullPath: '/auth/callback'
+      preLoaderRoute: typeof AuthCallbackRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/models': {
@@ -491,6 +575,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PortalClientSlugTeamRouteImport
       parentRoute: typeof PortalClientSlugRoute
     }
+    '/portal/$clientSlug/insights': {
+      id: '/portal/$clientSlug/insights'
+      path: '/insights'
+      fullPath: '/portal/$clientSlug/insights'
+      preLoaderRoute: typeof PortalClientSlugInsightsRouteImport
+      parentRoute: typeof PortalClientSlugRoute
+    }
+    '/portal/$clientSlug/documents': {
+      id: '/portal/$clientSlug/documents'
+      path: '/documents'
+      fullPath: '/portal/$clientSlug/documents'
+      preLoaderRoute: typeof PortalClientSlugDocumentsRouteImport
+      parentRoute: typeof PortalClientSlugRoute
+    }
+    '/portal/$clientSlug/actions': {
+      id: '/portal/$clientSlug/actions'
+      path: '/actions'
+      fullPath: '/portal/$clientSlug/actions'
+      preLoaderRoute: typeof PortalClientSlugActionsRouteImport
+      parentRoute: typeof PortalClientSlugRoute
+    }
     '/_app/properties/$id': {
       id: '/_app/properties/$id'
       path: '/$id'
@@ -525,6 +630,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/automations/$id'
       preLoaderRoute: typeof AppAutomationsIdRouteImport
       parentRoute: typeof AppAutomationsRoute
+    }
+    '/portal/$clientSlug/properties/$propertyId': {
+      id: '/portal/$clientSlug/properties/$propertyId'
+      path: '/properties/$propertyId'
+      fullPath: '/portal/$clientSlug/properties/$propertyId'
+      preLoaderRoute: typeof PortalClientSlugPropertiesPropertyIdRouteImport
+      parentRoute: typeof PortalClientSlugRoute
+    }
+    '/portal/$clientSlug/properties/$propertyId/lease': {
+      id: '/portal/$clientSlug/properties/$propertyId/lease'
+      path: '/lease'
+      fullPath: '/portal/$clientSlug/properties/$propertyId/lease'
+      preLoaderRoute: typeof PortalClientSlugPropertiesPropertyIdLeaseRouteImport
+      parentRoute: typeof PortalClientSlugPropertiesPropertyIdRoute
     }
   }
 }
@@ -621,14 +740,38 @@ const AppRouteChildren: AppRouteChildren = {
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 
+interface PortalClientSlugPropertiesPropertyIdRouteChildren {
+  PortalClientSlugPropertiesPropertyIdLeaseRoute: typeof PortalClientSlugPropertiesPropertyIdLeaseRoute
+}
+
+const PortalClientSlugPropertiesPropertyIdRouteChildren: PortalClientSlugPropertiesPropertyIdRouteChildren =
+  {
+    PortalClientSlugPropertiesPropertyIdLeaseRoute:
+      PortalClientSlugPropertiesPropertyIdLeaseRoute,
+  }
+
+const PortalClientSlugPropertiesPropertyIdRouteWithChildren =
+  PortalClientSlugPropertiesPropertyIdRoute._addFileChildren(
+    PortalClientSlugPropertiesPropertyIdRouteChildren,
+  )
+
 interface PortalClientSlugRouteChildren {
+  PortalClientSlugActionsRoute: typeof PortalClientSlugActionsRoute
+  PortalClientSlugDocumentsRoute: typeof PortalClientSlugDocumentsRoute
+  PortalClientSlugInsightsRoute: typeof PortalClientSlugInsightsRoute
   PortalClientSlugTeamRoute: typeof PortalClientSlugTeamRoute
   PortalClientSlugIndexRoute: typeof PortalClientSlugIndexRoute
+  PortalClientSlugPropertiesPropertyIdRoute: typeof PortalClientSlugPropertiesPropertyIdRouteWithChildren
 }
 
 const PortalClientSlugRouteChildren: PortalClientSlugRouteChildren = {
+  PortalClientSlugActionsRoute: PortalClientSlugActionsRoute,
+  PortalClientSlugDocumentsRoute: PortalClientSlugDocumentsRoute,
+  PortalClientSlugInsightsRoute: PortalClientSlugInsightsRoute,
   PortalClientSlugTeamRoute: PortalClientSlugTeamRoute,
   PortalClientSlugIndexRoute: PortalClientSlugIndexRoute,
+  PortalClientSlugPropertiesPropertyIdRoute:
+    PortalClientSlugPropertiesPropertyIdRouteWithChildren,
 }
 
 const PortalClientSlugRouteWithChildren =
@@ -640,6 +783,7 @@ const rootRouteChildren: RootRouteChildren = {
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   ApiChatRoute: ApiChatRoute,
   ApiModelsRoute: ApiModelsRoute,
+  AuthCallbackRoute: AuthCallbackRoute,
   PortalClientSlugRoute: PortalClientSlugRouteWithChildren,
   PortalIndexRoute: PortalIndexRoute,
 }

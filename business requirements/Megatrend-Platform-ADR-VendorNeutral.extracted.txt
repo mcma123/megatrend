@@ -1,0 +1,656 @@
+--- PAGE 1 ---
+ADR-001: Megatrend Property & Lease
+Intelligence Platform
+Status: Proposed — vendor-neutral draft Date: 2026-06-05 Deciders: Megatrend leadership,
+Cyphersoft (Andrew), AI/engineering lead [TBD] Author: Cyphersoft (Andrew) Companion
+documents: - Megatrend-Platform-Workflows.pdf — visual workflow reference - 
+Megatrend-Platform-Overview.pdf — plain-English business overview
+How to read this document
+This ADR is intentionally vendor-neutral and cost-neutral. It captures what the platform must do, 
+the architectural decisions that need to be made, and the options worth weighing — but it does
+not lock in specific products, vendors, hosting regions, or pricing.
+The technology and cost columns are deliberately left blank, marked [TBD]. They are to be filled in
+by Andrew together with an AI/engineering lead during a shaping phase, once the principles in this
+ADR are agreed.
+Where this document says "the platform" or "the system", it refers to a behaviour the solution must
+deliver, not a specific tool.
+Table of Contents
+Context
+Goals & Non-Goals
+Architectural Principles
+System Components (capability view)
+Decisions to be Made
+Non-Functional Requirements
+Workflows (summary)
+Data & Compliance
+Phasing
+Risks & Mitigations
+Action Items
+Open Questions
+Appendix A — Decision Worksheet (fill-in)
+Appendix B — Glossary
+1. 
+2. 
+3. 
+4. 
+5. 
+6. 
+7. 
+8. 
+9. 
+10. 
+11. 
+12. 
+13. 
+14. 
+Megatrend Platform — ADR-001 (vendor-neutral) Page 1 of 15
+
+--- PAGE 2 ---
+1. Context
+Megatrend operates as a commercial property and lease management partner. Today's workflow is
+heavily manual — documents arrive over email, cataloguing happens in spreadsheets, and renewal
+sourcing relies on account-manager memory.
+The proposed platform is a dual-sided multi-tenant SaaS application: a Client Portal for tenant-
+side users and a Megatrend CRM Portal for account managers, backed by an AI analysis engine
+and an automated property-matching capability.
+1.1 Forces & constraints
+Force Description
+Market South African commercial property; POPIA compliance applies.
+Scale (Y1,
+target)
+[TBD — confirm during shaping] clients · [TBD] leases · [TBD] documents/month · [TBD]
+account managers.
+Time-to-marketMVP target [TBD weeks]; confirm during shaping.
+Team [TBD — confirm engineering capacity].
+Sensitivity Commercially sensitive financial data. Immutable audit trail non-negotiable.
+Budget [TBD — to be set by Megatrend leadership].
+2. Goals & Non-Goals
+2.1 Goals
+Eliminate the email-as-CRM workflow for client document intake.
+Compress the time between a document arriving and an actionable insight from days to minutes.
+Catch every approaching lease expiry early enough to source alternatives proactively.
+Build a structured longitudinal record of every client portfolio (a long-term data moat).
+Give Megatrend account managers a credible workspace to handle more clients without
+sacrificing quality.
+2.2 Non-Goals (for this ADR / MVP)
+Detailed UI/UX design — handled in a separate design brief.
+Pricing and packaging of the service to clients.
+Customer-success operating model.
+Replacing Megatrend's existing accounting or invoicing systems.
+1. 
+2. 
+3. 
+4. 
+5. 
+• 
+• 
+• 
+• 
+Megatrend Platform — ADR-001 (vendor-neutral) Page 2 of 15
+
+--- PAGE 3 ---
+3. Architectural Principles
+The principles below are technology-independent and should guide all subsequent decisions. They
+are the things we do not want to compromise on, even if vendor specifics change.
+# Principle Implication
+P1 Multi-tenant by
+construction
+Tenant isolation is enforced at the data layer, not in application code
+alone. No design that requires the application to "remember" to filter by
+tenant is acceptable.
+P2 POPIA-aligned data
+residency
+Personal information stored in-region (South Africa) by default. Any cross-
+border processing must be specifically justified and contractually covered.
+P3 Human-in-the-loop AIThe AI never publishes to a client without account-manager review. AI is a
+force multiplier, not an autonomous publisher.
+P4 Async pipelines,
+responsive UIs
+Heavy work (OCR, AI, scraping) is background. User-facing surfaces stay
+snappy and receive updates via real-time events.
+P5 Tamper-evident audit
+trail
+Every meaningful action is logged immutably. Records reference the hash
+of the previous record so any modification is detectable.
+P6 Pluggable
+infrastructure
+No vendor lock-in at the architecture level — provider-specific calls are
+abstracted behind internal interfaces so a vendor can be swapped without
+rewriting business logic.
+P7 Compliance-first
+scraping
+Partner APIs preferred. Any scraping is rate-limited, robots.txt-respecting,
+identified in User-Agent, and has a per-source kill switch. Legal review
+precedes each new source going live.
+P8 Observability from day
+one
+Structured logs, metrics, and traces in the MVP — not a Phase 2 retrofit.
+P9 Idempotency & retriesEvery pipeline step is safe to re-run. Failures retry; persistent failures land
+in a dead-letter queue and alert the on-call engineer.
+P10 Sensible defaults,
+configurable per tenant
+Lease-expiry horizons, notification preferences, and similar parameters
+can be tuned per client without code changes.
+4. System Components (capability view)
+This is a capability-level description — what each part must do — without naming products.
+4.1 Client Portal
+Multi-tenant web experience accessible to client users.
+Authenticated access scoped to their own tenant only.
+Document upload (single and bulk; desktop and mobile-camera capture).
+Dashboard with portfolio summary, leases, key dates, and curated insights.
+Notification of meaningful events (new insight published, renewal options ready).
+• 
+• 
+• 
+• 
+• 
+Megatrend Platform — ADR-001 (vendor-neutral) Page 3 of 15
+
+--- PAGE 4 ---
+Roles within the client organisation (e.g. admin, finance, property manager).
+Form-factor decision (D1): Web app · Progressive Web App · Native mobile · Combination —
+see §5.
+4.2 Megatrend CRM Portal
+Internal workspace for account managers and Megatrend admins.
+Inbox of new client uploads and AI-drafted insights, ranked by urgency.
+Property and lease record management.
+Searchable document repository (full-text and semantic).
+Curation interface to edit, approve, reject, and publish insights to a client dashboard.
+Tenant administration (create client, assign team, configure thresholds).
+Audit log explorer for any tenant the user is authorised to view.
+4.3 Document Ingestion & OCR Capability
+Accept any document the client uploads (PDF, image, scanned).
+Validate (file type, size, malware).
+Extract structured data (key-value pairs, tables) from invoices, utility statements, lease
+agreements.
+Surface low-confidence extractions for human review rather than silent failures.
+OCR strategy decision (D2): managed cloud OCR · self-hosted OCR · LLM vision ·
+combination — see §5.
+4.4 AI Analysis Engine
+Classify incoming documents (invoice, utility, lease, statement, other).
+Extract structured data; normalise vendor names, units, tariff codes.
+Detect anomalies in spending patterns and utility usage.
+Forecast utility costs and other recurring spend.
+Generate plain-language narrative insights with linked source documents and a self-reported
+confidence score.
+Improve over time from account-manager edits and rejections.
+Model strategy decision (D3): which LLM(s), which forecasting approach, which embedding
+model — see §5.
+4.5 Property Scout
+Watch every lease across every tenant; alert when within a configurable renewal horizon.
+Source comparable properties via official partner APIs where available.
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+Megatrend Platform — ADR-001 (vendor-neutral) Page 4 of 15
+
+--- PAGE 5 ---
+Fall back to compliant scraping of public listings only when APIs are insufficient.
+Normalise listings to a common schema, deduplicate, score against lease criteria.
+Produce a comparative business-case report for account manager review.
+Data source decision (D4): which partner APIs to license; which sources to scrape — see §5.
+4.6 Workflow Orchestration
+Coordinate the document upload pipeline (validate → classify → extract → index → notify →
+analyse).
+Coordinate the property-scout pipeline (watch → match → scrape → score → report → notify).
+Provide retries, dead-letter handling, scheduled triggers, and observability for both.
+Orchestration tooling decision (D5): managed workflow engine · self-hosted workflow engine ·
+custom code — see §5.
+4.7 Real-time Event Bus
+Tenant-scoped channels for live updates between client and CRM portals.
+JWT-secured; each tenant can only subscribe to its own events.
+Survives reconnection; degrades gracefully to polling if the connection is lost.
+Real-time delivery decision (D6): managed service · self-hosted · other — see §5.
+4.8 Identity & Tenancy
+Multi-tenant identity with organisations, roles, and (for enterprise clients) SSO support.
+MFA mandatory for Megatrend staff; optional for client users.
+Tenant ID resolved from the authenticated session and propagated to every downstream call.
+Identity provider decision (D7): managed identity service · self-hosted · build · combination —
+see §5.
+4.9 Data Layer
+Primary database for structured records (tenants, properties, leases, documents metadata,
+insights, audit).
+Object storage for original document files.
+Index for full-text and semantic search.
+Cache and queueing for the async pipelines.
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+Megatrend Platform — ADR-001 (vendor-neutral) Page 5 of 15
+
+--- PAGE 6 ---
+Database & storage decisions (D8): see §5.
+4.10 Audit & Compliance
+Tamper-evident log of every meaningful action (client, Megatrend, system, admin, infrastructure).
+Mirror to a write-once archive with long retention.
+Queryable from the CRM for day-to-day inspection.
+Exportable per tenant for client transparency and POPIA requests.
+4.11 Observability & Operations
+Structured logs, metrics, and traces from every component.
+Alerting on error rates, latency anomalies, and failed jobs.
+Runbooks for the on-call engineer.
+Observability stack decision (D9): see §5.
+4.12 Hosting & Infrastructure
+In-region hosting (South Africa) for tenant data.
+Infrastructure-as-code so environments can be recreated and audited.
+Separate environments for development, staging, production, and audit logs.
+Hosting decision (D10): which cloud / region / infrastructure model — see §5.
+5. Decisions to be Made
+Each decision below has options, key trade-offs, and a blank choice field for Andrew + the AI/
+engineering lead to fill in during the shaping phase.
+D1 — Client portal form factor
+Option Optimises for Trades against
+Responsive web onlySpeed to ship, lowest cost No offline upload; no native camera UX
+Progressive Web AppSingle codebase + mobile install +
+offline
+iOS push notification limits
+Native iOS + Android +
+web
+Best mobile UX, full background
+sync
+Three codebases; higher build +
+maintenance
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+Megatrend Platform — ADR-001 (vendor-neutral) Page 6 of 15
+
+--- PAGE 7 ---
+Choice:__________________________________Rationale:
+__________________________________
+D2 — OCR strategy
+Option Optimises for Trades against
+Managed cloud OCR Accuracy on invoices/tables; zero opsPer-page cost; vendor dependency
+Self-hosted open-source
+OCR
+Cost at scale; full control Lower accuracy on complex layouts;
+ops overhead
+LLM vision only Handles unstructured/odd layouts;
+one fewer vendor
+Higher per-document cost; less
+deterministic
+Hybrid (structured OCR +
+LLM fallback)
+Best accuracy/cost balance More moving parts
+Choice:__________________________________Rationale:
+__________________________________
+D3 — AI model selection
+Sub-decisions inside this single decision: classifier model, extraction model, embedding model,
+forecasting approach.
+Lever Considerations
+Classifier High-volume, low-cost path. Lean toward smaller, faster models.
+Extraction Higher-stakes accuracy. May warrant a larger model + structured outputs.
+EmbeddingsCost per million tokens; in-region API availability; quality on financial/legal text.
+ForecastingLLMs are unreliable for numeric forecasts. Classical time-series methods are usually cheaper,
+more interpretable, more accurate.
+Choice:__________________________________Rationale:
+__________________________________
+D4 — Property data sources
+Lever Considerations
+Partner APIs Higher data quality; licensing cost; legally clean.
+Compliant scrapingNo licence fee; legal/ToS risk; brittleness; per-source kill switch needed.
+Geographic
+coverage
+Confirm which SA regions and property types matter most for current client
+portfolios.
+Megatrend Platform — ADR-001 (vendor-neutral) Page 7 of 15
+
+--- PAGE 8 ---
+Choice (sources to license):__________________________________Choice (sources to
+scrape, with legal sign-off):__________________________________
+D5 — Workflow orchestration
+Option Optimises for Trades against
+Managed serverless workflow
+engine
+Zero ops; native retries; great DX for
+code-first workflows
+Per-execution cost; vendor lock-
+in
+Self-hosted workflow engine
+(visual or code-first)
+Cost at high volumes; full controlOps burden; needs HA design
+Pay-per-task automation
+platform
+Fast to wire Cost explodes with volume;
+weak observability
+Custom code + queue libraryFull control; minimal dependenciesReinvents retries/scheduling;
+engineering tax
+Choice (MVP):__________________________________Choice (Phase 2 critical paths):
+__________________________________
+D6 — Real-time delivery
+Option Optimises for Trades against
+Managed pub/sub service Zero ops; tenant ACLs out of
+the box
+Per-connection cost
+Self-hosted websocket + cache
+adapter
+Cheap at scale; in-regionOps burden; sticky sessions;
+reconnection logic
+Choice:__________________________________Rationale:
+__________________________________
+D7 — Identity & SSO
+Option Optimises for Trades against
+Managed B2B identity providerFast to ship; org/role support;
+SSO-ready
+Per-MAU cost; vendor lock-in
+Self-hosted open-source identityNo licence fee; full control Ops burden; security
+responsibility
+Build on top of cloud-native identity
+primitives
+Fits if all infra is on one cloudMore glue code
+Megatrend Platform — ADR-001 (vendor-neutral) Page 8 of 15
+
+--- PAGE 9 ---
+Choice:__________________________________Rationale:
+__________________________________
+D8 — Database, object storage, search
+Lever Considerations
+Primary DB Must support row-level tenant isolation, JSON, full-text + vector search.
+Object
+storage
+In-region; encryption with customer-managed keys; write-once option for audit copies.
+Search Built into the primary DB vs. a dedicated search engine — depends on volume and query
+patterns.
+Choice (DB):__________________________________Choice (Object storage):
+__________________________________Choice (Search):
+__________________________________
+D9 — Observability
+Lever Considerations
+Errors Aggregate exceptions across services; tie to releases.
+Logs / uptime Centralised log search; uptime probes; alerting.
+Traces & metrics Distributed tracing across the async pipeline; SLO dashboards.
+Choice:__________________________________Rationale:
+__________________________________
+D10 — Hosting & infrastructure
+Lever Considerations
+Cloud provider Must have in-region capacity for SA; compliance posture; team familiarity.
+Region(s) Primary in SA; consider an out-of-region backup for audit copies only.
+IaC Whatever the team is fastest in; required for production.
+Environments At minimum: dev, staging, production, audit.
+Choice:__________________________________Rationale:
+__________________________________
+Megatrend Platform — ADR-001 (vendor-neutral) Page 9 of 15
+
+--- PAGE 10 ---
+D11 — Multi-tenancy isolation model
+Option Isolation Cost Operability
+Silo (database per tenant) Strongest High Hardest
+Bridge (schema per tenant) Strong Medium Medium
+Pool (shared schema with tenant ID + row-level security)Software-enforcedLow Easiest
+Choice:__________________________________Rationale:
+__________________________________
+Note: any enterprise client that demands a silo deployment will warrant an architectural
+exception captured as its own ADR.
+6. Non-Functional Requirements
+Targets to set during shaping; defaults shown for the team to confirm or revise.
+Dimension Target To
+confirm
+Availability 99.5% MVP, 99.9% Phase 2 ✓
+Upload acknowledgement< 2s ✓
+Insight publication latency
+(p95)
+< 5 min ✓
+Search latency (p95) < 400ms over [TBD] documents ✓
+Security TLS in transit; encryption at rest with managed keys; MFA for
+staff
+✓
+POPIA — DSAR Fulfilled in 30 days ✓
+Auditability All actions immutably logged, 7-year retention ✓
+Cost [TBD] ✓
+7. Workflows (summary)
+The companion document Megatrend-Platform-Workflows.pdf contains an annotated diagram
+and narrative for each of these six workflows. Captured here only by name:
+Client document upload & AI pipeline — ingest, classify, extract, index, notify, analyse, surface.1. 
+Megatrend Platform — ADR-001 (vendor-neutral) Page 10 of 15
+
+--- PAGE 11 ---
+Lease expiry watcher & property scout — scheduled scan → match → score → business-case
+report.
+AI insight curation — AI drafts → account-manager review → publish.
+New client onboarding — wizard-driven tenant creation, isolation, team assignment.
+Real-time sync between portals — tenant-scoped channels keep both sides live.
+Audit & compliance trail — tamper-evident chain mirrored to a write-once archive.
+8. Data & Compliance
+8.1 Data the platform holds
+Client identity (organisation name, contacts, users)
+Property records (address, type, metadata)
+Lease records (terms, dates, rates, escalation, landlord)
+Document files (original uploads) + extracted structured data
+AI insights (draft, curated, published)
+Audit events (all of the above + system / admin activity)
+8.2 POPIA controls
+Control Description
+Lawful basis Captured in client agreement at onboarding.
+Data residency South Africa primary; any cross-border processing covered by processor agreements.
+Encryption At rest (customer-managed keys) and in transit (TLS).
+Access RBAC + tenant isolation enforced at the data layer.
+Retention Defined per data class; documented in a Retention Schedule.
+Data-subject rightsExport and deletion supported within 30 days.
+Breach responseDocumented playbook; regulator notification process.
+Sub-processors Each vendor signed under a processor agreement; list maintained and disclosed.
+9. Phasing
+Phase 1 — MVP (target: [TBD weeks])
+Goal: a working platform both sides log into every day.
+[ ] Tenant infrastructure stood up (hosting, identity, storage, observability).
+[ ] Client Portal: auth, dashboard, document upload, basic insight view.
+2. 
+3. 
+4. 
+5. 
+6. 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+Megatrend Platform — ADR-001 (vendor-neutral) Page 11 of 15
+
+--- PAGE 12 ---
+[ ] Megatrend CRM: inbox, lease/property CRUD, search, manual insight publishing.
+[ ] Document ingestion + extraction pipeline.
+[ ] Real-time notifications.
+[ ] Tamper-evident audit log.
+[ ] Two or three pilot clients onboarded.
+Phase 2 — Intelligence & automation (target: [TBD weeks after MVP])
+Goal: the platform starts working on its own.
+[ ] Property Scout (lease expiry watcher + matching engine).
+[ ] Automated insight generation (anomalies, forecasts).
+[ ] PWA/mobile polish.
+[ ] Optional CRM integrations (HubSpot / Salesforce / equivalents).
+[ ] Optional payment integration.
+Phase 3 — Scale & ecosystem (timing TBD)
+[ ] Native mobile apps (if usage justifies).
+[ ] White-label offering.
+[ ] Benchmarking marketplace.
+[ ] Public API for third parties.
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+Megatrend Platform — ADR-001 (vendor-neutral) Page 12 of 15
+
+--- PAGE 13 ---
+10. Risks & Mitigations
+Risk LikelihoodImpactMitigation
+Scraper triggers ToS /
+legal complaint
+M H Partner APIs first; documented compliance policy; legal
+review per source; per-source kill switch.
+Cross-tenant data leakL SevereData-layer isolation; quarterly cross-tenant penetration
+test; documented incident response.
+Vendor outage in a
+critical path
+L M Async architecture absorbs short outages; fall-back
+paths designed in (e.g. structured OCR ↔ LLM vision).
+AI hallucination on
+financial extraction
+M H Confidence scoring; mandatory account-manager
+review before client visibility; source document always
+one click away.
+Single point of failure in
+orchestrator
+M M High-availability deployment; durable queue; migrate
+critical paths to a durable workflow engine in Phase 2.
+Vendor lock-in M L Provider-specific code behind internal interfaces;
+documented exit plan for each vendor.
+Scope creep (CRM
+becomes a generic CRM)
+H M Roadmap discipline; integrate with existing CRMs in
+Phase 2 rather than competing with them.
+Budget overrun M M Cost ceiling per environment; usage-based services
+capped; monthly cost review.
+11. Action Items
+[ ] Shaping session: Andrew + AI/engineering lead to fill in §5 (D1–D11) and §6 NFR targets.
+[ ] Engage legal counsel for POPIA processor agreements with eventual vendors.
+[ ] Identify and approach property data partners.
+[ ] Confirm hosting environment(s) and provision base infrastructure-as-code repo.
+[ ] Recruit 2–3 pilot clients for Phase 1.
+[ ] Define cost ceiling and per-month review cadence.
+[ ] Schedule internal ADR review within 10 working days; sign-off gates Phase 1 kickoff.
+12. Open Questions
+What is Megatrend's current system of record for leases, and how do existing records migrate in?
+Any enterprise clients who would require a private/silo deployment?
+Which 2–3 pilot clients are the target for MVP rollout?
+Is there an existing identity provider (e.g. Microsoft 365, Google Workspace) that Megatrend staff
+already use?
+1. 
+2. 
+3. 
+4. 
+5. 
+6. 
+7. 
+• 
+• 
+• 
+• 
+Megatrend Platform — ADR-001 (vendor-neutral) Page 13 of 15
+
+--- PAGE 14 ---
+Are there any commercial relationships or constraints that pre-determine any of the D1–D11
+decisions?
+What is the budget envelope — both for Phase 1 build and for monthly operating cost?
+Appendix A — Decision Worksheet (fill-in)
+A single-page template you can print, fill in during the shaping session, and circulate back into this
+ADR.
+# Decision Options considered ChoiceRationaleDecision
+date
+Decider(s)
+D1 Client portal form
+factor
+Web · PWA · Native ·
+Combination
+D2 OCR strategy Managed · Self-hosted · LLM
+· Hybrid
+D3 AI models Classifier · Extraction ·
+Embeddings · Forecasting
+D4 Property data
+sources
+Partner APIs · Compliant
+scraping
+D5 Workflow
+orchestration
+(MVP)
+Managed serverless · Self-
+hosted engine · Pay-per-task
+· Custom
+D5b Workflow
+orchestration
+(Phase 2)
+(as above)
+D6 Real-time deliveryManaged pub/sub · Self-
+hosted
+D7 Identity & SSO Managed · Self-hosted ·
+Cloud-native primitives
+D8 Database, storage,
+search
+(per sub-lever)
+D9 Observability Errors · Logs · Traces/metrics
+D10 Hosting &
+infrastructure
+Cloud · Region · IaC ·
+Environments
+D11 Multi-tenancy
+model
+Silo · Bridge · Pool
+• 
+• 
+Megatrend Platform — ADR-001 (vendor-neutral) Page 14 of 15
+
+--- PAGE 15 ---
+Item Target / value
+Y1 client count
+Y1 leases
+Y1 documents/month
+MVP duration (weeks)
+Phase 2 duration (weeks)
+Phase 1 build budget
+Monthly operating budget (Y1)
+Property data licensing budget (Y1)
+Availability target (MVP / P2)
+Insight publication SLA (p95)
+Appendix B — Glossary
+Term Meaning
+ADR Architecture Decision Record
+AM Account Manager (Megatrend internal user)
+DSAR Data Subject Access Request (POPIA)
+MFA Multi-Factor Authentication
+NFR Non-Functional Requirement
+OCR Optical Character Recognition
+POPIA Protection of Personal Information Act (South Africa)
+PWA Progressive Web App
+RBAC Role-Based Access Control
+SSO Single Sign-On
+TBD To Be Decided — pending shaping session
+WORM Write Once Read Many (immutable storage)
+Megatrend Platform — ADR-001 (vendor-neutral) Page 15 of 15

@@ -1,5 +1,5 @@
 import { createFileRoute, Outlet } from "@tanstack/react-router";
-import { Bell, Search, Sparkles } from "lucide-react";
+import { Bell, LogIn, LogOut, Search, Sparkles } from "lucide-react";
 import {
   AdminAssistantProvider,
   useAdminAssistant,
@@ -10,6 +10,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { useMegatrendAuth } from "@/lib/auth-session";
 
 export const Route = createFileRoute("/_app")({
   component: AppLayout,
@@ -50,6 +51,15 @@ function AppFrame() {
 
 function Header() {
   const { open, toggleOpen } = useAdminAssistant();
+  const auth = useMegatrendAuth();
+
+  const initials =
+    auth.profile?.name
+      ?.split(" ")
+      .map((name) => name[0])
+      .join("")
+      .slice(0, 2)
+      .toUpperCase() ?? "JV";
 
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-border bg-background/80 px-3 backdrop-blur-md">
@@ -75,9 +85,20 @@ function Header() {
         <Button variant="ghost" size="icon" aria-label="Notifications">
           <Bell className="h-4 w-4" />
         </Button>
+        {auth.isAuthenticated ? (
+          <Button variant="ghost" size="sm" onClick={() => { void auth.logout({ returnTo: "/dashboard" }); }}>
+            <LogOut className="h-4 w-4" />
+            <span className="hidden sm:inline">Sign out</span>
+          </Button>
+        ) : (
+          <Button variant="ghost" size="sm" onClick={() => { void auth.login({ returnTo: "/dashboard" }).catch(() => {}); }}>
+            <LogIn className="h-4 w-4" />
+            <span className="hidden sm:inline">Sign in</span>
+          </Button>
+        )}
         <ThemeToggle />
         <div className="ml-1 hidden h-8 w-8 items-center justify-center rounded-full bg-primary text-xs font-medium text-primary-foreground md:flex">
-          JV
+          {initials}
         </div>
       </div>
     </header>

@@ -6,7 +6,7 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * Megatrend OS � Design System
+ * Megatrend OS — Design System
  * Light: white surfaces, blue accents (executive / advisory feel)
  * Dark: deep navy, cyan accents (matches uploaded prototype)
  *
@@ -70,7 +70,7 @@
 :root {
   --radius: 0.625rem;
 
-  /* Light — white + blue */
+  /* Light â€” white + blue */
   --background: oklch(0.995 0.002 240);
   --foreground: oklch(0.18 0.04 256);
   --card: oklch(1 0 0);
@@ -117,7 +117,7 @@
 }
 
 .dark {
-  /* Dark — deep navy + cyan (matches prototype) */
+  /* Dark â€” deep navy + cyan (matches prototype) */
   --background: oklch(0.13 0.025 260);
   --foreground: oklch(0.96 0.01 240);
   --card: oklch(0.17 0.03 260);

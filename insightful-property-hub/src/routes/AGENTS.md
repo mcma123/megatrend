@@ -11,6 +11,7 @@
 - Follow the file-based routing rules documented in `README.md`.
 - `__root.tsx` is the app shell and must continue to wrap descendant routes correctly.
 - Do not hand-edit generated route-tree artifacts outside the route files that produce them.
+- `api.chat.ts` is the server-side proxy that maps `requestContext.selectedAgent` from the assistant UI to the correct Mastra chat endpoint. Keep that routing table synchronized with the registered Mastra chat routes.
 
 # Work Guidance
 

@@ -11,6 +11,7 @@
 - Ports define what the application layer needs from external systems.
 - Keep contracts stable and implementation-agnostic.
 - Avoid importing framework, MCP, or CLI-specific runtime types here unless no narrower contract exists.
+- `okf-knowledge-gateway.ts` defines the application-facing contract for querying OKF bundles. Keep it centered on knowledge operations such as listing bundles, searching content, and fetching bundle files instead of leaking Windmill MCP or MinIO object-storage details.
 
 # Work Guidance
 

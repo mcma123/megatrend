@@ -11,11 +11,13 @@
 - Application services coordinate work, but should not contain provider-specific transport details.
 - Depend on interfaces from `../ports/`, not directly on CLI, MCP, or other concrete runtimes.
 - Keep agent-facing actions explicit and named by use case or capability.
+- `okf-knowledge/okf-knowledge-service.ts` is the orchestration layer for OKF bundle discovery and retrieval. It should stay responsible for shaping grounded agent-facing responses while delegating all Windmill and MinIO specifics to the OKF knowledge gateway.
 
 # Work Guidance
 
 - Put orchestration here when more than one adapter or boundary is involved.
 - Keep these services small and testable so tools remain thin adapters.
+- When document knowledge behavior changes, update the matching port and Windmill adapter together with the OKF service.
 
 # Verification
 

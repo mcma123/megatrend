@@ -13,6 +13,7 @@
 - Keep exported agent identifiers aligned with any route or SDK references that invoke them.
 - Shared integrations belong behind stable ports and concrete infrastructure adapters.
 - Mastra tools are adapter surfaces; use-case orchestration belongs in `application/`.
+- Keep the chat route surface in `index.ts` synchronized with the registered agents. The current runtime exposes `/chat` for `web-research-agent`, `/chat/okf` for `okf-agent`, and `/chat/facebook-marketplace` for `facebook-marketplace-agent`.
 
 # Work Guidance
 

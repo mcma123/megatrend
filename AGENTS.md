@@ -1,7 +1,7 @@
 # Project AI Agent Instructions
 
 This file is the entry point for AI agents working in this repository. It is
-**user-owned** — `wmill` never overwrites it. Add your project-specific
+**user-owned** ? `wmill` never overwrites it. Add your project-specific
 guidance below the include line.
 
 The line below pulls in Windmill's managed CLI guidance (skills, deploy flow,
@@ -13,6 +13,15 @@ include line if you don't want the managed guidance in this project.
 ## Project-specific instructions
 
 Deploy mode: wmill sync push (no CI wiring detected).
+- Active product UI baseline: `insightful-property-hub/`.
+- Quarantine `megatrend/` from solution scope until it is explicitly reactivated for product work.
+- Use Windmill for backend automation workflows.
+- Use Docling through Windmill for OCR and document extraction workflows.
+- Use Mastra for agentic behavior only, with Mastra agents/workflows calling Windmill scripts or flows as tools.
+- Keep AI document-processing business logic split clearly between:
+  - Windmill orchestration and execution
+  - Mastra agent reasoning and tool selection
+  - Convex application data and business state
 
 <!-- Add anything specific to this repo here. Examples:
      - Deploy commands or environments unique to this project.
@@ -119,7 +128,7 @@ When the user requests a durable behavior change, record it here or in the relev
 - `src/mastra/` -> `src/mastra/AGENTS.md`: Root Mastra server, agent registration, tool wiring, and chat API surface.
 - `convex/` -> `convex/AGENTS.md`: Convex backend rules, generated API surface, and Convex-specific operating constraints.
 - `insightful-property-hub/` -> `insightful-property-hub/AGENTS.md`: Main TanStack Start frontend served by the root `dev:web` workflow.
-- `megatrend/` -> `megatrend/AGENTS.md`: Secondary standalone TanStack Start app with its own source tree and tooling.
+- `megatrend/` -> `megatrend/AGENTS.md`: Quarantined standalone TanStack Start starter app, not part of the active product baseline.
 
 Root-owned without a child AGENTS.md:
 - `f/`: Windmill scripts, flows, folder metadata, and deployed automation assets.

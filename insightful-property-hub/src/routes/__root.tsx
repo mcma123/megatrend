@@ -8,6 +8,7 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { ThemeProvider } from "@/lib/theme";
+import { MegatrendAppProviders } from "@/lib/convex-client";
 
 function NotFoundComponent() {
   return (
@@ -92,10 +93,12 @@ function RootShell({ children }: { children: ReactNode }) {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   return (
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider>
-        <Outlet />
-      </ThemeProvider>
-    </QueryClientProvider>
+    <MegatrendAppProviders>
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider>
+          <Outlet />
+        </ThemeProvider>
+      </QueryClientProvider>
+    </MegatrendAppProviders>
   );
 }

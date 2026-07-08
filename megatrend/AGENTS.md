@@ -1,6 +1,7 @@
 # Purpose
 
 - Owns the standalone `megatrend/` TanStack Start application subtree.
+- This subtree is currently quarantined from the active Megatrend product scope and remains a starter app until explicitly reactivated.
 
 # Ownership
 
@@ -11,11 +12,13 @@
 
 - This folder is a separate app from the repository-root Mastra workspace and from `insightful-property-hub/`.
 - Generated outputs and dependencies such as `node_modules/` remain part of the subtree but are usually artifacts, not hand-authored source.
+- Do not treat this subtree as the active client portal or Megatrend CRM baseline unless the user explicitly changes that decision.
 
 # Work Guidance
 
 - Keep app-level config, dependency, and build expectations documented here.
 - Put source conventions and route ownership in the closer docs under `src/`.
+- Prefer architecture and backend work against `insightful-property-hub/` unless a task is specifically scoped to this starter app.
 
 # Verification
 
