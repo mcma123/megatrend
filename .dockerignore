@@ -9,6 +9,9 @@ insightful-property-hub/node_modules
 insightful-property-hub/.output
 insightful-property-hub/.tanstack
 insightful-property-hub/.wrangler
+.env
+.env.*
+insightful-property-hub/.env
+insightful-property-hub/.env.*
 npm-debug.log*
 *.log
-C:\tmp

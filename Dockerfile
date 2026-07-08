@@ -9,7 +9,8 @@ RUN npm ci --prefix insightful-property-hub
 
 COPY . .
 
-RUN npm run build
+RUN npm run build:web
+RUN npm run build:mastra
 
 ENV NODE_ENV=production
 ENV HOST=0.0.0.0

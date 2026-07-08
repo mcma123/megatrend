@@ -20,7 +20,7 @@ Deploy mode: wmill sync push (no CI wiring detected).
 - Use Mastra for agentic behavior only, with Mastra agents/workflows calling Windmill scripts or flows as tools.
 - Dokploy deployment for the active portal should target the frontend web app, not the Mastra runtime.
 - Root `npm run build` and `npm run start` are reserved for the active `insightful-property-hub/` production web deployment; use `npm run build:mastra` and `npm run start:mastra` only for the Mastra service.
-- Docker deployment can use `npm run start:platform` to run the portal and Mastra in one container, with the web app on `PORT` and Mastra on `MASTRA_PORT`.
+- Docker deployment can use `npm run start:platform` to run the portal and the built Mastra bundle in one container, with the web app on `PORT` and Mastra on `MASTRA_PORT`.
 - Keep AI document-processing business logic split clearly between:
   - Windmill orchestration and execution
   - Mastra agent reasoning and tool selection
@@ -138,5 +138,6 @@ Root-owned without a child AGENTS.md:
 - `scripts/`: Runtime wrapper scripts such as `mastra-openrouter.mjs`.
 - Root manifests and workspace config: `package.json`, `wmill.yaml`, `tsconfig*.json`, lockfiles, env files, `.wmill-config/`.
 - Tooling metadata and caches: `.agents/`, `.claude/`, `.mastra/`, `.mastra-temp/`, `.pnpm-store/`, `node_modules/`, and other generated runtime outputs.
+
 
 
