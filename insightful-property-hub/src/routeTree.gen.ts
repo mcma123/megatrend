@@ -34,12 +34,14 @@ import { Route as PortalClientSlugTeamRouteImport } from './routes/portal.$clien
 import { Route as PortalClientSlugInsightsRouteImport } from './routes/portal.$clientSlug.insights'
 import { Route as PortalClientSlugDocumentsRouteImport } from './routes/portal.$clientSlug.documents'
 import { Route as PortalClientSlugActionsRouteImport } from './routes/portal.$clientSlug.actions'
+import { Route as ApiScannerActionRouteImport } from './routes/api.scanner.$action'
 import { Route as AppPropertiesIdRouteImport } from './routes/_app.properties.$id'
 import { Route as AppLeasesIdRouteImport } from './routes/_app.leases.$id'
 import { Route as AppDocumentsIdRouteImport } from './routes/_app.documents.$id'
 import { Route as AppClientsIdRouteImport } from './routes/_app.clients.$id'
 import { Route as AppAutomationsIdRouteImport } from './routes/_app.automations.$id'
 import { Route as PortalClientSlugPropertiesPropertyIdRouteImport } from './routes/portal.$clientSlug.properties.$propertyId'
+import { Route as PortalClientSlugDocumentsScannerRouteImport } from './routes/portal.$clientSlug.documents.scanner'
 import { Route as PortalClientSlugPropertiesPropertyIdLeaseRouteImport } from './routes/portal.$clientSlug.properties.$propertyId.lease'
 
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
@@ -168,6 +170,11 @@ const PortalClientSlugActionsRoute = PortalClientSlugActionsRouteImport.update({
   path: '/actions',
   getParentRoute: () => PortalClientSlugRoute,
 } as any)
+const ApiScannerActionRoute = ApiScannerActionRouteImport.update({
+  id: '/api/scanner/$action',
+  path: '/api/scanner/$action',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AppPropertiesIdRoute = AppPropertiesIdRouteImport.update({
   id: '/$id',
   path: '/$id',
@@ -198,6 +205,12 @@ const PortalClientSlugPropertiesPropertyIdRoute =
     id: '/properties/$propertyId',
     path: '/properties/$propertyId',
     getParentRoute: () => PortalClientSlugRoute,
+  } as any)
+const PortalClientSlugDocumentsScannerRoute =
+  PortalClientSlugDocumentsScannerRouteImport.update({
+    id: '/scanner',
+    path: '/scanner',
+    getParentRoute: () => PortalClientSlugDocumentsRoute,
   } as any)
 const PortalClientSlugPropertiesPropertyIdLeaseRoute =
   PortalClientSlugPropertiesPropertyIdLeaseRouteImport.update({
@@ -231,11 +244,13 @@ export interface FileRoutesByFullPath {
   '/documents/$id': typeof AppDocumentsIdRoute
   '/leases/$id': typeof AppLeasesIdRoute
   '/properties/$id': typeof AppPropertiesIdRoute
+  '/api/scanner/$action': typeof ApiScannerActionRoute
   '/portal/$clientSlug/actions': typeof PortalClientSlugActionsRoute
-  '/portal/$clientSlug/documents': typeof PortalClientSlugDocumentsRoute
+  '/portal/$clientSlug/documents': typeof PortalClientSlugDocumentsRouteWithChildren
   '/portal/$clientSlug/insights': typeof PortalClientSlugInsightsRoute
   '/portal/$clientSlug/team': typeof PortalClientSlugTeamRoute
   '/portal/$clientSlug/': typeof PortalClientSlugIndexRoute
+  '/portal/$clientSlug/documents/scanner': typeof PortalClientSlugDocumentsScannerRoute
   '/portal/$clientSlug/properties/$propertyId': typeof PortalClientSlugPropertiesPropertyIdRouteWithChildren
   '/portal/$clientSlug/properties/$propertyId/lease': typeof PortalClientSlugPropertiesPropertyIdLeaseRoute
 }
@@ -263,11 +278,13 @@ export interface FileRoutesByTo {
   '/documents/$id': typeof AppDocumentsIdRoute
   '/leases/$id': typeof AppLeasesIdRoute
   '/properties/$id': typeof AppPropertiesIdRoute
+  '/api/scanner/$action': typeof ApiScannerActionRoute
   '/portal/$clientSlug/actions': typeof PortalClientSlugActionsRoute
-  '/portal/$clientSlug/documents': typeof PortalClientSlugDocumentsRoute
+  '/portal/$clientSlug/documents': typeof PortalClientSlugDocumentsRouteWithChildren
   '/portal/$clientSlug/insights': typeof PortalClientSlugInsightsRoute
   '/portal/$clientSlug/team': typeof PortalClientSlugTeamRoute
   '/portal/$clientSlug': typeof PortalClientSlugIndexRoute
+  '/portal/$clientSlug/documents/scanner': typeof PortalClientSlugDocumentsScannerRoute
   '/portal/$clientSlug/properties/$propertyId': typeof PortalClientSlugPropertiesPropertyIdRouteWithChildren
   '/portal/$clientSlug/properties/$propertyId/lease': typeof PortalClientSlugPropertiesPropertyIdLeaseRoute
 }
@@ -298,11 +315,13 @@ export interface FileRoutesById {
   '/_app/documents/$id': typeof AppDocumentsIdRoute
   '/_app/leases/$id': typeof AppLeasesIdRoute
   '/_app/properties/$id': typeof AppPropertiesIdRoute
+  '/api/scanner/$action': typeof ApiScannerActionRoute
   '/portal/$clientSlug/actions': typeof PortalClientSlugActionsRoute
-  '/portal/$clientSlug/documents': typeof PortalClientSlugDocumentsRoute
+  '/portal/$clientSlug/documents': typeof PortalClientSlugDocumentsRouteWithChildren
   '/portal/$clientSlug/insights': typeof PortalClientSlugInsightsRoute
   '/portal/$clientSlug/team': typeof PortalClientSlugTeamRoute
   '/portal/$clientSlug/': typeof PortalClientSlugIndexRoute
+  '/portal/$clientSlug/documents/scanner': typeof PortalClientSlugDocumentsScannerRoute
   '/portal/$clientSlug/properties/$propertyId': typeof PortalClientSlugPropertiesPropertyIdRouteWithChildren
   '/portal/$clientSlug/properties/$propertyId/lease': typeof PortalClientSlugPropertiesPropertyIdLeaseRoute
 }
@@ -333,11 +352,13 @@ export interface FileRouteTypes {
     | '/documents/$id'
     | '/leases/$id'
     | '/properties/$id'
+    | '/api/scanner/$action'
     | '/portal/$clientSlug/actions'
     | '/portal/$clientSlug/documents'
     | '/portal/$clientSlug/insights'
     | '/portal/$clientSlug/team'
     | '/portal/$clientSlug/'
+    | '/portal/$clientSlug/documents/scanner'
     | '/portal/$clientSlug/properties/$propertyId'
     | '/portal/$clientSlug/properties/$propertyId/lease'
   fileRoutesByTo: FileRoutesByTo
@@ -365,11 +386,13 @@ export interface FileRouteTypes {
     | '/documents/$id'
     | '/leases/$id'
     | '/properties/$id'
+    | '/api/scanner/$action'
     | '/portal/$clientSlug/actions'
     | '/portal/$clientSlug/documents'
     | '/portal/$clientSlug/insights'
     | '/portal/$clientSlug/team'
     | '/portal/$clientSlug'
+    | '/portal/$clientSlug/documents/scanner'
     | '/portal/$clientSlug/properties/$propertyId'
     | '/portal/$clientSlug/properties/$propertyId/lease'
   id:
@@ -399,11 +422,13 @@ export interface FileRouteTypes {
     | '/_app/documents/$id'
     | '/_app/leases/$id'
     | '/_app/properties/$id'
+    | '/api/scanner/$action'
     | '/portal/$clientSlug/actions'
     | '/portal/$clientSlug/documents'
     | '/portal/$clientSlug/insights'
     | '/portal/$clientSlug/team'
     | '/portal/$clientSlug/'
+    | '/portal/$clientSlug/documents/scanner'
     | '/portal/$clientSlug/properties/$propertyId'
     | '/portal/$clientSlug/properties/$propertyId/lease'
   fileRoutesById: FileRoutesById
@@ -417,6 +442,7 @@ export interface RootRouteChildren {
   AuthCallbackRoute: typeof AuthCallbackRoute
   PortalClientSlugRoute: typeof PortalClientSlugRouteWithChildren
   PortalIndexRoute: typeof PortalIndexRoute
+  ApiScannerActionRoute: typeof ApiScannerActionRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -596,6 +622,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PortalClientSlugActionsRouteImport
       parentRoute: typeof PortalClientSlugRoute
     }
+    '/api/scanner/$action': {
+      id: '/api/scanner/$action'
+      path: '/api/scanner/$action'
+      fullPath: '/api/scanner/$action'
+      preLoaderRoute: typeof ApiScannerActionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_app/properties/$id': {
       id: '/_app/properties/$id'
       path: '/$id'
@@ -637,6 +670,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/portal/$clientSlug/properties/$propertyId'
       preLoaderRoute: typeof PortalClientSlugPropertiesPropertyIdRouteImport
       parentRoute: typeof PortalClientSlugRoute
+    }
+    '/portal/$clientSlug/documents/scanner': {
+      id: '/portal/$clientSlug/documents/scanner'
+      path: '/scanner'
+      fullPath: '/portal/$clientSlug/documents/scanner'
+      preLoaderRoute: typeof PortalClientSlugDocumentsScannerRouteImport
+      parentRoute: typeof PortalClientSlugDocumentsRoute
     }
     '/portal/$clientSlug/properties/$propertyId/lease': {
       id: '/portal/$clientSlug/properties/$propertyId/lease'
@@ -740,6 +780,21 @@ const AppRouteChildren: AppRouteChildren = {
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 
+interface PortalClientSlugDocumentsRouteChildren {
+  PortalClientSlugDocumentsScannerRoute: typeof PortalClientSlugDocumentsScannerRoute
+}
+
+const PortalClientSlugDocumentsRouteChildren: PortalClientSlugDocumentsRouteChildren =
+  {
+    PortalClientSlugDocumentsScannerRoute:
+      PortalClientSlugDocumentsScannerRoute,
+  }
+
+const PortalClientSlugDocumentsRouteWithChildren =
+  PortalClientSlugDocumentsRoute._addFileChildren(
+    PortalClientSlugDocumentsRouteChildren,
+  )
+
 interface PortalClientSlugPropertiesPropertyIdRouteChildren {
   PortalClientSlugPropertiesPropertyIdLeaseRoute: typeof PortalClientSlugPropertiesPropertyIdLeaseRoute
 }
@@ -757,7 +812,7 @@ const PortalClientSlugPropertiesPropertyIdRouteWithChildren =
 
 interface PortalClientSlugRouteChildren {
   PortalClientSlugActionsRoute: typeof PortalClientSlugActionsRoute
-  PortalClientSlugDocumentsRoute: typeof PortalClientSlugDocumentsRoute
+  PortalClientSlugDocumentsRoute: typeof PortalClientSlugDocumentsRouteWithChildren
   PortalClientSlugInsightsRoute: typeof PortalClientSlugInsightsRoute
   PortalClientSlugTeamRoute: typeof PortalClientSlugTeamRoute
   PortalClientSlugIndexRoute: typeof PortalClientSlugIndexRoute
@@ -766,7 +821,7 @@ interface PortalClientSlugRouteChildren {
 
 const PortalClientSlugRouteChildren: PortalClientSlugRouteChildren = {
   PortalClientSlugActionsRoute: PortalClientSlugActionsRoute,
-  PortalClientSlugDocumentsRoute: PortalClientSlugDocumentsRoute,
+  PortalClientSlugDocumentsRoute: PortalClientSlugDocumentsRouteWithChildren,
   PortalClientSlugInsightsRoute: PortalClientSlugInsightsRoute,
   PortalClientSlugTeamRoute: PortalClientSlugTeamRoute,
   PortalClientSlugIndexRoute: PortalClientSlugIndexRoute,
@@ -786,6 +841,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthCallbackRoute: AuthCallbackRoute,
   PortalClientSlugRoute: PortalClientSlugRouteWithChildren,
   PortalIndexRoute: PortalIndexRoute,
+  ApiScannerActionRoute: ApiScannerActionRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

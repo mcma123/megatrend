@@ -1,0 +1,50 @@
+summary: Process and crop a scanned document image
+description: Applies perspective correction, rotation, cleanup, and enhancement filters to a scanned page image and returns the processed page as base64.
+lock: '!inline f/docling/scanner/scan_document_image.script.lock'
+kind: script
+schema:
+  $schema: https://json-schema.org/draft/2020-12/schema
+  type: object
+  properties:
+    cleanupSettings:
+      type: ''
+      description: ''
+      default: null
+    cornerPoints:
+      type: ''
+      description: ''
+      default: null
+    enhancementMode:
+      type: string
+      description: ''
+      default: original
+      originalType: string
+    imageData:
+      type: string
+      description: ''
+      default: null
+      originalType: string
+    metadata:
+      type: ''
+      description: ''
+      default: null
+    rotateValue:
+      type: integer
+      description: ''
+      default: 0
+    scanSessionId:
+      type: string
+      description: ''
+      default: null
+      originalType: string
+    upscale:
+      type: boolean
+      description: ''
+      default: false
+    userId:
+      type: string
+      description: ''
+      default: null
+      originalType: string
+  required:
+    - imageData

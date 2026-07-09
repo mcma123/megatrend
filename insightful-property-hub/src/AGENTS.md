@@ -28,4 +28,5 @@
 
 - `routes/` -> `insightful-property-hub/src/routes/AGENTS.md`: File-based route conventions, route families, and generated route-tree constraints.
 - `components/admin-assistant/` -> `insightful-property-hub/src/components/admin-assistant/AGENTS.md`: Assistant panel state, agent selection, sidebar/full-page behavior, and Mastra chat UI wiring.
+- `components/document-scanner/` -> `insightful-property-hub/src/components/document-scanner/AGENTS.md`: Reusable client-portal scanner capture, edit, enhancement, page-management, and PDF export UI.
 - `components/`, `hooks/`, and `lib/` remain owned by this doc until they need more specific local contracts.

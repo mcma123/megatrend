@@ -1,0 +1,52 @@
+summary: Generate a multi-page scanned PDF
+description: Combines processed scan page images into a single PDF, preserving order and returning PDF metadata plus a base64 payload.
+lock: '!inline f/docling/scanner/generate_scanned_pdf.script.lock'
+kind: script
+schema:
+  $schema: https://json-schema.org/draft/2020-12/schema
+  type: object
+  properties:
+    compression:
+      type: string
+      description: ''
+      default: medium
+      originalType: string
+    metadata:
+      type: ''
+      description: ''
+      default: null
+    orientation:
+      type: string
+      description: ''
+      default: auto
+      originalType: string
+    pageImages:
+      type: array
+      description: ''
+      default: null
+      items:
+        type: string
+      originalType: string[]
+    pageSize:
+      type: string
+      description: ''
+      default: a4
+      originalType: string
+    pdfFileName:
+      type: string
+      description: ''
+      default: null
+      originalType: string
+    scanSessionId:
+      type: string
+      description: ''
+      default: null
+      originalType: string
+    userId:
+      type: string
+      description: ''
+      default: null
+      originalType: string
+  required:
+    - pageImages
+    - pdfFileName

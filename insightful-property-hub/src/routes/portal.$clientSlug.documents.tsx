@@ -1,6 +1,7 @@
 import { type ChangeEvent, type RefObject, useRef, useState } from "react";
-import { createFileRoute, notFound } from "@tanstack/react-router";
+import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import {
+  ArrowRight,
   CalendarRange,
   CircleAlert,
   Download,
@@ -194,7 +195,10 @@ export const Route = createFileRoute("/portal/$clientSlug/documents")({
 function ClientDocumentsPage() {
   const { client } = Route.useLoaderData();
   const clientProperties = properties.filter((property) => property.clientId === client.id);
-  const propertyOptions = clientProperties.map((property) => ({ id: property.id, name: property.name }));
+  const propertyOptions = clientProperties.map((property) => ({
+    id: property.id,
+    name: property.name,
+  }));
 
   const [query, setQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState<"All" | DocumentType>("All");
@@ -210,7 +214,9 @@ function ClientDocumentsPage() {
       query.trim().length === 0 ||
       document.name.toLowerCase().includes(query.toLowerCase()) ||
       document.uploadedBy.toLowerCase().includes(query.toLowerCase()) ||
-      getPropertyName(document.propertyId, propertyOptions).toLowerCase().includes(query.toLowerCase());
+      getPropertyName(document.propertyId, propertyOptions)
+        .toLowerCase()
+        .includes(query.toLowerCase());
     const matchesType = typeFilter === "All" || document.type === typeFilter;
     const matchesStatus = statusFilter === "All" || document.status === statusFilter;
     const matchesProperty = propertyFilter === "All" || document.propertyId === propertyFilter;
@@ -275,15 +281,87 @@ function ClientDocumentsPage() {
             <Button variant="outline" onClick={() => openFilePicker(bulkUploadRef)}>
               <Files className="h-4 w-4" /> Bulk upload
             </Button>
+            <Button variant="outline" asChild>
+              <Link to="/portal/$clientSlug/documents/scanner" params={{ clientSlug: client.slug }}>
+                <FileSearch className="h-4 w-4" /> Open scanner
+              </Link>
+            </Button>
           </>
         }
       />
 
+      <Card className="surface-elevated mb-6 overflow-hidden p-0">
+        <div className="grid gap-0 md:grid-cols-[1.2fr_0.8fr]">
+          <div className="bg-gradient-to-br from-primary/10 via-background to-info/10 p-6">
+            <div className="tag-pill">New module</div>
+            <h2 className="mt-4 font-display text-2xl">Document scanner</h2>
+            <p className="mt-3 max-w-2xl text-sm text-muted-foreground">
+              Capture multi-page scans from camera or upload, refine the crop manually, process with
+              Windmill, and export a clean PDF back into this document workspace.
+            </p>
+            <div className="mt-5 flex flex-wrap gap-2">
+              <Button asChild>
+                <Link
+                  to="/portal/$clientSlug/documents/scanner"
+                  params={{ clientSlug: client.slug }}
+                >
+                  Open scanner <ArrowRight className="h-4 w-4" />
+                </Link>
+              </Button>
+            </div>
+          </div>
+          <div className="grid-bg flex min-h-52 items-center justify-center bg-muted/30 p-6">
+            <div className="w-full max-w-sm rounded-3xl border border-border bg-card/80 p-5 shadow-sm">
+              <div className="flex items-center justify-between text-xs uppercase tracking-[0.14em] text-muted-foreground">
+                <span>Scanner flow</span>
+                <span>
+                  Capture {"->"} Detect {"->"} Process {"->"} PDF
+                </span>
+              </div>
+              <div className="mt-5 space-y-3">
+                {[
+                  "Take photo or upload pages",
+                  "Adjust corners and choose enhancement mode",
+                  "Process the pages in Windmill",
+                  "Generate and save the final PDF",
+                ].map((step, index) => (
+                  <div
+                    key={step}
+                    className="flex items-center gap-3 rounded-2xl border border-border bg-background/80 px-3 py-3"
+                  >
+                    <div className="grid h-8 w-8 place-items-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
+                      {index + 1}
+                    </div>
+                    <div className="text-sm">{step}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </Card>
+
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <SummaryCard label="Total documents" value={summary.total} detail="Across leases, invoices, utilities, and supporting records." />
-        <SummaryCard label="Processing" value={summary.processing} detail="Currently moving through validation and extraction." />
-        <SummaryCard label="Needs review" value={summary.needsReview} detail="Flagged for a client or consultant decision." />
-        <SummaryCard label="Published" value={summary.published} detail="Available to the portfolio record and downstream workflows." />
+        <SummaryCard
+          label="Total documents"
+          value={summary.total}
+          detail="Across leases, invoices, utilities, and supporting records."
+        />
+        <SummaryCard
+          label="Processing"
+          value={summary.processing}
+          detail="Currently moving through validation and extraction."
+        />
+        <SummaryCard
+          label="Needs review"
+          value={summary.needsReview}
+          detail="Flagged for a client or consultant decision."
+        />
+        <SummaryCard
+          label="Published"
+          value={summary.published}
+          detail="Available to the portfolio record and downstream workflows."
+        />
       </section>
 
       <Card className="surface-elevated mt-6 p-4">
@@ -336,7 +414,8 @@ function ClientDocumentsPage() {
                 <div>
                   <h2 className="font-display text-xl">Document register</h2>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    Every upload shows where it is in the review pipeline and how confident the extraction engine is.
+                    Every upload shows where it is in the review pipeline and how confident the
+                    extraction engine is.
                   </p>
                 </div>
                 <div className="text-xs text-muted-foreground">
@@ -365,17 +444,32 @@ function ClientDocumentsPage() {
                     </thead>
                     <tbody>
                       {filteredDocuments.map((document) => (
-                        <tr key={document.id} className="border-b border-border/60 align-top hover:bg-accent/20">
+                        <tr
+                          key={document.id}
+                          className="border-b border-border/60 align-top hover:bg-accent/20"
+                        >
                           <td className="px-5 py-4">
                             <div className="font-medium text-foreground">{document.name}</div>
-                            <div className="mt-1 max-w-md text-xs text-muted-foreground">{document.insight}</div>
+                            <div className="mt-1 max-w-md text-xs text-muted-foreground">
+                              {document.insight}
+                            </div>
                           </td>
-                          <td className="px-3 py-4"><span className="tag-pill">{document.type}</span></td>
-                          <td className="px-3 py-4 text-muted-foreground">{getPropertyName(document.propertyId, propertyOptions)}</td>
-                          <td className="px-3 py-4 font-mono text-xs text-muted-foreground">{document.uploadDate}</td>
-                          <td className="px-3 py-4"><StatusBadge status={document.status} /></td>
+                          <td className="px-3 py-4">
+                            <span className="tag-pill">{document.type}</span>
+                          </td>
+                          <td className="px-3 py-4 text-muted-foreground">
+                            {getPropertyName(document.propertyId, propertyOptions)}
+                          </td>
+                          <td className="px-3 py-4 font-mono text-xs text-muted-foreground">
+                            {document.uploadDate}
+                          </td>
+                          <td className="px-3 py-4">
+                            <StatusBadge status={document.status} />
+                          </td>
                           <td className="px-3 py-4 text-muted-foreground">{document.uploadedBy}</td>
-                          <td className="px-3 py-4"><ConfidenceLabel confidence={document.confidence} /></td>
+                          <td className="px-3 py-4">
+                            <ConfidenceLabel confidence={document.confidence} />
+                          </td>
                           <td className="px-5 py-4">
                             <div className="flex flex-wrap justify-end gap-2">
                               <Button variant="ghost" size="sm" className="h-8 px-2 text-xs">
@@ -387,7 +481,11 @@ function ClientDocumentsPage() {
                               <Button variant="ghost" size="sm" className="h-8 px-2 text-xs">
                                 <RefreshCw className="h-3.5 w-3.5" /> Replace
                               </Button>
-                              <Button variant="ghost" size="sm" className="h-8 px-2 text-xs text-muted-foreground">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 px-2 text-xs text-muted-foreground"
+                              >
                                 <Trash2 className="h-3.5 w-3.5" /> Request deletion
                               </Button>
                             </div>
@@ -400,11 +498,16 @@ function ClientDocumentsPage() {
 
                 <div className="grid gap-3 p-4 lg:hidden">
                   {filteredDocuments.map((document) => (
-                    <Card key={document.id} className="border border-border/70 bg-card/60 p-4 shadow-none">
+                    <Card
+                      key={document.id}
+                      className="border border-border/70 bg-card/60 p-4 shadow-none"
+                    >
                       <div className="flex items-start justify-between gap-3">
                         <div>
                           <div className="font-medium">{document.name}</div>
-                          <div className="mt-1 text-xs text-muted-foreground">{getPropertyName(document.propertyId, propertyOptions)}</div>
+                          <div className="mt-1 text-xs text-muted-foreground">
+                            {getPropertyName(document.propertyId, propertyOptions)}
+                          </div>
                         </div>
                         <StatusBadge status={document.status} />
                       </div>
@@ -441,13 +544,16 @@ function ClientDocumentsPage() {
           <Card className="surface-elevated p-5">
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">Upload queue</div>
+                <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+                  Upload queue
+                </div>
                 <h2 className="mt-2 font-display text-lg">What happens after upload</h2>
               </div>
               <Upload className="h-4 w-4 text-primary" />
             </div>
             <p className="mt-2 text-sm text-muted-foreground">
-              Clients can see exactly which step each file is in, from intake through AI extraction and publication.
+              Clients can see exactly which step each file is in, from intake through AI extraction
+              and publication.
             </p>
             <div className="mt-4 space-y-3">
               {uploadQueue.map((item) => (
@@ -457,17 +563,22 @@ function ClientDocumentsPage() {
           </Card>
 
           <Card className="surface-elevated p-5">
-            <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">Client signal</div>
+            <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+              Client signal
+            </div>
             <h2 className="mt-2 font-display text-lg">Why a document is held back</h2>
             <ul className="mt-3 space-y-3 text-sm text-muted-foreground">
               <li className="rounded-md border border-border/70 bg-card/50 p-3">
-                Low confidence keeps a file in review so extracted data does not overwrite the lease record too early.
+                Low confidence keeps a file in review so extracted data does not overwrite the lease
+                record too early.
               </li>
               <li className="rounded-md border border-border/70 bg-card/50 p-3">
-                Failed validation means the file is readable enough to store, but not reliable enough to classify.
+                Failed validation means the file is readable enough to store, but not reliable
+                enough to classify.
               </li>
               <li className="rounded-md border border-border/70 bg-card/50 p-3">
-                Published documents are immediately available to downstream invoice, lease, and property workflows.
+                Published documents are immediately available to downstream invoice, lease, and
+                property workflows.
               </li>
             </ul>
           </Card>
@@ -522,21 +633,28 @@ function StatusBadge({ status }: { status: DocumentStatus }) {
     Failed: "border-destructive/40 bg-destructive/10 text-destructive",
   } satisfies Record<DocumentStatus, string>;
 
-  return <span className={`inline-flex items-center rounded-md border px-2.5 py-1 text-xs font-medium ${classes[status]}`}>{status}</span>;
+  return (
+    <span
+      className={`inline-flex items-center rounded-md border px-2.5 py-1 text-xs font-medium ${classes[status]}`}
+    >
+      {status}
+    </span>
+  );
 }
 
 function ConfidenceLabel({ confidence }: { confidence: ConfidenceLabel }) {
   const isHigh = confidence.endsWith("%") && Number.parseInt(confidence, 10) >= 90;
   const isMid = confidence.endsWith("%") && Number.parseInt(confidence, 10) < 90;
-  const className = confidence === "Failed"
-    ? "text-destructive"
-    : confidence === "Pending"
-      ? "text-muted-foreground"
-      : isHigh
-        ? "text-success"
-        : isMid
-          ? "text-warning"
-          : "text-foreground";
+  const className =
+    confidence === "Failed"
+      ? "text-destructive"
+      : confidence === "Pending"
+        ? "text-muted-foreground"
+        : isHigh
+          ? "text-success"
+          : isMid
+            ? "text-warning"
+            : "text-foreground";
 
   return <span className={`font-mono text-xs ${className}`}>{confidence}</span>;
 }
@@ -569,7 +687,10 @@ function UploadQueueCard({ item }: { item: UploadQueueItem }) {
         )}
       </div>
       <div className="mt-3 h-2 rounded-full bg-accent">
-        <div className={`h-2 rounded-full ${item.status === "error" ? "bg-destructive" : "bg-primary"}`} style={{ width: `${item.progress}%` }} />
+        <div
+          className={`h-2 rounded-full ${item.status === "error" ? "bg-destructive" : "bg-primary"}`}
+          style={{ width: `${item.progress}%` }}
+        />
       </div>
       <div className="mt-3 flex flex-wrap gap-1.5">
         {processingSteps.map((step, index) => {
@@ -610,7 +731,8 @@ function EmptyState({ onUpload }: { onUpload: () => void }) {
       </div>
       <h3 className="mt-5 font-display text-2xl">No documents uploaded yet.</h3>
       <p className="mt-2 max-w-md text-sm text-muted-foreground">
-        Upload your first document to start tracking validation, AI extraction, and publication status in one place.
+        Upload your first document to start tracking validation, AI extraction, and publication
+        status in one place.
       </p>
       <Button className="mt-5" onClick={onUpload}>
         <Upload className="h-4 w-4" /> Upload your first document
@@ -620,7 +742,9 @@ function EmptyState({ onUpload }: { onUpload: () => void }) {
 }
 
 function getPropertyName(propertyId: string, propertyOptions: Array<{ id: string; name: string }>) {
-  return propertyOptions.find((property) => property.id === propertyId)?.name ?? "Unassigned property";
+  return (
+    propertyOptions.find((property) => property.id === propertyId)?.name ?? "Unassigned property"
+  );
 }
 
 function openFilePicker(inputRef: RefObject<HTMLInputElement | null>) {

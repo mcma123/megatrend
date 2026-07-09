@@ -1,0 +1,34 @@
+summary: Detect document edges for scanner uploads
+description: Accepts a base64 image, finds the most likely document contour with OpenCV, and returns ordered crop corners plus an outlined preview.
+lock: '!inline f/docling/scanner/detect_document_edges.script.lock'
+kind: script
+schema:
+  $schema: https://json-schema.org/draft/2020-12/schema
+  type: object
+  properties:
+    fileName:
+      type: string
+      description: ''
+      default: null
+      originalType: string
+    imageData:
+      type: string
+      description: ''
+      default: null
+      originalType: string
+    metadata:
+      type: ''
+      description: ''
+      default: null
+    scanSessionId:
+      type: string
+      description: ''
+      default: null
+      originalType: string
+    userId:
+      type: string
+      description: ''
+      default: null
+      originalType: string
+  required:
+    - imageData

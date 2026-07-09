@@ -1,0 +1,53 @@
+summary: Save a scanned PDF document record
+description: Stores a generated scanner PDF in workspace object storage when provided and returns a normalized saved document record payload.
+lock: '!inline f/docling/scanner/save_scanned_document.script.lock'
+kind: script
+schema:
+  $schema: https://json-schema.org/draft/2020-12/schema
+  type: object
+  properties:
+    documentName:
+      type: string
+      description: ''
+      default: null
+      originalType: string
+    documentType:
+      type: string
+      description: ''
+      default: scanner
+      originalType: string
+    metadata:
+      type: ''
+      description: ''
+      default: null
+    pdfBase64:
+      type: string
+      description: ''
+      default: null
+      originalType: string
+    pdfUrl:
+      type: string
+      description: ''
+      default: null
+      originalType: string
+    scanMetadata:
+      type: ''
+      description: ''
+      default: null
+    scanSessionId:
+      type: string
+      description: ''
+      default: null
+      originalType: string
+    uploadedBy:
+      type: string
+      description: ''
+      default: null
+      originalType: string
+    userId:
+      type: string
+      description: ''
+      default: null
+      originalType: string
+  required:
+    - documentName

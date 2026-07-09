@@ -1,4 +1,11 @@
-import { createFileRoute, Link, notFound, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
+import {
+  createFileRoute,
+  Link,
+  notFound,
+  Outlet,
+  useNavigate,
+  useRouterState,
+} from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import {
   FileText,
@@ -54,6 +61,7 @@ type PortalNavItem = {
     | "/portal/$clientSlug"
     | "/portal/$clientSlug/actions"
     | "/portal/$clientSlug/documents"
+    | "/portal/$clientSlug/documents/scanner"
     | "/portal/$clientSlug/insights"
     | "/portal/$clientSlug/properties/$propertyId"
     | "/portal/$clientSlug/properties/$propertyId/lease"
@@ -93,7 +101,8 @@ function ClientPortalShell() {
   const clientProperties = properties.filter((property) => property.clientId === client.id);
   const primaryProperty = clientProperties[0];
   const basePath = `/portal/${client.slug}`;
-  const normalizedPath = pathname.length > 1 && pathname.endsWith("/") ? pathname.slice(0, -1) : pathname;
+  const normalizedPath =
+    pathname.length > 1 && pathname.endsWith("/") ? pathname.slice(0, -1) : pathname;
 
   const navGroups: { label: string; items: PortalNavItem[] }[] = [
     {
@@ -141,7 +150,7 @@ function ClientPortalShell() {
           to: "/portal/$clientSlug/documents",
           params: { clientSlug: client.slug },
           icon: FileText,
-          active: normalizedPath === `${basePath}/documents`,
+          active: normalizedPath.startsWith(`${basePath}/documents`),
         },
         {
           title: "Insights",
@@ -207,7 +216,9 @@ function ClientPortalFrame({
         <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-border bg-background/80 px-3 backdrop-blur-md">
           <SidebarTrigger />
           <div className="ml-2 hidden items-center gap-2 md:flex">
-            <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Client portal</span>
+            <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+              Client portal
+            </span>
             <span className="text-muted-foreground">|</span>
             <span className="font-display text-sm">{client.name}</span>
           </div>
@@ -216,7 +227,9 @@ function ClientPortalFrame({
               <PanelLeft className="h-4 w-4" />
             </Button>
             <ThemeToggle />
-            <span className="hidden text-xs text-muted-foreground md:inline">{session.fullName}</span>
+            <span className="hidden text-xs text-muted-foreground md:inline">
+              {session.fullName}
+            </span>
             <div className="ml-1 hidden h-8 w-8 items-center justify-center rounded-full bg-primary text-xs font-medium text-primary-foreground md:flex">
               {session.fullName
                 .split(" ")
@@ -254,13 +267,19 @@ function ClientPortalSidebar({
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader className="border-b border-sidebar-border">
-        <Link to="/portal/$clientSlug" params={{ clientSlug }} className="flex items-center gap-2 px-2 py-1.5">
+        <Link
+          to="/portal/$clientSlug"
+          params={{ clientSlug }}
+          className="flex items-center gap-2 px-2 py-1.5"
+        >
           <div className="grid h-8 w-8 place-items-center rounded-md bg-primary text-primary-foreground">
             <Globe className="h-4 w-4" />
           </div>
           {!collapsed && (
             <div className="flex flex-col leading-tight">
-              <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Client portal</span>
+              <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                Client portal
+              </span>
               <span className="font-display text-sm">{clientName}</span>
             </div>
           )}

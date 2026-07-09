@@ -1,11 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { LoaderCircle } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useMegatrendAuth } from "@/lib/auth-session";
 import { useOptionalConvexClient } from "@/lib/convex-client";
 import { api } from "../../../convex/_generated/api";
+
+const CONVEX_SYNC_TIMEOUT_MS = 2_000;
 
 export const Route = createFileRoute("/auth/callback")({
   head: () => ({
@@ -18,21 +20,31 @@ function AuthCallbackPage() {
   const auth = useMegatrendAuth();
   const convexClient = useOptionalConvexClient();
   const [error, setError] = useState<string | null>(null);
+  const hasStartedCallback = useRef(false);
+  const isMounted = useRef(true);
 
   useEffect(() => {
-    let cancelled = false;
+    isMounted.current = true;
+
+    if (hasStartedCallback.current) {
+      return;
+    }
+    hasStartedCallback.current = true;
 
     const run = async () => {
       try {
         const returnTo = await auth.handleCallback();
         if (convexClient) {
-          await convexClient.mutation(api.users.syncCurrentUser, {});
+          await Promise.race([
+            convexClient.mutation(api.users.syncCurrentUser, {}),
+            new Promise((resolve) => setTimeout(resolve, CONVEX_SYNC_TIMEOUT_MS)),
+          ]).catch((syncError) => {
+            console.error("Convex user sync failed during callback", syncError);
+          });
         }
-        if (!cancelled) {
-          window.location.replace(returnTo);
-        }
+        window.location.replace(returnTo);
       } catch (callbackError) {
-        if (!cancelled) {
+        if (isMounted.current) {
           setError(
             callbackError instanceof Error ? callbackError.message : "Could not complete sign-in.",
           );
@@ -43,7 +55,7 @@ function AuthCallbackPage() {
     void run();
 
     return () => {
-      cancelled = true;
+      isMounted.current = false;
     };
   }, [auth, convexClient]);
 
