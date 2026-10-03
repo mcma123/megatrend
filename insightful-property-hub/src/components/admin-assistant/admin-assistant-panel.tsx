@@ -12,7 +12,6 @@ import {
   Loader2,
   Maximize2,
   Minimize2,
-  Search,
   Sparkles,
   Square,
   Wrench,
@@ -30,9 +29,9 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 
 const DEFAULT_MODEL = "openai/gpt-4.1-mini";
@@ -312,6 +311,8 @@ export function AdminAssistantPanel() {
   const [isModelPickerOpen, setIsModelPickerOpen] = useState(false);
   const [isAgentPickerOpen, setIsAgentPickerOpen] = useState(false);
   const viewportRef = useRef<HTMLDivElement | null>(null);
+  const draftRef = useRef<HTMLTextAreaElement | null>(null);
+  const hasScrolledRef = useRef(false);
   const { messages, sendMessage, status, stop, error } = useChat<AssistantMessage>({
     id: `megatrend-assistant:${selectedAgent}`,
     transport: new DefaultChatTransport({
@@ -412,8 +413,23 @@ export function AdminAssistantPanel() {
       return;
     }
 
-    viewport.scrollTo({ top: viewport.scrollHeight, behavior: "smooth" });
+    viewport.scrollTo({
+      top: viewport.scrollHeight,
+      behavior: hasScrolledRef.current ? "smooth" : "auto",
+    });
+    hasScrolledRef.current = true;
   }, [messages, status]);
+
+  useEffect(() => {
+    const textarea = draftRef.current;
+    if (!textarea) {
+      return;
+    }
+
+    // Grow with the draft up to the max-h-40 cap, then scroll inside the box.
+    textarea.style.height = "auto";
+    textarea.style.height = `${textarea.scrollHeight}px`;
+  }, [draft]);
 
   const getRequestOptions = () => ({
     body: {
@@ -463,7 +479,7 @@ export function AdminAssistantPanel() {
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-background">
-      <div className="border-b border-border px-5 py-4">
+      <div className="shrink-0 border-b border-border px-5 py-4">
         <div className="flex items-start gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/10 text-primary">
             <Sparkles className="h-4 w-4" />
@@ -518,8 +534,67 @@ export function AdminAssistantPanel() {
         </div>
       </div>
 
-      <div className="border-b border-border/70 px-5 py-3">
-        <div className="mb-3 flex flex-wrap items-center gap-2">
+      <ScrollArea className="min-h-0 flex-1" viewportRef={viewportRef}>
+        <div className="flex min-h-full flex-col gap-4 px-5 py-5">
+          {messages.length === 0 ? (
+            <div className="space-y-4">
+              <div className="rounded-[28px] border border-border/80 bg-card px-4 py-4 shadow-sm">
+                <p className="text-sm leading-6 text-foreground">{selectedAgentOption.intro}</p>
+              </div>
+              <div className="grid gap-2">
+                {activeSuggestions.map((suggestion) => (
+                  <button
+                    key={suggestion}
+                    type="button"
+                    onClick={() => sendSuggestion(suggestion)}
+                    className="rounded-2xl border border-border bg-background px-4 py-3 text-left text-sm text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+                  >
+                    {suggestion}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
+          {messages.map((message) => {
+            if (message.role === "user") {
+              const text = getUserMessageText(message);
+
+              if (!text) {
+                return null;
+              }
+
+              return (
+                <div key={message.id} className="flex justify-end">
+                  <div className="max-w-[85%] rounded-[28px] bg-primary px-4 py-3 text-sm text-primary-foreground shadow-sm">
+                    <p className="whitespace-pre-wrap leading-6">{text}</p>
+                  </div>
+                </div>
+              );
+            }
+
+            return <AssistantMessageView key={message.id} message={message} />;
+          })}
+
+          {isBusy ? (
+            <div className="flex justify-start">
+              <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-2 text-xs text-muted-foreground shadow-sm">
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                Thinking...
+              </div>
+            </div>
+          ) : null}
+
+          {error ? (
+            <div className="rounded-2xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+              {error.message}
+            </div>
+          ) : null}
+        </div>
+      </ScrollArea>
+
+      <div className="shrink-0 border-t border-border bg-background px-5 pb-3 pt-3">
+        <div className="mb-2 flex flex-wrap items-center gap-2">
           <Popover open={isAgentPickerOpen} onOpenChange={setIsAgentPickerOpen}>
             <PopoverTrigger asChild>
               <Button
@@ -658,17 +733,23 @@ export function AdminAssistantPanel() {
             event.preventDefault();
             void submitDraft();
           }}
-          className="flex items-center gap-2"
+          className="flex items-end gap-2 rounded-[24px] border border-border/80 bg-card p-2 shadow-sm focus-within:ring-1 focus-within:ring-ring"
         >
-          <div className="relative flex-1">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              value={draft}
-              onChange={(event) => setDraft(event.target.value)}
-              placeholder={selectedAgentOption.placeholder}
-              className="h-11 rounded-full border-border/80 bg-card pl-10 pr-4 text-sm shadow-sm"
-            />
-          </div>
+          <Textarea
+            ref={draftRef}
+            value={draft}
+            rows={1}
+            onChange={(event) => setDraft(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
+                event.preventDefault();
+                void submitDraft();
+              }
+            }}
+            placeholder={selectedAgentOption.placeholder}
+            aria-label="Message the assistant"
+            className="max-h-40 min-h-[40px] flex-1 resize-none border-0 bg-transparent px-3 py-2 text-sm shadow-none focus-visible:ring-0"
+          />
           {isBusy ? (
             <Button type="button" variant="outline" onClick={() => stop()} className="rounded-full">
               <Square className="h-3.5 w-3.5" />
@@ -681,81 +762,10 @@ export function AdminAssistantPanel() {
           </Button>
         </form>
 
-        {modelsError ? <p className="mt-3 text-xs text-destructive">{modelsError}</p> : null}
-      </div>
-
-      <ScrollArea className="flex-1" viewportRef={viewportRef}>
-        <div className="flex min-h-full flex-col gap-4 px-5 py-5">
-          {messages.length === 0 ? (
-            <div className="space-y-4">
-              <div className="rounded-[28px] border border-border/80 bg-card px-4 py-4 shadow-sm">
-                <p className="text-sm leading-6 text-foreground">{selectedAgentOption.intro}</p>
-              </div>
-              <div className="grid gap-2">
-                {activeSuggestions.map((suggestion) => (
-                  <button
-                    key={suggestion}
-                    type="button"
-                    onClick={() => sendSuggestion(suggestion)}
-                    className="rounded-2xl border border-border bg-background px-4 py-3 text-left text-sm text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-                  >
-                    {suggestion}
-                  </button>
-                ))}
-              </div>
-            </div>
-          ) : null}
-
-          {messages.map((message) => {
-            if (message.role === "user") {
-              const text = getUserMessageText(message);
-
-              if (!text) {
-                return null;
-              }
-
-              return (
-                <div key={message.id} className="flex justify-end">
-                  <div className="max-w-[85%] rounded-[28px] bg-primary px-4 py-3 text-sm text-primary-foreground shadow-sm">
-                    <p className="whitespace-pre-wrap leading-6">{text}</p>
-                  </div>
-                </div>
-              );
-            }
-
-            return <AssistantMessageView key={message.id} message={message} />;
-          })}
-
-          {isBusy ? (
-            <div className="flex justify-start">
-              <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-2 text-xs text-muted-foreground shadow-sm">
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                Thinking...
-              </div>
-            </div>
-          ) : null}
-
-          {error ? (
-            <div className="rounded-2xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-              {error.message}
-            </div>
-          ) : null}
-        </div>
-      </ScrollArea>
-
-      <div className="border-t border-border bg-background px-5 py-4">
-        <div className="flex flex-wrap gap-2">
-          {activeSuggestions.map((suggestion) => (
-            <button
-              key={suggestion}
-              type="button"
-              onClick={() => sendSuggestion(suggestion)}
-              className="rounded-full border border-border bg-background px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-            >
-              {suggestion}
-            </button>
-          ))}
-        </div>
+        {modelsError ? <p className="mt-2 text-xs text-destructive">{modelsError}</p> : null}
+        <p className="mt-2 text-center text-[11px] text-muted-foreground">
+          AI can make mistakes. Check important info.
+        </p>
       </div>
     </div>
   );

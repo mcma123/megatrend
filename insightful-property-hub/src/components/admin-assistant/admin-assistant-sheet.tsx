@@ -6,7 +6,7 @@ export function AdminAssistantSheet() {
 
   return (
     <aside
-      className={`shrink-0 overflow-hidden border-l border-border bg-background transition-[width,opacity] duration-300 ease-out ${
+      className={`sticky top-14 h-[calc(100svh-3.5rem)] shrink-0 self-start overflow-hidden border-l border-border bg-background transition-[width,opacity] duration-300 ease-out ${
         open
           ? expanded
             ? "w-full opacity-100"

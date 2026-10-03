@@ -11,6 +11,8 @@
 - `admin-assistant-context.tsx` owns the assistant shell state: closed, sidebar-open, and full-page-expanded.
 - `admin-assistant-sheet.tsx` is the layout container that renders the assistant either as the right sidebar panel or as the full-page workspace inside the app shell.
 - `admin-assistant-panel.tsx` owns the interactive chat surface, including agent selection, model selection, suggestion chips, message rendering, and the expand/collapse/close controls.
+- Chat layout is ChatGPT-style: header → scrollable message list (the only scrolling region, auto-scrolled to the newest message) → composer pinned at the bottom (agent/model pickers, auto-growing textarea where Enter sends and Shift+Enter adds a newline, Stop/Ask). Suggestions show only in the empty state. Never move the composer above the messages.
+- `admin-assistant-sheet.tsx` keeps the panel viewport-bound (`sticky top-14`, `h-[calc(100svh-3.5rem)]` below the `h-14` header) so the page never scrolls the composer out of view.
 - The agent selector must stay synchronized with the supported Mastra chat routes proxied by `src/routes/api.chat.ts`.
 - `page-context.ts` provides page-aware defaults only; it must not become the source of routing or agent-state truth.
 

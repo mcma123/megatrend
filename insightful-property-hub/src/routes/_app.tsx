@@ -68,7 +68,7 @@ function Header() {
         <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
           Cypher-soft
         </span>
-        <span className="text-muted-foreground">�</span>
+        <span className="text-muted-foreground">·</span>
         <span className="font-display text-sm">Cyphersoft OS</span>
       </div>
       <div className="ml-auto flex items-center gap-2">
