@@ -2,16 +2,14 @@ FROM node:22-bookworm-slim
 
 WORKDIR /app
 
-RUN corepack enable && corepack prepare pnpm@10.17.1 --activate
-
 ARG VITE_CONVEX_URL
 
 ENV VITE_CONVEX_URL=$VITE_CONVEX_URL
 
-COPY package.json ./
+COPY package.json package-lock.json ./
 COPY insightful-property-hub/package*.json ./insightful-property-hub/
-RUN npm install
-RUN npm install --prefix insightful-property-hub
+RUN npm ci
+RUN npm ci --prefix insightful-property-hub
 
 COPY . .
 

@@ -24,6 +24,7 @@ Deploy mode: wmill sync push (no CI wiring detected).
 - Use Mastra for agentic behavior only, with Mastra agents/workflows calling Windmill scripts or flows as tools.
 - Dokploy deployment for the active portal should target the frontend web app, not the Mastra runtime.
 - Root `npm run build` and `npm run start` are reserved for the active `insightful-property-hub/` production web deployment; use `npm run build:mastra` and `npm run start:mastra` only for the Mastra service.
+- Package manager is npm (`package-lock.json` at root and in `insightful-property-hub/`); the Dockerfile uses `npm ci`. Do not reintroduce pnpm/bun lockfiles: `mastra build` installs `.mastra/output` deps from the root lockfile/ranges, so a stale lock ships an older `@mastra/core` than the CLI that built the bundle. Keep `@mastra/*` ranges in `package.json` at the versions actually locked.
 - Docker deployment can use `npm run start:platform` to run the portal and the built Mastra bundle in one container, with the web app on `PORT` and Mastra on `MASTRA_PORT`.
 - Keep AI document-processing business logic split clearly between:
   - Windmill orchestration and execution
