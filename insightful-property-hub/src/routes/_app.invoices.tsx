@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 import { invoices, getClient, getProperty, formatZAR } from "@/lib/mock-data";
 
 export const Route = createFileRoute("/_app/invoices")({
-  head: () => ({ meta: [{ title: "Invoices & anomalies · Megatrend OS" }, { name: "description", content: "Invoice tracking with baseline anomaly detection." }] }),
+  head: () => ({ meta: [{ title: "Invoices & anomalies · Cyphersoft OS" }, { name: "description", content: "Invoice tracking with baseline anomaly detection." }] }),
   component: InvoicesPage,
 });
 

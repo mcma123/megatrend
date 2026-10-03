@@ -1,0 +1,3 @@
+description: MinIO S3 API host (no scheme, plain HTTP) for f/docling scripts
+value: storage-minio-ad261b-187-124-215-81.sslip.io
+is_secret: false

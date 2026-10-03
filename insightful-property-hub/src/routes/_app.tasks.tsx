@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { tasks, getClient } from "@/lib/mock-data";
 
 export const Route = createFileRoute("/_app/tasks")({
-  head: () => ({ meta: [{ title: "Tasks · Megatrend OS" }, { name: "description", content: "Action items from automation, document flags and client requests." }] }),
+  head: () => ({ meta: [{ title: "Tasks · Cyphersoft OS" }, { name: "description", content: "Action items from automation, document flags and client requests." }] }),
   component: TasksPage,
 });
 

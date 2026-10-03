@@ -55,7 +55,7 @@ export const Route = createFileRoute("/portal/$clientSlug/documents/scanner")({
   },
   head: ({ loaderData }) => ({
     meta: [
-      { title: `Document Scanner | ${loaderData?.client.name ?? "Client"} portal | Megatrend` },
+      { title: `Document Scanner | ${loaderData?.client.name ?? "Client"} portal | Cyphersoft` },
       {
         name: "description",
         content: `Capture, process, and export multi-page scanned documents for ${loaderData?.client.name ?? "your client portal"}.`,

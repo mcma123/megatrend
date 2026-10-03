@@ -1,0 +1,10 @@
+description: MinIO bucket used as the workspace object storage (scanner PDFs).
+value:
+  bucket: scanner
+  region: us-east-1
+  endPoint: http://storage-minio-ad261b-187-124-215-81.sslip.io
+  pathStyle: true
+  useSSL: false
+  accessKey: wmscanner9b2a04a811
+  secretKey: $var:f/docling/scanner/S3_SECRET_KEY
+resource_type: s3

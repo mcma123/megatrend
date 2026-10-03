@@ -14,7 +14,7 @@ import {
 export const Route = createFileRoute("/_app/dashboard")({
   head: () => ({
     meta: [
-      { title: "Dashboard · Megatrend OS" },
+      { title: "Dashboard · Cyphersoft OS" },
       { name: "description", content: "Live overview of clients, leases, sourcing, automation and document intelligence." },
     ],
   }),
@@ -70,7 +70,7 @@ function Dashboard() {
     <div className="mx-auto max-w-7xl">
       <PageHeader
         eyebrow="01 · Overview"
-        title="The operating system for Megatrend."
+        title="The operating system for Cyphersoft."
         description="Spreadsheets, folder trees and manual options packs — replaced by one cohesive surface for clients, leases, sourcing, documents and automation."
         actions={
           <>

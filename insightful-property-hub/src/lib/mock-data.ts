@@ -1,4 +1,4 @@
-// Mock data for Megatrend OS prototype
+// Mock data for Cyphersoft OS prototype
 
 export type Client = {
   id: string;

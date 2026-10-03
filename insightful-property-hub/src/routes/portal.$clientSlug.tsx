@@ -22,7 +22,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { getClientBySlug, properties } from "@/lib/mock-data";
-import { useMegatrendAuth } from "@/lib/auth-session";
+import { useCyphersoftAuth } from "@/lib/auth-session";
 import {
   Sidebar,
   SidebarContent,
@@ -47,7 +47,7 @@ export const Route = createFileRoute("/portal/$clientSlug")({
   },
   head: ({ loaderData }) => ({
     meta: [
-      { title: `${loaderData?.client.name ?? "Client"} portal | Megatrend` },
+      { title: `${loaderData?.client.name ?? "Client"} portal | Cyphersoft` },
       { name: "description", content: `Live portfolio portal for ${loaderData?.client.name}.` },
     ],
   }),
@@ -76,7 +76,7 @@ function ClientPortalShell() {
   const { client } = Route.useLoaderData();
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (router) => router.location.pathname });
-  const auth = useMegatrendAuth();
+  const auth = useCyphersoftAuth();
   const [ready, setReady] = useState(false);
 
   useEffect(() => {

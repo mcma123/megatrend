@@ -78,7 +78,7 @@ export const Route = createFileRoute("/portal/$clientSlug/properties/$propertyId
   },
   head: ({ loaderData }) => ({
     meta: [
-      { title: `Lease Detail | ${loaderData?.property.name ?? "Property"} | ${loaderData?.client.name ?? "Client"} portal | Megatrend` },
+      { title: `Lease Detail | ${loaderData?.property.name ?? "Property"} | ${loaderData?.client.name ?? "Client"} portal | Cyphersoft` },
       {
         name: "description",
         content: `Lease detail workspace for ${loaderData?.property.name ?? "this property"}.`,
@@ -116,7 +116,7 @@ function LeaseDetailPage() {
     approvedBy: "Jared van Niekerk",
     approvedDate: "2026-07-02",
     lastReviewed: "2026-07-07",
-    notes: "Megatrend reviewed the source lease and approved the client-visible commercial terms below.",
+    notes: "Cyphersoft reviewed the source lease and approved the client-visible commercial terms below.",
   };
 
   const costPerSqm = Math.round(lease.monthlyRental / property.sizeSqm);
@@ -151,7 +151,7 @@ function LeaseDetailPage() {
               <Receipt className="h-4 w-4" /> Request quote
             </Button>
             <Button>
-              <Sparkles className="h-4 w-4" /> Ask Megatrend
+              <Sparkles className="h-4 w-4" /> Ask Cyphersoft
             </Button>
           </>
         }
@@ -205,7 +205,7 @@ function LeaseDetailPage() {
             <div className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
               <InfoBlock label="Tenant" value={lease.tenant} />
               <InfoBlock label="Landlord" value={lease.landlord} />
-              <InfoBlock label="Megatrend account manager" value={lease.accountManager} />
+              <InfoBlock label="Cyphersoft account manager" value={lease.accountManager} />
               <InfoBlock label="Utility responsibility" value={lease.utilityResponsibility} />
               <InfoBlock label="Maintenance responsibility" value={lease.maintenanceResponsibility} />
               <InfoBlock label="Insurance responsibility" value={lease.insuranceResponsibility} />
@@ -270,7 +270,7 @@ function LeaseDetailPage() {
           <Card className="surface-elevated border-success/30 bg-success/5 p-6">
             <h2 className="font-display text-xl text-success">Human approved lease intelligence</h2>
             <p className="mt-2 text-sm text-muted-foreground">
-              Client-visible lease values are reviewed and approved by Megatrend before they are published here.
+              Client-visible lease values are reviewed and approved by Cyphersoft before they are published here.
             </p>
             <div className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
               <InfoBlock label="Approved by" value={lease.approvedBy} />

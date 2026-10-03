@@ -8,7 +8,7 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { ThemeProvider } from "@/lib/theme";
-import { MegatrendAppProviders } from "@/lib/convex-client";
+import { CyphersoftAppProviders } from "@/lib/convex-client";
 
 function NotFoundComponent() {
   return (
@@ -61,9 +61,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Megatrend OS — Cypher-soft" },
-      { name: "description", content: "Megatrend Operating System: tenant-rep, leases, document intelligence, automation, and a live client portal." },
-      { property: "og:title", content: "Megatrend OS — Cypher-soft" },
+      { title: "Cyphersoft OS" },
+      { name: "description", content: "Cyphersoft Operating System: tenant-rep, leases, document intelligence, automation, and a live client portal." },
+      { property: "og:title", content: "Cyphersoft OS" },
       { property: "og:description", content: "Tenant-rep operating system: External, Internal, and Automation buckets in one cohesive platform." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -93,12 +93,12 @@ function RootShell({ children }: { children: ReactNode }) {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   return (
-    <MegatrendAppProviders>
+    <CyphersoftAppProviders>
       <QueryClientProvider client={queryClient}>
         <ThemeProvider>
           <Outlet />
         </ThemeProvider>
       </QueryClientProvider>
-    </MegatrendAppProviders>
+    </CyphersoftAppProviders>
   );
 }

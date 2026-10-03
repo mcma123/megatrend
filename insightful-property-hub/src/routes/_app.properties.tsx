@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { properties, formatZAR, getClient } from "@/lib/mock-data";
 
 export const Route = createFileRoute("/_app/properties")({
-  head: () => ({ meta: [{ title: "Properties · Megatrend OS" }, { name: "description", content: "Every property occupied, reviewed, sourced or proposed for our clients." }] }),
+  head: () => ({ meta: [{ title: "Properties · Cyphersoft OS" }, { name: "description", content: "Every property occupied, reviewed, sourced or proposed for our clients." }] }),
   component: PropertiesPage,
 });
 

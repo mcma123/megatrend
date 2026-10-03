@@ -14,7 +14,7 @@ export const Route = createFileRoute("/_app/clients/$id")({
   },
   head: ({ loaderData }) => ({
     meta: [
-      { title: `${loaderData?.client.name ?? "Client"} · Megatrend OS` },
+      { title: `${loaderData?.client.name ?? "Client"} · Cyphersoft OS` },
       { name: "description", content: `Portfolio, leases and documents for ${loaderData?.client.name}.` },
     ],
   }),

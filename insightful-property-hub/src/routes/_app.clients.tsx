@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { clients, formatZAR } from "@/lib/mock-data";
 
 export const Route = createFileRoute("/_app/clients")({
-  head: () => ({ meta: [{ title: "Clients · Megatrend OS" }, { name: "description", content: "Client portfolio CRM for tenant-rep advisory." }] }),
+  head: () => ({ meta: [{ title: "Clients · Cyphersoft OS" }, { name: "description", content: "Client portfolio CRM for tenant-rep advisory." }] }),
   component: ClientsPage,
 });
 

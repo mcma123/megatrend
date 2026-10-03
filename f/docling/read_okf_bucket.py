@@ -6,14 +6,22 @@ from pathlib import PurePosixPath
 from typing import Any
 
 import boto3
+import wmill
 from botocore.config import Config
 
 
-DEFAULT_MINIO_ENDPOINT = "minio.mmfshub.co.za"
-DEFAULT_MINIO_ACCESS_KEY = "minioadmin"
-DEFAULT_MINIO_SECRET_KEY = "bcskn3p8iwmkaxor"
+MINIO_ENDPOINT_VAR_PATH = "f/docling/MINIO_ENDPOINT"
+MINIO_ACCESS_KEY_VAR_PATH = "f/docling/MINIO_ACCESS_KEY"
+MINIO_SECRET_KEY_VAR_PATH = "f/docling/MINIO_SECRET_KEY"
 DEFAULT_MINIO_REGION = "us-east-1"
 DEFAULT_OKF_BUCKET = "okfdata"
+
+
+def _workspace_variable(path: str) -> str:
+    value = wmill.get_variable(path)
+    if not value:
+        raise ValueError(f"Windmill variable '{path}' is empty.")
+    return value
 
 
 def _new_s3_client(*, endpoint: str, access_key: str, secret_key: str, region: str, use_ssl: bool):
@@ -214,16 +222,16 @@ def main(
     include_full_content: bool = False,
     max_results: int = 5,
     max_objects_to_scan: int = 200,
-    minio_endpoint: str | None = DEFAULT_MINIO_ENDPOINT,
-    minio_access_key: str | None = DEFAULT_MINIO_ACCESS_KEY,
-    minio_secret_key: str | None = DEFAULT_MINIO_SECRET_KEY,
-    minio_use_ssl: bool = True,
+    minio_endpoint: str | None = None,
+    minio_access_key: str | None = None,
+    minio_secret_key: str | None = None,
+    minio_use_ssl: bool = False,
     minio_region: str | None = DEFAULT_MINIO_REGION,
     okf_bucket: str | None = DEFAULT_OKF_BUCKET,
 ) -> dict[str, Any]:
-    minio_endpoint = minio_endpoint or DEFAULT_MINIO_ENDPOINT
-    minio_access_key = minio_access_key or DEFAULT_MINIO_ACCESS_KEY
-    minio_secret_key = minio_secret_key or DEFAULT_MINIO_SECRET_KEY
+    minio_endpoint = minio_endpoint or _workspace_variable(MINIO_ENDPOINT_VAR_PATH)
+    minio_access_key = minio_access_key or _workspace_variable(MINIO_ACCESS_KEY_VAR_PATH)
+    minio_secret_key = minio_secret_key or _workspace_variable(MINIO_SECRET_KEY_VAR_PATH)
     minio_region = minio_region or DEFAULT_MINIO_REGION
     okf_bucket = okf_bucket or DEFAULT_OKF_BUCKET
 

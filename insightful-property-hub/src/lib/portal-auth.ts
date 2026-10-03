@@ -20,7 +20,7 @@ export type PortalOrg = {
   clientId: string;
   name: string;
   createdAt: string;
-  createdBy: string; // Megatrend admin who provisioned it
+  createdBy: string; // Cyphersoft admin who provisioned it
 };
 
 const ORGS_KEY = "mtos.portal.orgs";
@@ -52,7 +52,7 @@ function seed() {
     clientId: c.id,
     name: c.name,
     createdAt: now,
-    createdBy: "Megatrend Ops",
+    createdBy: "Cyphersoft Ops",
   }));
   const users: PortalUser[] = clients.map((c, i) => ({
     id: `u-seed-${i}`,
@@ -99,7 +99,7 @@ export const createOrg = (input: {
     clientId: input.clientId,
     name: input.name,
     createdAt: now,
-    createdBy: "Megatrend Ops",
+    createdBy: "Cyphersoft Ops",
   };
   const admin: PortalUser = {
     id: `u-${Date.now()}`,

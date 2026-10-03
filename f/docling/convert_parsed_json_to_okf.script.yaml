@@ -45,7 +45,7 @@ schema:
     minio_use_ssl:
       type: boolean
       description: ''
-      default: true
+      default: false
     parsed_json_key:
       type: string
       description: ''

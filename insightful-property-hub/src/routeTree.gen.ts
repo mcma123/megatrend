@@ -10,11 +10,11 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
+import { Route as SignInRouteImport } from './routes/sign-in'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PortalIndexRouteImport } from './routes/portal.index'
 import { Route as PortalClientSlugRouteImport } from './routes/portal.$clientSlug'
-import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 import { Route as ApiModelsRouteImport } from './routes/api.models'
 import { Route as ApiChatRouteImport } from './routes/api.chat'
 import { Route as AppTasksRouteImport } from './routes/_app.tasks'
@@ -49,6 +49,11 @@ const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   path: '/sitemap.xml',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SignInRoute = SignInRouteImport.update({
+  id: '/sign-in',
+  path: '/sign-in',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AppRoute = AppRouteImport.update({
   id: '/_app',
   getParentRoute: () => rootRouteImport,
@@ -66,11 +71,6 @@ const PortalIndexRoute = PortalIndexRouteImport.update({
 const PortalClientSlugRoute = PortalClientSlugRouteImport.update({
   id: '/portal/$clientSlug',
   path: '/portal/$clientSlug',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthCallbackRoute = AuthCallbackRouteImport.update({
-  id: '/auth/callback',
-  path: '/auth/callback',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiModelsRoute = ApiModelsRouteImport.update({
@@ -221,6 +221,7 @@ const PortalClientSlugPropertiesPropertyIdLeaseRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/sign-in': typeof SignInRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/automations': typeof AppAutomationsRouteWithChildren
   '/clients': typeof AppClientsRouteWithChildren
@@ -236,7 +237,6 @@ export interface FileRoutesByFullPath {
   '/tasks': typeof AppTasksRoute
   '/api/chat': typeof ApiChatRoute
   '/api/models': typeof ApiModelsRoute
-  '/auth/callback': typeof AuthCallbackRoute
   '/portal/$clientSlug': typeof PortalClientSlugRouteWithChildren
   '/portal/': typeof PortalIndexRoute
   '/automations/$id': typeof AppAutomationsIdRoute
@@ -256,6 +256,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/sign-in': typeof SignInRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/automations': typeof AppAutomationsRouteWithChildren
   '/clients': typeof AppClientsRouteWithChildren
@@ -271,7 +272,6 @@ export interface FileRoutesByTo {
   '/tasks': typeof AppTasksRoute
   '/api/chat': typeof ApiChatRoute
   '/api/models': typeof ApiModelsRoute
-  '/auth/callback': typeof AuthCallbackRoute
   '/portal': typeof PortalIndexRoute
   '/automations/$id': typeof AppAutomationsIdRoute
   '/clients/$id': typeof AppClientsIdRoute
@@ -292,6 +292,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_app': typeof AppRouteWithChildren
+  '/sign-in': typeof SignInRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/_app/automations': typeof AppAutomationsRouteWithChildren
   '/_app/clients': typeof AppClientsRouteWithChildren
@@ -307,7 +308,6 @@ export interface FileRoutesById {
   '/_app/tasks': typeof AppTasksRoute
   '/api/chat': typeof ApiChatRoute
   '/api/models': typeof ApiModelsRoute
-  '/auth/callback': typeof AuthCallbackRoute
   '/portal/$clientSlug': typeof PortalClientSlugRouteWithChildren
   '/portal/': typeof PortalIndexRoute
   '/_app/automations/$id': typeof AppAutomationsIdRoute
@@ -329,6 +329,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/sign-in'
     | '/sitemap.xml'
     | '/automations'
     | '/clients'
@@ -344,7 +345,6 @@ export interface FileRouteTypes {
     | '/tasks'
     | '/api/chat'
     | '/api/models'
-    | '/auth/callback'
     | '/portal/$clientSlug'
     | '/portal/'
     | '/automations/$id'
@@ -364,6 +364,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/sign-in'
     | '/sitemap.xml'
     | '/automations'
     | '/clients'
@@ -379,7 +380,6 @@ export interface FileRouteTypes {
     | '/tasks'
     | '/api/chat'
     | '/api/models'
-    | '/auth/callback'
     | '/portal'
     | '/automations/$id'
     | '/clients/$id'
@@ -399,6 +399,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/_app'
+    | '/sign-in'
     | '/sitemap.xml'
     | '/_app/automations'
     | '/_app/clients'
@@ -414,7 +415,6 @@ export interface FileRouteTypes {
     | '/_app/tasks'
     | '/api/chat'
     | '/api/models'
-    | '/auth/callback'
     | '/portal/$clientSlug'
     | '/portal/'
     | '/_app/automations/$id'
@@ -436,10 +436,10 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AppRoute: typeof AppRouteWithChildren
+  SignInRoute: typeof SignInRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   ApiChatRoute: typeof ApiChatRoute
   ApiModelsRoute: typeof ApiModelsRoute
-  AuthCallbackRoute: typeof AuthCallbackRoute
   PortalClientSlugRoute: typeof PortalClientSlugRouteWithChildren
   PortalIndexRoute: typeof PortalIndexRoute
   ApiScannerActionRoute: typeof ApiScannerActionRoute
@@ -452,6 +452,13 @@ declare module '@tanstack/react-router' {
       path: '/sitemap.xml'
       fullPath: '/sitemap.xml'
       preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sign-in': {
+      id: '/sign-in'
+      path: '/sign-in'
+      fullPath: '/sign-in'
+      preLoaderRoute: typeof SignInRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_app': {
@@ -480,13 +487,6 @@ declare module '@tanstack/react-router' {
       path: '/portal/$clientSlug'
       fullPath: '/portal/$clientSlug'
       preLoaderRoute: typeof PortalClientSlugRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/auth/callback': {
-      id: '/auth/callback'
-      path: '/auth/callback'
-      fullPath: '/auth/callback'
-      preLoaderRoute: typeof AuthCallbackRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/models': {
@@ -835,10 +835,10 @@ const PortalClientSlugRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRoute: AppRouteWithChildren,
+  SignInRoute: SignInRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   ApiChatRoute: ApiChatRoute,
   ApiModelsRoute: ApiModelsRoute,
-  AuthCallbackRoute: AuthCallbackRoute,
   PortalClientSlugRoute: PortalClientSlugRouteWithChildren,
   PortalIndexRoute: PortalIndexRoute,
   ApiScannerActionRoute: ApiScannerActionRoute,

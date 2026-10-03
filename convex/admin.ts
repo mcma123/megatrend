@@ -1,7 +1,7 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { appendAuditEvent } from "./lib/audit";
-import { requireCurrentUser, requireTenantAdministrator } from "./lib/auth";
+import { requireCurrentUser, requirePlatformAdmin, requireTenantAdministrator } from "./lib/auth";
 import { exportType, roleScope } from "./validators";
 
 const defaultRoles = [
@@ -76,7 +76,7 @@ const defaultRoles = [
 export const seedRoleCatalog = mutation({
   args: {},
   handler: async (ctx) => {
-    await requireCurrentUser(ctx);
+    await requirePlatformAdmin(ctx);
     let inserted = 0;
 
     for (const role of defaultRoles) {

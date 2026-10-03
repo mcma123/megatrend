@@ -13,6 +13,10 @@ include line if you don't want the managed guidance in this project.
 ## Project-specific instructions
 
 Deploy mode: wmill sync push (no CI wiring detected).
+- Windmill target: workspace `cyphersoft` on `http://automation-servers-windmill-7973c1-187-124-215-81.sslip.io/` (bound in `wmill.yaml`; CLI profile `cyphersoft`). Use `npm run wmill:push` / `npm run wmill:pull`, always after a `--dry-run`.
+- The `cyphersoft` workspace is shared with other projects (e.g. `f/rebsons`). `wmill.yaml` `includes` is scoped to `f/clitools/**`, `f/docling/**`, `f/firecrawl/**`; never widen it to `f/**`, or a push could delete and a pull could import other projects.
+- `f/docling/*` reads MinIO from Windmill variables `f/docling/MINIO_ENDPOINT` (in repo) and the secrets `f/docling/MINIO_ACCESS_KEY` / `f/docling/MINIO_SECRET_KEY` (workspace only, a bucket-scoped key for `parsedinjson` and `okfdata`). Never hard-code MinIO credentials in scripts or flow defaults.
+- Workspace object storage (`wmill.write_s3_file`, used by `f/docling/scanner/save_scanned_document`) points at resource `f/docling/scanner/minio_storage` (MinIO bucket `scanner`, secret `f/docling/scanner/S3_SECRET_KEY`); keep that resource file in the repo so pushes don't delete it.
 - Active product UI baseline: `insightful-property-hub/`.
 - Quarantine `megatrend/` from solution scope until it is explicitly reactivated for product work.
 - Use Windmill for backend automation workflows.

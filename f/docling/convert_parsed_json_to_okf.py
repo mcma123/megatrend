@@ -7,17 +7,25 @@ from pathlib import Path
 from typing import Any
 
 import boto3
+import wmill
 from botocore.config import Config
 
 
-DEFAULT_MINIO_ENDPOINT = "minio.mmfshub.co.za"
-DEFAULT_MINIO_ACCESS_KEY = "minioadmin"
-DEFAULT_MINIO_SECRET_KEY = "bcskn3p8iwmkaxor"
+MINIO_ENDPOINT_VAR_PATH = "f/docling/MINIO_ENDPOINT"
+MINIO_ACCESS_KEY_VAR_PATH = "f/docling/MINIO_ACCESS_KEY"
+MINIO_SECRET_KEY_VAR_PATH = "f/docling/MINIO_SECRET_KEY"
 DEFAULT_MINIO_REGION = "us-east-1"
 DEFAULT_SOURCE_BUCKET = "parsedinjson"
 DEFAULT_DESTINATION_BUCKET = "okfdata"
 DEFAULT_CONCEPT_TYPE = "Parsed Document"
 DEFAULT_TAGS = ["docling", "okf", "parsed-document"]
+
+
+def _workspace_variable(path: str) -> str:
+    value = wmill.get_variable(path)
+    if not value:
+        raise ValueError(f"Windmill variable '{path}' is empty.")
+    return value
 
 
 def _safe_object_component(value: str) -> str:
@@ -301,18 +309,18 @@ def main(
     bundle_prefix: str | None = None,
     concept_type: str | None = DEFAULT_CONCEPT_TYPE,
     tags: list[str] | None = None,
-    minio_endpoint: str | None = DEFAULT_MINIO_ENDPOINT,
-    minio_access_key: str | None = DEFAULT_MINIO_ACCESS_KEY,
-    minio_secret_key: str | None = DEFAULT_MINIO_SECRET_KEY,
-    minio_use_ssl: bool = True,
+    minio_endpoint: str | None = None,
+    minio_access_key: str | None = None,
+    minio_secret_key: str | None = None,
+    minio_use_ssl: bool = False,
     minio_region: str | None = DEFAULT_MINIO_REGION,
 ) -> dict[str, Any]:
     source_bucket = source_bucket or DEFAULT_SOURCE_BUCKET
     destination_bucket = destination_bucket or DEFAULT_DESTINATION_BUCKET
     concept_type = concept_type or DEFAULT_CONCEPT_TYPE
-    minio_endpoint = minio_endpoint or DEFAULT_MINIO_ENDPOINT
-    minio_access_key = minio_access_key or DEFAULT_MINIO_ACCESS_KEY
-    minio_secret_key = minio_secret_key or DEFAULT_MINIO_SECRET_KEY
+    minio_endpoint = minio_endpoint or _workspace_variable(MINIO_ENDPOINT_VAR_PATH)
+    minio_access_key = minio_access_key or _workspace_variable(MINIO_ACCESS_KEY_VAR_PATH)
+    minio_secret_key = minio_secret_key or _workspace_variable(MINIO_SECRET_KEY_VAR_PATH)
     minio_region = minio_region or DEFAULT_MINIO_REGION
     tags = tags or list(DEFAULT_TAGS)
 

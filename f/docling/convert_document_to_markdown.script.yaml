@@ -90,7 +90,7 @@ schema:
     minio_use_ssl:
       type: boolean
       description: ''
-      default: true
+      default: false
     ocr_lang:
       type: array
       description: ''

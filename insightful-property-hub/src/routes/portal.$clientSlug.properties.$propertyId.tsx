@@ -107,7 +107,7 @@ export const Route = createFileRoute("/portal/$clientSlug/properties/$propertyId
   },
   head: ({ loaderData }) => ({
     meta: [
-      { title: `${loaderData?.property.name ?? "Property Detail"} | ${loaderData?.client.name ?? "Client"} portal | Megatrend` },
+      { title: `${loaderData?.property.name ?? "Property Detail"} | ${loaderData?.client.name ?? "Client"} portal | Cyphersoft` },
       {
         name: "description",
         content: `Work with the lease, documents, insights, and renewal plan for ${loaderData?.property.name ?? "this property"}.`,
@@ -180,7 +180,7 @@ function PropertyDetailPage() {
               <Receipt className="h-4 w-4" /> Request quote
             </Button>
             <Button>
-              <Sparkles className="h-4 w-4" /> Ask Megatrend
+              <Sparkles className="h-4 w-4" /> Ask Cyphersoft
             </Button>
           </>
         }

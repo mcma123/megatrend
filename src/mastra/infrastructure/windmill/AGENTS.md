@@ -12,6 +12,8 @@
 - Gateway files in this folder implement application ports from `../../ports/` and translate between Mastra-side contracts and Windmill script/tool payloads.
 - `windmill-mcp-okf-knowledge-gateway.ts` is the adapter that reaches the OKF knowledge script over Windmill and indirectly reads OKF bundles stored in MinIO-backed object storage. Keep bucket names, object key handling, and Windmill tool names local to this folder.
 - Do not move agent prompts, bundle summarization policy, or UI-facing text into this layer.
+- `WINDMILL_MCP_URL` (root `.env.local`) targets the `cyphersoft` workspace MCP endpoint and carries a token; never commit it.
+- Remote tool IDs such as `S-f_firecrawl_searxng__s4af63e1cc69a80a9` are derived by Windmill from the script path, so they survive moving workspaces but change if a script is renamed or moved. A tool only resolves once its script is deployed to the workspace.
 
 # Work Guidance
 

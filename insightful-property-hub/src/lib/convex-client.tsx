@@ -1,6 +1,7 @@
 import { createContext, useContext, useMemo, useState, type ReactNode } from "react";
-import { ConvexProviderWithAuth, ConvexReactClient } from "convex/react";
-import { AuthSessionProvider, useConvexAuth } from "@/lib/auth-session";
+import { ConvexReactClient } from "convex/react";
+import { ConvexAuthProvider } from "@convex-dev/auth/react";
+import { ConvexAuthSessionProvider, UnconfiguredAuthSessionProvider } from "@/lib/auth-session";
 
 type ConvexContextValue = {
   convexClient: ConvexReactClient | null;
@@ -13,9 +14,9 @@ const ConvexClientContext = createContext<ConvexContextValue>({
   convexClient: null,
 });
 
-function ConvexAuthBridge({ children }: { children: ReactNode }) {
-  const [convexClient] = useState(
-    () => (isConvexConfigured ? new ConvexReactClient(convexUrl) : null),
+export function CyphersoftAppProviders({ children }: { children: ReactNode }) {
+  const [convexClient] = useState(() =>
+    isConvexConfigured ? new ConvexReactClient(convexUrl) : null,
   );
 
   const contextValue = useMemo(
@@ -26,23 +27,19 @@ function ConvexAuthBridge({ children }: { children: ReactNode }) {
   );
 
   if (!convexClient) {
-    return <ConvexClientContext.Provider value={contextValue}>{children}</ConvexClientContext.Provider>;
+    return (
+      <ConvexClientContext.Provider value={contextValue}>
+        <UnconfiguredAuthSessionProvider>{children}</UnconfiguredAuthSessionProvider>
+      </ConvexClientContext.Provider>
+    );
   }
 
   return (
     <ConvexClientContext.Provider value={contextValue}>
-      <ConvexProviderWithAuth client={convexClient} useAuth={useConvexAuth}>
-        {children}
-      </ConvexProviderWithAuth>
+      <ConvexAuthProvider client={convexClient}>
+        <ConvexAuthSessionProvider>{children}</ConvexAuthSessionProvider>
+      </ConvexAuthProvider>
     </ConvexClientContext.Provider>
-  );
-}
-
-export function MegatrendAppProviders({ children }: { children: ReactNode }) {
-  return (
-    <AuthSessionProvider>
-      <ConvexAuthBridge>{children}</ConvexAuthBridge>
-    </AuthSessionProvider>
   );
 }
 

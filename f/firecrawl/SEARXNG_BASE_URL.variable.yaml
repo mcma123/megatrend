@@ -1,0 +1,3 @@
+description: Base URL for the self-hosted SearXNG instance used by searxng_search_for_agent.
+value: http://automation-servers-searxng-6aa341-187-124-215-81.sslip.io/
+is_secret: false

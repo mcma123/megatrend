@@ -1,3 +1,4 @@
+import { authTables } from "@convex-dev/auth/server";
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 import {
@@ -13,15 +14,21 @@ import {
 } from "./validators";
 
 export default defineSchema({
+  ...authTables,
+
+  // Convex Auth users table, extended with app-level profile fields.
   users: defineTable({
-    tokenIdentifier: v.string(),
-    email: v.optional(v.string()),
     name: v.optional(v.string()),
-    avatarUrl: v.optional(v.string()),
+    image: v.optional(v.string()),
+    email: v.optional(v.string()),
+    emailVerificationTime: v.optional(v.number()),
+    phone: v.optional(v.string()),
+    phoneVerificationTime: v.optional(v.number()),
+    isAnonymous: v.optional(v.boolean()),
     lastSeenAt: v.optional(v.number()),
   })
-    .index("by_tokenIdentifier", ["tokenIdentifier"])
-    .index("by_email", ["email"]),
+    .index("email", ["email"])
+    .index("phone", ["phone"]),
 
   tenants: defineTable({
     slug: v.string(),

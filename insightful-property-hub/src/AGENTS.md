@@ -16,7 +16,10 @@
 
 - Keep route conventions and route ownership in the closer `routes/AGENTS.md` doc.
 - Prefer `lib/` for reusable source-local utilities and error helpers rather than embedding them in route files.
-- Keep frontend auth wiring centralized in source-local providers and hooks under `lib/`; route files should consume auth state rather than implement token or PKCE mechanics inline.
+- Keep frontend auth wiring centralized in source-local providers and hooks under `lib/`; route files should consume auth state rather than implement token mechanics inline.
+- Auth is Convex Auth (email + password): `lib/convex-client.tsx` wraps the app in `ConvexAuthProvider`, and `lib/auth-session.tsx` exposes `useCyphersoftAuth()` (`login` redirects to `/sign-in`, `signInWithPassword`, `logout`). The `/sign-in` route (`routes/sign-in.tsx`) is the only sign-in UI and only accepts relative `returnTo` paths.
+- `routes/api.scanner.$action.ts` proxies scanner actions to Windmill `run_wait_result/p/f/docling/scanner/*` using the server-only `WINDMILL_SCANNER_*_URL` vars and `WINDMILL_SCANNER_BEARER_TOKEN` (a Windmill token scoped to those four scripts) from `.env.local`; never expose them to the client or use a broader token.
+- `lib/portal-auth.ts` is the legacy localStorage mock kept for mock organisation listings only; do not use it for access decisions.
 - If a source subfolder gains its own durable workflow or operating rules, add a closer child AGENTS.md.
 
 # Verification

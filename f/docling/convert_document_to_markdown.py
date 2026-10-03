@@ -13,11 +13,11 @@ from botocore.config import Config
 from wmill import S3Object
 
 
-DEFAULT_DOCLING_BASE_URL = "http://rag-infrastucture-doclingserve-6e6e80-84-8-132-135.sslip.io"
-DEFAULT_MINIO_ENDPOINT = "minio.mmfshub.co.za"
+DEFAULT_DOCLING_BASE_URL = "http://automation-servers-doclingserve-bf09a5-187-124-215-81.sslip.io"
+MINIO_ENDPOINT_VAR_PATH = "f/docling/MINIO_ENDPOINT"
+MINIO_ACCESS_KEY_VAR_PATH = "f/docling/MINIO_ACCESS_KEY"
+MINIO_SECRET_KEY_VAR_PATH = "f/docling/MINIO_SECRET_KEY"
 DEFAULT_MINIO_BUCKET = "parsedinjson"
-DEFAULT_MINIO_ACCESS_KEY = "minioadmin"
-DEFAULT_MINIO_SECRET_KEY = "bcskn3p8iwmkaxor"
 DEFAULT_MINIO_REGION = "us-east-1"
 SUPPORTED_FROM_FORMATS = {
     "pdf",
@@ -81,6 +81,13 @@ FILENAME_CANDIDATE_KEYS = (
     "fileName",
     "file_name",
 )
+
+
+def _workspace_variable(path: str) -> str:
+    value = wmill.get_variable(path)
+    if not value:
+        raise ValueError(f"Windmill variable '{path}' is empty.")
+    return value
 
 
 def _normalize_base_url(base_url: str) -> str:
@@ -366,11 +373,11 @@ def main(
     save_markdown_to_s3: bool = False,
     output_s3_path: str | None = None,
     save_json_to_minio: bool = True,
-    minio_endpoint: str | None = DEFAULT_MINIO_ENDPOINT,
+    minio_endpoint: str | None = None,
     minio_bucket: str | None = DEFAULT_MINIO_BUCKET,
-    minio_access_key: str | None = DEFAULT_MINIO_ACCESS_KEY,
-    minio_secret_key: str | None = DEFAULT_MINIO_SECRET_KEY,
-    minio_use_ssl: bool = True,
+    minio_access_key: str | None = None,
+    minio_secret_key: str | None = None,
+    minio_use_ssl: bool = False,
     minio_region: str | None = DEFAULT_MINIO_REGION,
     minio_path_prefix: str | None = None,
 ) -> dict[str, Any]:
@@ -380,10 +387,10 @@ def main(
         raise ValueError("Provide only one source: either 'file' or 'file_url'.")
 
     docling_base_url = docling_base_url or DEFAULT_DOCLING_BASE_URL
-    minio_endpoint = minio_endpoint or DEFAULT_MINIO_ENDPOINT
+    minio_endpoint = minio_endpoint or _workspace_variable(MINIO_ENDPOINT_VAR_PATH)
     minio_bucket = minio_bucket or DEFAULT_MINIO_BUCKET
-    minio_access_key = minio_access_key or DEFAULT_MINIO_ACCESS_KEY
-    minio_secret_key = minio_secret_key or DEFAULT_MINIO_SECRET_KEY
+    minio_access_key = minio_access_key or _workspace_variable(MINIO_ACCESS_KEY_VAR_PATH)
+    minio_secret_key = minio_secret_key or _workspace_variable(MINIO_SECRET_KEY_VAR_PATH)
     minio_region = minio_region or DEFAULT_MINIO_REGION
 
     resolved_filename = _guess_filename(file, filename, file_url)

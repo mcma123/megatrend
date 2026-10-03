@@ -1,6 +1,6 @@
 # Purpose
 
-- Owns the Megatrend assistant UI modules under `insightful-property-hub/src/components/admin-assistant/`.
+- Owns the Cyphersoft assistant UI modules under `insightful-property-hub/src/components/admin-assistant/`.
 
 # Ownership
 

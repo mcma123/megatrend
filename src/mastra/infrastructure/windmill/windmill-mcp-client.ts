@@ -5,7 +5,7 @@ const windmillMcpTimeoutMs = Number(process.env.WINDMILL_MCP_TIMEOUT_MS ?? "1200
 
 const windmillMcp = windmillMcpUrl
   ? new MCPClient({
-      id: "windmill-megatrend",
+      id: "windmill-cyphersoft",
       servers: {
         windmill: {
           url: new URL(windmillMcpUrl),

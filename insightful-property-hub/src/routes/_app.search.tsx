@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { suggestedQueries, leases, clients, getProperty, getClient, formatZAR, monthsUntil } from "@/lib/mock-data";
 
 export const Route = createFileRoute("/_app/search")({
-  head: () => ({ meta: [{ title: "Ask anything · Megatrend OS" }, { name: "description", content: "Natural-language search across leases, clients, invoices and documents." }] }),
+  head: () => ({ meta: [{ title: "Ask anything · Cyphersoft OS" }, { name: "description", content: "Natural-language search across leases, clients, invoices and documents." }] }),
   component: SearchPage,
 });
 

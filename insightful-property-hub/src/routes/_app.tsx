@@ -10,7 +10,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
-import { useMegatrendAuth } from "@/lib/auth-session";
+import { useCyphersoftAuth } from "@/lib/auth-session";
 
 export const Route = createFileRoute("/_app")({
   component: AppLayout,
@@ -51,7 +51,7 @@ function AppFrame() {
 
 function Header() {
   const { open, toggleOpen } = useAdminAssistant();
-  const auth = useMegatrendAuth();
+  const auth = useCyphersoftAuth();
 
   const initials =
     auth.profile?.name
@@ -69,7 +69,7 @@ function Header() {
           Cypher-soft
         </span>
         <span className="text-muted-foreground">�</span>
-        <span className="font-display text-sm">Megatrend OS</span>
+        <span className="font-display text-sm">Cyphersoft OS</span>
       </div>
       <div className="ml-auto flex items-center gap-2">
         <div className="relative hidden md:block">
@@ -79,7 +79,7 @@ function Header() {
         <Button variant={open ? "secondary" : "default"} className="gap-2" onClick={toggleOpen}>
           <Sparkles className="h-4 w-4" />
           <span className="hidden sm:inline">
-            {open ? "Close Assistant" : "Megatrend Assistant"}
+            {open ? "Close Assistant" : "Cyphersoft Assistant"}
           </span>
         </Button>
         <Button variant="ghost" size="icon" aria-label="Notifications">

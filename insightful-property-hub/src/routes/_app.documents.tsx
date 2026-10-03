@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { documents, getClient } from "@/lib/mock-data";
 
 export const Route = createFileRoute("/_app/documents")({
-  head: () => ({ meta: [{ title: "Document intelligence · Megatrend OS" }, { name: "description", content: "Turn lease PDFs, addenda, invoices and memos into structured searchable data." }] }),
+  head: () => ({ meta: [{ title: "Document intelligence · Cyphersoft OS" }, { name: "description", content: "Turn lease PDFs, addenda, invoices and memos into structured searchable data." }] }),
   component: DocsPage,
 });
 

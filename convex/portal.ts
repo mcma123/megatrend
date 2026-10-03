@@ -134,7 +134,7 @@ export const invitePortalMember = mutation({
       roleKey: args.roleKey,
       status: "pending",
       invitedBy: actor._id,
-      providerHint: "oidc",
+      providerHint: "password",
       createdAt: now,
       updatedAt: now,
       expiresAt: now + 1000 * 60 * 60 * 24 * 7,
@@ -159,7 +159,7 @@ export const invitePortalMember = mutation({
     return {
       invitationId,
       inviteTarget: normalizedEmail,
-      providerHint: "oidc",
+      providerHint: "password",
     };
   },
 });

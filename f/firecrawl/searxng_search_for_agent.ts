@@ -2,7 +2,7 @@ import * as wmill from "windmill-client";
 
 const SEARXNG_BASE_URL_VAR_PATH = "f/firecrawl/SEARXNG_BASE_URL";
 const DEFAULT_SEARXNG_BASE_URL =
-  "http://automation-searxng-242e78-84-8-132-135.sslip.io/";
+  "http://automation-servers-searxng-6aa341-187-124-215-81.sslip.io/";
 
 type SearxngResult = {
   url: string;
@@ -47,7 +47,10 @@ function extractHtmlResults(html: string): SearxngResult[] {
   const articleMatches = html.match(/<article[\s\S]*?class="[^"]*result[^"]*"[\s\S]*?<\/article>/gi) ?? [];
 
   for (const article of articleMatches) {
-    const urlMatch = article.match(/<a[^>]+href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/i);
+    // The title link lives in <h3>; the first <a> is usually the thumbnail or url header.
+    const urlMatch =
+      article.match(/<h3[^>]*>\s*<a[^>]+href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/i) ??
+      article.match(/<a[^>]+href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/i);
     if (!urlMatch) {
       continue;
     }
@@ -86,6 +89,8 @@ export async function main(
   const safeMaxPages = Math.max(1, Math.min(maxPages, 10));
   const uniqueResults = new Map<string, SearxngResult>();
   const pages: Array<{ page: number; count: number }> = [];
+  // Instances without `json` in search.formats answer 403; stop retrying JSON once seen.
+  let jsonFormatEnabled = true;
 
   try {
     for (let page = 1; page <= safeMaxPages; page += 1) {
@@ -101,23 +106,30 @@ export async function main(
       let mode: "json" | "html" = "json";
       let rawResponse: any = null;
 
-      const jsonResponse = await fetch(`${normalizedBaseUrl}/search?${jsonParams.toString()}`, {
-        headers: DEFAULT_HEADERS,
-      });
-      statusCode = jsonResponse.status;
-      const jsonText = await jsonResponse.text();
+      let jsonOk = false;
+      if (jsonFormatEnabled) {
+        const jsonResponse = await fetch(`${normalizedBaseUrl}/search?${jsonParams.toString()}`, {
+          headers: DEFAULT_HEADERS,
+        });
+        statusCode = jsonResponse.status;
+        const jsonText = await jsonResponse.text();
+        jsonOk = jsonResponse.ok;
+        if (jsonResponse.status === 403) {
+          jsonFormatEnabled = false;
+        }
 
-      if (jsonResponse.ok) {
-        try {
-          const data = JSON.parse(jsonText);
-          pageResults = Array.isArray(data?.results) ? data.results : [];
-          rawResponse = data;
-        } catch {
-          rawResponse = { rawText: jsonText };
+        if (jsonResponse.ok) {
+          try {
+            const data = JSON.parse(jsonText);
+            pageResults = Array.isArray(data?.results) ? data.results : [];
+            rawResponse = data;
+          } catch {
+            rawResponse = { rawText: jsonText };
+          }
         }
       }
 
-      if (!jsonResponse.ok || pageResults.length === 0) {
+      if (!jsonOk || pageResults.length === 0) {
         const htmlParams = new URLSearchParams({
           q: query,
           pageno: String(page),

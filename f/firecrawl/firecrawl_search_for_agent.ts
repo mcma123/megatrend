@@ -3,7 +3,7 @@ import * as wmill from "windmill-client";
 const BASE_URL_VAR_PATH = "f/firecrawl/FIRECRAWL_BASE_URL";
 const API_KEY_VAR_PATH = "f/firecrawl/FIRECRAWL_API_KEY";
 const DEFAULT_BASE_URL =
-  "http://automation-firecrawl-5a435e-84-8-132-135.sslip.io/";
+  "http://automation-servers-firecrawl-416128-187-124-215-81.sslip.io/";
 const SEARCH_LIMIT = 50;
 
 type FirecrawlSearchResult = {

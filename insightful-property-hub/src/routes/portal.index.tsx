@@ -6,21 +6,21 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { useMegatrendAuth } from "@/lib/auth-session";
+import { useCyphersoftAuth } from "@/lib/auth-session";
 import { listOrgs } from "@/lib/portal-auth";
 
 export const Route = createFileRoute("/portal/")({
   head: () => ({
     meta: [
-      { title: "Client portal · Megatrend" },
-      { name: "description", content: "Sign in to your Megatrend client portal." },
+      { title: "Client portal · Cyphersoft" },
+      { name: "description", content: "Sign in to your Cyphersoft client portal." },
     ],
   }),
   component: PortalLogin,
 });
 
 function PortalLogin() {
-  const auth = useMegatrendAuth();
+  const auth = useCyphersoftAuth();
   const [org, setOrg] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -56,12 +56,12 @@ function PortalLogin() {
               <Globe className="h-4 w-4" />
             </div>
             <div className="leading-tight">
-              <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Megatrend</div>
+              <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Cyphersoft</div>
               <div className="font-display text-base">Client portal</div>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <Link to="/dashboard" className="text-xs text-muted-foreground hover:text-foreground">Megatrend staff?</Link>
+            <Link to="/dashboard" className="text-xs text-muted-foreground hover:text-foreground">Cyphersoft staff?</Link>
             <ThemeToggle />
           </div>
         </div>
@@ -74,8 +74,8 @@ function PortalLogin() {
             Your portfolio. Your team. <span className="text-primary">Your portal.</span>
           </h1>
           <p className="max-w-md text-muted-foreground">
-            Each Megatrend client organisation has its own private workspace. Enter the
-            organisation code Megatrend provisioned, then continue through secure sign-in.
+            Each Cyphersoft client organisation has its own private workspace. Enter the
+            organisation code Cyphersoft provisioned, then continue through secure sign-in.
           </p>
           <div className="rounded-lg border border-border bg-card p-4 text-sm">
             <div className="mb-2 flex items-center gap-2 text-xs uppercase tracking-[0.14em] text-muted-foreground">
@@ -85,7 +85,7 @@ function PortalLogin() {
               {orgs.slice(0, 4).map((o) => (
                 <li key={o.slug} className="flex items-center justify-between">
                   <span className="text-foreground">{o.slug}</span>
-                  <span className="text-muted-foreground">OIDC sign-in enabled</span>
+                  <span className="text-muted-foreground">Email sign-in enabled</span>
                 </li>
               ))}
             </ul>
@@ -95,7 +95,7 @@ function PortalLogin() {
         <Card className="surface-elevated p-8">
           <h2 className="font-display text-2xl">Secure sign in</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Use the identity provider configured for your tenant.
+            Enter your organisation code, then sign in with your email and password.
           </p>
           <form onSubmit={onSubmit} className="mt-6 space-y-4">
             <div className="space-y-1.5">
@@ -118,7 +118,7 @@ function PortalLogin() {
               <LogIn className="h-4 w-4" /> {loading ? "Redirecting…" : "Continue to secure sign-in"}
             </Button>
             <p className="text-center text-xs text-muted-foreground">
-              If your tenant has not been configured yet, ask Megatrend to complete the OIDC setup.
+              First time here? Use the email address your Cyphersoft invitation was sent to.
             </p>
           </form>
         </Card>

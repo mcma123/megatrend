@@ -13,7 +13,7 @@ import { clients, properties, formatZAR, formatNumber, briefs } from "@/lib/mock
 export const Route = createFileRoute("/_app/sourcing")({
   head: () => ({
     meta: [
-      { title: "Sourcing · Megatrend OS" },
+      { title: "Sourcing · Cyphersoft OS" },
       { name: "description", content: "Type a brief, get a ranked options pack. The external bucket." },
     ],
   }),

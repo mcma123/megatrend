@@ -6,8 +6,12 @@
 defaultTs: bun                  # bun or deno
 
 # Glob patterns for files to include in sync
-includes: 
-  - "f/**"           # use ** for all, f/** for folder-scoped
+# Scoped to this repo's folders only: the cyphersoft workspace also hosts other
+# projects (e.g. f/rebsons) that must never be pulled into or deleted by this repo.
+includes:
+  - "f/clitools/**"
+  - "f/docling/**"
+  - "f/firecrawl/**"
 
 # Additional glob patterns merged with includes (useful in workspace overrides)
 # extraIncludes: []
@@ -122,10 +126,11 @@ codebases: []
 # The key is a human-friendly workspace name. gitBranch and workspaceId default to the key name.
 
 # Map workspace names to Windmill instances and per-workspace sync overrides
-workspaces: 
-  megatrend: {}
-    # baseUrl: https://app.windmill.dev    # Windmill instance URL
-    # workspaceId: my-workspace            # defaults to workspace name
+workspaces:
+  cyphersoft:
+    baseUrl: http://automation-servers-windmill-7973c1-187-124-215-81.sslip.io/
+    workspaceId: cyphersoft
+    gitBranch: main
     # gitBranch: main                        # git branch (defaults to workspace name)
     # promotionOverrides:                    # overrides applied during --promotion
     #   skipSecrets: false

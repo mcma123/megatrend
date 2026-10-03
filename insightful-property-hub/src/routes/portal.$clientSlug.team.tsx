@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PageHeader } from "@/components/page-header";
 import { getClientBySlug } from "@/lib/mock-data";
-import { useMegatrendAuth } from "@/lib/auth-session";
+import { useCyphersoftAuth } from "@/lib/auth-session";
 import { api } from "../../../convex/_generated/api";
 
 const clientRoleOptions = [
@@ -26,7 +26,7 @@ export const Route = createFileRoute("/portal/$clientSlug/team")({
     return { client };
   },
   head: ({ loaderData }) => ({
-    meta: [{ title: `Team | ${loaderData?.client.name} | Megatrend portal` }],
+    meta: [{ title: `Team | ${loaderData?.client.name} | Cyphersoft portal` }],
   }),
   notFoundComponent: () => <div className="p-8">Organisation not found.</div>,
   component: TeamPage,
@@ -35,7 +35,7 @@ export const Route = createFileRoute("/portal/$clientSlug/team")({
 function TeamPage() {
   const { client } = Route.useLoaderData();
   const navigate = useNavigate();
-  const auth = useMegatrendAuth();
+  const auth = useCyphersoftAuth();
   const workspace = useQuery(api.portal.getPortalTeamWorkspace, { slug: client.slug });
   const invitePortalMember = useMutation(api.portal.invitePortalMember);
   const revokePortalMember = useMutation(api.portal.revokePortalMember);
@@ -69,7 +69,7 @@ function TeamPage() {
         fullName: form.fullName || undefined,
         roleKey: form.roleKey,
       });
-      setSuccess(`Invitation queued for ${form.email}. Access will be provisioned on first OIDC sign-in.`);
+      setSuccess(`Invitation queued for ${form.email}. They get access when they create their account with this email.`);
       setForm({ fullName: "", email: "", roleKey: "property_manager" });
     } catch (inviteError) {
       setError(inviteError instanceof Error ? inviteError.message : "Failed to invite member.");
@@ -102,7 +102,7 @@ function TeamPage() {
           description={`No tenant workspace is provisioned yet for ${client.name}.`}
         />
         <Card className="surface-elevated p-6 text-sm text-muted-foreground">
-          Megatrend still needs to provision the Convex tenant and organization record for this client before team memberships can be managed here.
+          Cyphersoft still needs to provision the Convex tenant and organization record for this client before team memberships can be managed here.
         </Card>
       </main>
     );
@@ -118,7 +118,7 @@ function TeamPage() {
 
       <Card className="surface-elevated mb-6 border-primary/40 bg-primary/5 p-4 text-sm">
         <Shield className="mr-2 inline h-4 w-4 text-primary" />
-        Invitations are now tracked in Convex. Membership is provisioned automatically the first time an invited user authenticates through the configured OIDC provider.
+        Invitations are now tracked in Convex. Membership is provisioned automatically when the invited user creates their account with the invited email.
       </Card>
 
       {error ? (
@@ -168,7 +168,7 @@ function TeamPage() {
           <Card className="surface-elevated p-6">
             <h3 className="font-display text-lg">Invite a teammate</h3>
             <p className="mt-1 text-xs text-muted-foreground">
-              Invitations are matched by email claim after OIDC sign-in.
+              Invitations are matched by email when the user creates their account.
             </p>
             <form onSubmit={handleInvite} className="mt-4 space-y-3">
               <div className="space-y-1.5">
@@ -209,7 +209,7 @@ function TeamPage() {
                   <div className="mt-2 flex items-center gap-2 text-xs uppercase tracking-[0.14em] text-muted-foreground">
                     <span>{invitation.roleKey}</span>
                     <span>?</span>
-                    <span>{invitation.providerHint ?? "oidc"}</span>
+                    <span>{invitation.providerHint ?? "password"}</span>
                   </div>
                 </div>
               ))}

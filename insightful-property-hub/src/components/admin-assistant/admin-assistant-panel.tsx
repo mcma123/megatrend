@@ -471,7 +471,7 @@ export function AdminAssistantPanel() {
           <div className="min-w-0 flex-1">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <h2 className="text-sm font-semibold text-foreground">Megatrend Assistant</h2>
+                <h2 className="text-sm font-semibold text-foreground">Cyphersoft Assistant</h2>
                 <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
                   {pageContext.title}
                 </p>

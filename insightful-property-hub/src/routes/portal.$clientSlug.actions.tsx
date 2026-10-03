@@ -19,9 +19,9 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getClientBySlug, properties } from "@/lib/mock-data";
 
 type ActionPriority = "High" | "Medium" | "Low";
-type ActionStatus = "Open" | "In progress" | "Waiting on Megatrend" | "Waiting on client" | "Completed" | "Overdue";
-type RequestedBy = "Megatrend" | "System" | "Client";
-type ActionTab = "Open" | "In progress" | "Waiting on Megatrend" | "Completed" | "All";
+type ActionStatus = "Open" | "In progress" | "Waiting on Cyphersoft" | "Waiting on client" | "Completed" | "Overdue";
+type RequestedBy = "Cyphersoft" | "System" | "Client";
+type ActionTab = "Open" | "In progress" | "Waiting on Cyphersoft" | "Completed" | "All";
 
 type ClientAction = {
   id: string;
@@ -47,9 +47,9 @@ const demoActions: ClientAction[] = [
     priority: "High",
     assignedTo: "Finance user",
     status: "Open",
-    requestedBy: "Megatrend",
+    requestedBy: "Cyphersoft",
     ctaLabel: "Upload document",
-    description: "Megatrend needs the latest utility invoice to reconcile the current billing cycle and update the property operating cost record.",
+    description: "Cyphersoft needs the latest utility invoice to reconcile the current billing cycle and update the property operating cost record.",
     relatedItem: "June Utility Statement.pdf",
     comments: [
       { id: "c1", author: "Jared van Niekerk", time: "Today 09:10", text: "Please upload the latest utility invoice so we can close the consumption variance review." },
@@ -64,12 +64,12 @@ const demoActions: ClientAction[] = [
     priority: "High",
     assignedTo: "Property manager",
     status: "In progress",
-    requestedBy: "Megatrend",
+    requestedBy: "Cyphersoft",
     ctaLabel: "Review lease",
-    description: "The renewal window is active. Megatrend needs confirmation on whether the current lease should be renewed, renegotiated, or replaced with an alternatives search.",
+    description: "The renewal window is active. Cyphersoft needs confirmation on whether the current lease should be renewed, renegotiated, or replaced with an alternatives search.",
     relatedItem: "Lease detail | DHL Linbro Park DC",
     comments: [
-      { id: "c3", author: "Megatrend", time: "2026-07-06 11:20", text: "Market options have been prepared. Waiting for internal client direction on renewal strategy." },
+      { id: "c3", author: "Cyphersoft", time: "2026-07-06 11:20", text: "Market options have been prepared. Waiting for internal client direction on renewal strategy." },
       { id: "c4", author: "Thandi Mokoena", time: "2026-07-05 14:02", text: "Reviewing with the operations team before we confirm next steps." },
     ],
   },
@@ -83,7 +83,7 @@ const demoActions: ClientAction[] = [
     status: "Open",
     requestedBy: "System",
     ctaLabel: "Review fields",
-    description: "Several extracted lease values need client confirmation before Megatrend publishes them into the approved lease intelligence record.",
+    description: "Several extracted lease values need client confirmation before Cyphersoft publishes them into the approved lease intelligence record.",
     relatedItem: "AI extracted lease fields",
     comments: [
       { id: "c5", author: "System", time: "2026-07-05 08:30", text: "Deposit and escalation references have confidence below the publish threshold." },
@@ -97,7 +97,7 @@ const demoActions: ClientAction[] = [
     priority: "Medium",
     assignedTo: "Admin",
     status: "Open",
-    requestedBy: "Megatrend",
+    requestedBy: "Cyphersoft",
     ctaLabel: "Upload document",
     description: "The lease contract references a signed annexure that is not present in the current document set. Uploading it will complete the lease record and reduce document review risk.",
     relatedItem: "DHL Linbro Park Lease Agreement.pdf",
@@ -113,12 +113,12 @@ const demoActions: ClientAction[] = [
     priority: "Low",
     assignedTo: "Property manager",
     status: "Waiting on client",
-    requestedBy: "Megatrend",
+    requestedBy: "Cyphersoft",
     ctaLabel: "View report",
-    description: "Comparable logistics options have been identified in the same region. Review the report so Megatrend can refine the shortlist if a relocation strategy is needed.",
+    description: "Comparable logistics options have been identified in the same region. Review the report so Cyphersoft can refine the shortlist if a relocation strategy is needed.",
     relatedItem: "Linbro logistics options report",
     comments: [
-      { id: "c7", author: "Megatrend", time: "2026-07-03 15:16", text: "Shortlist published for client review. Awaiting feedback before requesting landlord engagement." },
+      { id: "c7", author: "Cyphersoft", time: "2026-07-03 15:16", text: "Shortlist published for client review. Awaiting feedback before requesting landlord engagement." },
     ],
   },
   {
@@ -128,14 +128,14 @@ const demoActions: ClientAction[] = [
     dueDate: "2026-07-12",
     priority: "Low",
     assignedTo: "Finance user",
-    status: "Waiting on Megatrend",
+    status: "Waiting on Cyphersoft",
     requestedBy: "Client",
     ctaLabel: "Reply",
-    description: "Megatrend is preparing a response to the submitted quote request. Use this thread to clarify scope or supporting assumptions.",
+    description: "Cyphersoft is preparing a response to the submitted quote request. Use this thread to clarify scope or supporting assumptions.",
     relatedItem: "Quote request | utilities optimisation",
     comments: [
       { id: "c8", author: "Client", time: "2026-07-07 09:44", text: "Please confirm whether the options include utility capex assumptions." },
-      { id: "c9", author: "Megatrend", time: "2026-07-07 10:01", text: "We are updating the quote pack and will revert with the revised scope." },
+      { id: "c9", author: "Cyphersoft", time: "2026-07-07 10:01", text: "We are updating the quote pack and will revert with the revised scope." },
     ],
   },
   {
@@ -162,12 +162,12 @@ const demoActions: ClientAction[] = [
     priority: "Medium",
     assignedTo: "Admin",
     status: "Completed",
-    requestedBy: "Megatrend",
+    requestedBy: "Cyphersoft",
     ctaLabel: "View related item",
     description: "Lease schedule reviewed and published into the client-visible record.",
     relatedItem: "Lease schedule",
     comments: [
-      { id: "c11", author: "Megatrend", time: "2026-07-02 16:40", text: "Published after final account manager approval." },
+      { id: "c11", author: "Cyphersoft", time: "2026-07-02 16:40", text: "Published after final account manager approval." },
     ],
   },
   {
@@ -196,10 +196,10 @@ export const Route = createFileRoute("/portal/$clientSlug/actions")({
   },
   head: ({ loaderData }) => ({
     meta: [
-      { title: `Actions | ${loaderData?.client.name ?? "Client"} portal | Megatrend` },
+      { title: `Actions | ${loaderData?.client.name ?? "Client"} portal | Cyphersoft` },
       {
         name: "description",
-        content: `Track open requests, document tasks, lease decisions, and Megatrend follow-ups for ${loaderData?.client.name ?? "your portfolio"}.`,
+        content: `Track open requests, document tasks, lease decisions, and Cyphersoft follow-ups for ${loaderData?.client.name ?? "your portfolio"}.`,
       },
     ],
   }),
@@ -253,7 +253,7 @@ function ClientActionsPage() {
   const selectedAction = filteredActions.find((action) => action.id === selectedActionId) ?? filteredActions[0] ?? null;
 
   const summary = {
-    open: demoActions.filter((action) => ["Open", "In progress", "Waiting on client", "Waiting on Megatrend", "Overdue"].includes(action.status)).length,
+    open: demoActions.filter((action) => ["Open", "In progress", "Waiting on client", "Waiting on Cyphersoft", "Overdue"].includes(action.status)).length,
     dueThisWeek: demoActions.filter((action) => action.status !== "Completed" && action.dueDate >= "2026-07-08" && action.dueDate <= "2026-07-15").length,
     overdue: demoActions.filter((action) => action.status === "Overdue").length,
     completedThisMonth: demoActions.filter((action) => action.status === "Completed" && action.dueDate.startsWith("2026-07")).length,
@@ -264,30 +264,30 @@ function ClientActionsPage() {
       <PageHeader
         eyebrow="Client portal | Actions"
         title="Actions"
-        description="Track open requests, document tasks, lease decisions, and Megatrend follow-ups."
+        description="Track open requests, document tasks, lease decisions, and Cyphersoft follow-ups."
         actions={
           <>
             <Button>
               <ListChecks className="h-4 w-4" /> Create request
             </Button>
             <Button variant="outline">
-              <MessageSquare className="h-4 w-4" /> Ask Megatrend
+              <MessageSquare className="h-4 w-4" /> Ask Cyphersoft
             </Button>
           </>
         }
       />
 
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <SummaryCard label="Open actions" value={summary.open} detail="Requests that still need a client or Megatrend next step." />
+        <SummaryCard label="Open actions" value={summary.open} detail="Requests that still need a client or Cyphersoft next step." />
         <SummaryCard label="Due this week" value={summary.dueThisWeek} detail="Time-sensitive items that should be cleared in the next seven days." />
         <SummaryCard label="Overdue" value={summary.overdue} detail="Items that have moved past their target date and need attention." />
-        <SummaryCard label="Completed this month" value={summary.completedThisMonth} detail="Closed actions already resolved by your team or Megatrend." />
+        <SummaryCard label="Completed this month" value={summary.completedThisMonth} detail="Closed actions already resolved by your team or Cyphersoft." />
       </section>
 
       <Card className="surface-elevated mt-6 p-4">
         <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as ActionTab)}>
           <TabsList className="h-auto flex-wrap justify-start gap-2 bg-transparent p-0">
-            {(["Open", "In progress", "Waiting on Megatrend", "Completed", "All"] as ActionTab[]).map((tab) => (
+            {(["Open", "In progress", "Waiting on Cyphersoft", "Completed", "All"] as ActionTab[]).map((tab) => (
               <TabsTrigger key={tab} value={tab} className="rounded-full border border-border bg-card px-4 py-2 text-xs uppercase tracking-[0.14em] data-[state=active]:border-primary/30 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                 {tab}
               </TabsTrigger>
@@ -327,7 +327,7 @@ function ClientActionsPage() {
           <FilterSelect
             value={requestedByFilter}
             onChange={(event) => setRequestedByFilter(event.target.value as "All" | RequestedBy)}
-            options={["All", "Megatrend", "System", "Client"]}
+            options={["All", "Cyphersoft", "System", "Client"]}
             ariaLabel="Filter by requested by"
           />
           <Button variant="outline" className="justify-start xl:min-w-[10rem]">
@@ -344,7 +344,7 @@ function ClientActionsPage() {
                 <div>
                   <h2 className="font-display text-xl">Action centre</h2>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    This is where clients can see exactly what Megatrend or the system needs next, without chasing separate email threads.
+                    This is where clients can see exactly what Cyphersoft or the system needs next, without chasing separate email threads.
                   </p>
                 </div>
                 <div className="text-xs text-muted-foreground">
@@ -490,7 +490,7 @@ function ClientActionsPage() {
             <h2 className="mt-2 font-display text-lg">What needs your attention next</h2>
             <ul className="mt-3 space-y-3 text-sm text-muted-foreground">
               <li className="rounded-md border border-border/70 bg-card/50 p-3">
-                Actions requested by Megatrend usually unlock lease, quote, or document workflows that cannot proceed without client input.
+                Actions requested by Cyphersoft usually unlock lease, quote, or document workflows that cannot proceed without client input.
               </li>
               <li className="rounded-md border border-border/70 bg-card/50 p-3">
                 System-generated actions explain where extraction, publishing, or validation has paused after a document upload.
@@ -557,7 +557,7 @@ function StatusBadge({ status }: { status: ActionStatus }) {
   const classes = {
     Open: "border-primary/25 bg-primary/8 text-primary",
     "In progress": "border-primary/25 bg-primary/8 text-primary",
-    "Waiting on Megatrend": "border-border bg-accent/40 text-muted-foreground",
+    "Waiting on Cyphersoft": "border-border bg-accent/40 text-muted-foreground",
     "Waiting on client": "border-warning/40 bg-warning/10 text-warning",
     Completed: "border-success/40 bg-success/10 text-success",
     Overdue: "border-destructive/40 bg-destructive/10 text-destructive",
@@ -592,7 +592,7 @@ function EmptyState() {
       </div>
       <h3 className="mt-5 font-display text-2xl">No open actions.</h3>
       <p className="mt-2 max-w-md text-sm text-muted-foreground">
-        When Megatrend needs something from your team, it will appear here.
+        When Cyphersoft needs something from your team, it will appear here.
       </p>
     </div>
   );

@@ -1,96 +1,36 @@
 import { mutation, query } from "./_generated/server";
-import { appendAuditEvent } from "./lib/audit";
-import { requireIdentity } from "./lib/auth";
+import { getCurrentUser, isPlatformAdminEmail, normalizeEmail, requireCurrentUser } from "./lib/auth";
+import { acceptPendingInvitations } from "./lib/invitations";
 
+// Called by the client after sign-in: refreshes lastSeenAt and accepts any invitations
+// issued to this email after the account was created.
 export const syncCurrentUser = mutation({
   args: {},
   handler: async (ctx) => {
-    const identity = await requireIdentity(ctx);
-    const existing = await ctx.db
-      .query("users")
-      .withIndex("by_tokenIdentifier", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
-      .unique();
+    const user = await requireCurrentUser(ctx);
+    await ctx.db.patch(user._id, { lastSeenAt: Date.now() });
 
-    const normalizedEmail = identity.email?.trim().toLowerCase();
-    const profileFields = {
-      ...(normalizedEmail ? { email: normalizedEmail } : {}),
-      ...(identity.name ? { name: identity.name } : {}),
-      ...(identity.pictureUrl ? { avatarUrl: identity.pictureUrl } : {}),
-      lastSeenAt: Date.now(),
-    };
-
-    const userId = existing
-      ? existing._id
-      : await ctx.db.insert("users", {
-          tokenIdentifier: identity.tokenIdentifier,
-          ...profileFields,
-        });
-
-    if (existing) {
-      await ctx.db.patch(existing._id, profileFields);
+    const email = normalizeEmail(user.email);
+    if (email) {
+      await acceptPendingInvitations(ctx, user._id, email);
     }
 
-    if (normalizedEmail) {
-      const invitations = await ctx.db
-        .query("membershipInvitations")
-        .withIndex("by_email_and_status", (q) => q.eq("email", normalizedEmail).eq("status", "pending"))
-        .take(25);
-
-      for (const invitation of invitations) {
-        const existingMembership = await ctx.db
-          .query("memberships")
-          .withIndex("by_tenantId_and_userId", (q) => q.eq("tenantId", invitation.tenantId).eq("userId", userId))
-          .unique();
-
-        if (!existingMembership) {
-          await ctx.db.insert("memberships", {
-            tenantId: invitation.tenantId,
-            organizationId: invitation.organizationId,
-            userId,
-            principalType: invitation.principalType,
-            roleKey: invitation.roleKey,
-            status: "active",
-            createdAt: Date.now(),
-            createdBy: invitation.invitedBy,
-          });
-        }
-
-        await ctx.db.patch(invitation._id, {
-          status: "accepted",
-          acceptedAt: Date.now(),
-          updatedAt: Date.now(),
-          fulfilledByUserId: userId,
-        });
-
-        await appendAuditEvent(ctx, {
-          tenantId: invitation.tenantId,
-          eventType: "membership.invitation_accepted",
-          actorType: "client_user",
-          actorId: userId,
-          targetType: "membership_invitation",
-          targetId: invitation._id,
-          correlationId: `membership-invitation:${invitation._id}`,
-          sourceSystem: "portal",
-          occurredAt: Date.now(),
-          payloadAfter: JSON.stringify({
-            email: normalizedEmail,
-            roleKey: invitation.roleKey,
-          }),
-        });
-      }
-    }
-
-    return userId;
+    return user._id;
   },
 });
 
 export const currentUser = query({
   args: {},
   handler: async (ctx) => {
-    const identity = await requireIdentity(ctx);
-    return await ctx.db
-      .query("users")
-      .withIndex("by_tokenIdentifier", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
-      .unique();
+    const user = await getCurrentUser(ctx);
+    if (!user) {
+      return null;
+    }
+    return {
+      _id: user._id,
+      email: user.email ?? null,
+      name: user.name ?? null,
+      isPlatformAdmin: isPlatformAdminEmail(user.email),
+    };
   },
 });

@@ -70,7 +70,7 @@ export function AppSidebar() {
           {!collapsed && (
             <div className="flex flex-col leading-tight">
               <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Cypher-soft</span>
-              <span className="font-display text-sm">Megatrend OS</span>
+              <span className="font-display text-sm">Cyphersoft OS</span>
             </div>
           )}
         </Link>

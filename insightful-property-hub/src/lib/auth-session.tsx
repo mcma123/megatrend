@@ -4,43 +4,31 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
+import { useRouter } from "@tanstack/react-router";
+import { useAuthActions } from "@convex-dev/auth/react";
+import { useConvexAuth, useMutation, useQuery } from "convex/react";
+import { ConvexError } from "convex/values";
+import { api } from "../../../convex/_generated/api";
 
 type AuthStatus = "loading" | "anonymous" | "authenticated";
 
-type PendingAuthState = {
-  codeVerifier: string;
-  state: string;
-  portalSlug?: string;
-  returnTo: string;
-};
-
-type StoredSession = {
-  accessToken: string;
-  refreshToken?: string;
-  expiresAt?: number;
-  portalSlug?: string;
-};
-
-type TokenResponse = {
-  access_token?: string;
-  id_token?: string;
-  refresh_token?: string;
-  expires_in?: number;
-};
-
-type OidcDiscoveryDocument = {
-  authorization_endpoint: string;
-  token_endpoint: string;
-  end_session_endpoint?: string;
-};
-
 type AuthProfile = {
-  subject: string;
+  userId: string;
   email: string | null;
   name: string | null;
+  isPlatformAdmin: boolean;
+};
+
+export type PasswordSignInArgs = {
+  flow: "signIn" | "signUp";
+  email: string;
+  password: string;
+  name?: string;
+  portalSlug?: string;
 };
 
 type AuthContextValue = {
@@ -51,369 +39,209 @@ type AuthContextValue = {
   profile: AuthProfile | null;
   portalSlug: string | null;
   error: string | null;
+  /** Sends the user to the sign-in page, returning to `returnTo` afterwards. */
   login: (args: { portalSlug?: string; returnTo?: string }) => Promise<void>;
+  signInWithPassword: (args: PasswordSignInArgs) => Promise<void>;
   logout: (args?: { returnTo?: string }) => Promise<void>;
-  handleCallback: (url?: string) => Promise<string>;
-  getAccessToken: (args?: { forceRefreshToken?: boolean }) => Promise<string | null>;
 };
 
-const AUTH_SESSION_KEY = "mtos.auth.session";
-const AUTH_PENDING_KEY = "mtos.auth.pending";
-
-const authIssuer = import.meta.env.VITE_AUTH_ISSUER?.trim();
-const authClientId = import.meta.env.VITE_AUTH_CLIENT_ID?.trim();
-const authAudience = import.meta.env.VITE_AUTH_AUDIENCE?.trim();
-const authRedirectUri =
-  import.meta.env.VITE_AUTH_REDIRECT_URI?.trim() ||
-  (typeof window !== "undefined" ? `${window.location.origin}/auth/callback` : "");
-const authPostLogoutRedirectUri =
-  import.meta.env.VITE_AUTH_POST_LOGOUT_REDIRECT_URI?.trim() ||
-  (typeof window !== "undefined" ? `${window.location.origin}/portal` : "");
-
-const isConfigured = Boolean(authIssuer && authClientId && authRedirectUri);
+const PORTAL_SLUG_KEY = "mtos.auth.portalSlug";
 
 const AuthSessionContext = createContext<AuthContextValue | null>(null);
 
-let discoveryPromise: Promise<OidcDiscoveryDocument> | null = null;
-
-function readStorage<T>(key: string): T | null {
+function readPortalSlug() {
   if (typeof window === "undefined") return null;
   try {
-    const raw = window.localStorage.getItem(key);
-    return raw ? (JSON.parse(raw) as T) : null;
+    return window.localStorage.getItem(PORTAL_SLUG_KEY);
   } catch {
     return null;
   }
 }
 
-function writeStorage<T>(key: string, value: T | null) {
+function writePortalSlug(slug: string | null) {
   if (typeof window === "undefined") return;
-  if (value === null) {
-    window.localStorage.removeItem(key);
-    return;
-  }
-  window.localStorage.setItem(key, JSON.stringify(value));
-}
-
-function toBase64Url(value: Uint8Array) {
-  const chars = Array.from(value, (item) => String.fromCharCode(item)).join("");
-  return btoa(chars).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
-}
-
-function randomString(bytes = 32) {
-  const buffer = new Uint8Array(bytes);
-  crypto.getRandomValues(buffer);
-  return toBase64Url(buffer);
-}
-
-async function sha256(input: string) {
-  const bytes = new TextEncoder().encode(input);
-  const digest = await crypto.subtle.digest("SHA-256", bytes);
-  return toBase64Url(new Uint8Array(digest));
-}
-
-function decodeJwtPayload(token: string): Record<string, unknown> | null {
-  const [, payload] = token.split(".");
-  if (!payload) return null;
   try {
-    const normalized = payload.replace(/-/g, "+").replace(/_/g, "/");
-    const padded = normalized.padEnd(normalized.length + ((4 - (normalized.length % 4)) % 4), "=");
-    return JSON.parse(atob(padded)) as Record<string, unknown>;
+    if (slug) {
+      window.localStorage.setItem(PORTAL_SLUG_KEY, slug);
+    } else {
+      window.localStorage.removeItem(PORTAL_SLUG_KEY);
+    }
   } catch {
-    return null;
+    // Storage unavailable (private mode); portal pinning is a convenience only.
   }
 }
 
-function getProfileFromToken(token: string): AuthProfile | null {
-  const payload = decodeJwtPayload(token);
-  if (!payload || typeof payload.sub !== "string") return null;
-  return {
-    subject: payload.sub,
-    email: typeof payload.email === "string" ? payload.email : null,
-    name: typeof payload.name === "string" ? payload.name : null,
-  };
+// Production Convex only exposes ConvexError messages; other failures (wrong password,
+// duplicate account) arrive as a generic "Server Error", so the fallbacks cover those.
+function toFriendlyAuthError(error: unknown, flow: PasswordSignInArgs["flow"]) {
+  const message =
+    error instanceof ConvexError
+      ? String(error.data)
+      : error instanceof Error
+        ? error.message
+        : String(error);
+  if (message.includes("has not been invited")) {
+    return "This email has not been invited to Cyphersoft. Ask your Cyphersoft contact for an invitation.";
+  }
+  if (
+    message.includes("InvalidSecret") ||
+    message.includes("Invalid credentials") ||
+    message.includes("InvalidAccountId")
+  ) {
+    return "Incorrect email or password.";
+  }
+  if (message.includes("already exists")) {
+    return "An account with this email already exists. Sign in instead.";
+  }
+  if (message.toLowerCase().includes("password")) {
+    return "Password must be at least 8 characters.";
+  }
+  return flow === "signUp"
+    ? "Could not create your account. If you already have one, sign in instead."
+    : "Incorrect email or password.";
 }
 
-function getExpiresAt(token: string, expiresIn?: number) {
-  const payload = decodeJwtPayload(token);
-  if (payload && typeof payload.exp === "number") {
-    return payload.exp * 1000;
-  }
-  if (typeof expiresIn === "number") {
-    return Date.now() + expiresIn * 1000;
-  }
-  return undefined;
+function useLoginRedirect() {
+  const router = useRouter();
+  return useCallback(
+    async ({ portalSlug, returnTo = "/dashboard" }: { portalSlug?: string; returnTo?: string }) => {
+      await router.navigate({
+        to: "/sign-in",
+        search: { returnTo, ...(portalSlug ? { portal: portalSlug } : {}) },
+      });
+    },
+    [router],
+  );
 }
 
-function isTokenExpired(expiresAt?: number) {
-  if (!expiresAt) return false;
-  return Date.now() >= expiresAt - 60_000;
-}
-
-async function getDiscoveryDocument() {
-  if (!authIssuer) {
-    throw new Error("Missing VITE_AUTH_ISSUER");
-  }
-  if (!discoveryPromise) {
-    const url = `${authIssuer.replace(/\/$/, "")}/.well-known/openid-configuration`;
-    discoveryPromise = fetch(url).then(async (response) => {
-      if (!response.ok) {
-        throw new Error("Unable to load OIDC discovery document");
-      }
-      return (await response.json()) as OidcDiscoveryDocument;
-    });
-  }
-  return discoveryPromise;
-}
-
-async function exchangeAuthorizationCode(args: {
-  code: string;
-  codeVerifier: string;
-}): Promise<StoredSession> {
-  const discovery = await getDiscoveryDocument();
-  const body = new URLSearchParams({
-    grant_type: "authorization_code",
-    client_id: authClientId!,
-    code: args.code,
-    code_verifier: args.codeVerifier,
-    redirect_uri: authRedirectUri,
-  });
-  const response = await fetch(discovery.token_endpoint, {
-    method: "POST",
-    headers: { "content-type": "application/x-www-form-urlencoded" },
-    body,
-  });
-  if (!response.ok) {
-    throw new Error("OIDC token exchange failed");
-  }
-  const tokens = (await response.json()) as TokenResponse;
-  const accessToken = tokens.id_token ?? tokens.access_token;
-  if (!accessToken) {
-    throw new Error("OIDC response did not contain a usable JWT");
-  }
-  return {
-    accessToken,
-    refreshToken: tokens.refresh_token,
-    expiresAt: getExpiresAt(accessToken, tokens.expires_in),
-  };
-}
-
-async function refreshAccessToken(refreshToken: string): Promise<StoredSession> {
-  const discovery = await getDiscoveryDocument();
-  const body = new URLSearchParams({
-    grant_type: "refresh_token",
-    client_id: authClientId!,
-    refresh_token: refreshToken,
-  });
-  const response = await fetch(discovery.token_endpoint, {
-    method: "POST",
-    headers: { "content-type": "application/x-www-form-urlencoded" },
-    body,
-  });
-  if (!response.ok) {
-    throw new Error("OIDC token refresh failed");
-  }
-  const tokens = (await response.json()) as TokenResponse;
-  const accessToken = tokens.id_token ?? tokens.access_token;
-  if (!accessToken) {
-    throw new Error("OIDC refresh response did not contain a usable JWT");
-  }
-  return {
-    accessToken,
-    refreshToken: tokens.refresh_token ?? refreshToken,
-    expiresAt: getExpiresAt(accessToken, tokens.expires_in),
-  };
-}
-
-export function AuthSessionProvider({ children }: { children: ReactNode }) {
-  const [status, setStatus] = useState<AuthStatus>("loading");
-  const [session, setSession] = useState<StoredSession | null>(null);
+/** Auth context backed by Convex Auth (email + password). */
+export function ConvexAuthSessionProvider({ children }: { children: ReactNode }) {
+  const { isLoading, isAuthenticated } = useConvexAuth();
+  const { signIn, signOut } = useAuthActions();
+  const syncCurrentUser = useMutation(api.users.syncCurrentUser);
+  const currentUser = useQuery(api.users.currentUser, isAuthenticated ? {} : "skip");
+  const login = useLoginRedirect();
+  const [portalSlug, setPortalSlug] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const hasSynced = useRef(false);
 
   useEffect(() => {
-    const storedSession = readStorage<StoredSession>(AUTH_SESSION_KEY);
-    if (!storedSession?.accessToken) {
-      setStatus("anonymous");
-      return;
-    }
-    if (isTokenExpired(storedSession.expiresAt) && !storedSession.refreshToken) {
-      writeStorage(AUTH_SESSION_KEY, null);
-      setStatus("anonymous");
-      return;
-    }
-    setSession(storedSession);
-    setStatus("authenticated");
+    setPortalSlug(readPortalSlug());
   }, []);
 
-  const persistSession = useCallback((nextSession: StoredSession | null) => {
-    setSession(nextSession);
-    writeStorage(AUTH_SESSION_KEY, nextSession);
-    setStatus(nextSession ? "authenticated" : "anonymous");
-  }, []);
+  useEffect(() => {
+    if (!isAuthenticated) {
+      hasSynced.current = false;
+      return;
+    }
+    if (hasSynced.current) return;
+    hasSynced.current = true;
+    void syncCurrentUser({}).catch((syncError) => {
+      console.error("Convex user sync failed", syncError);
+    });
+  }, [isAuthenticated, syncCurrentUser]);
 
-  const getAccessToken = useCallback(
-    async ({ forceRefreshToken = false }: { forceRefreshToken?: boolean } = {}) => {
-      if (!session?.accessToken) {
-        return null;
-      }
-      if (!forceRefreshToken && !isTokenExpired(session.expiresAt)) {
-        return session.accessToken;
-      }
-      if (!session.refreshToken) {
-        persistSession(null);
-        return null;
-      }
+  const signInWithPassword = useCallback(
+    async ({ flow, email, password, name, portalSlug: nextPortalSlug }: PasswordSignInArgs) => {
+      setError(null);
       try {
-        const refreshed = await refreshAccessToken(session.refreshToken);
-        const nextSession = {
-          ...refreshed,
-          portalSlug: session.portalSlug,
-        };
-        persistSession(nextSession);
-        return nextSession.accessToken;
-      } catch (refreshError) {
-        persistSession(null);
-        setError(refreshError instanceof Error ? refreshError.message : "Failed to refresh session");
-        return null;
+        await signIn("password", {
+          flow,
+          email: email.trim().toLowerCase(),
+          password,
+          ...(flow === "signUp" && name?.trim() ? { name: name.trim() } : {}),
+        });
+      } catch (signInError) {
+        const friendly = toFriendlyAuthError(signInError, flow);
+        setError(friendly);
+        throw new Error(friendly);
       }
+      const slug = nextPortalSlug?.trim().toLowerCase() || null;
+      writePortalSlug(slug);
+      setPortalSlug(slug);
     },
-    [persistSession, session],
-  );
-
-  const login = useCallback(
-    async ({ portalSlug, returnTo = "/dashboard" }: { portalSlug?: string; returnTo?: string }) => {
-      if (!isConfigured) {
-        throw new Error("OIDC auth is not configured. Set the VITE_AUTH_* variables first.");
-      }
-      const discovery = await getDiscoveryDocument();
-      const codeVerifier = randomString(64);
-      const codeChallenge = await sha256(codeVerifier);
-      const state = randomString(32);
-
-      writeStorage<PendingAuthState>(AUTH_PENDING_KEY, {
-        codeVerifier,
-        state,
-        portalSlug,
-        returnTo,
-      });
-
-      const params = new URLSearchParams({
-        client_id: authClientId!,
-        redirect_uri: authRedirectUri,
-        response_type: "code",
-        scope: "openid profile email offline_access",
-        state,
-        code_challenge: codeChallenge,
-        code_challenge_method: "S256",
-      });
-      if (authAudience) {
-        params.set("audience", authAudience);
-      }
-
-      window.location.assign(`${discovery.authorization_endpoint}?${params.toString()}`);
-    },
-    [],
+    [signIn],
   );
 
   const logout = useCallback(
     async ({ returnTo = "/portal" }: { returnTo?: string } = {}) => {
-      const discovery = isConfigured ? await getDiscoveryDocument().catch(() => null) : null;
-      const currentToken = session?.accessToken ?? null;
-      persistSession(null);
-      writeStorage(AUTH_PENDING_KEY, null);
+      await signOut();
+      writePortalSlug(null);
+      setPortalSlug(null);
       setError(null);
-
-      if (discovery?.end_session_endpoint && currentToken) {
-        const params = new URLSearchParams({
-          post_logout_redirect_uri: authPostLogoutRedirectUri || `${window.location.origin}${returnTo}`,
-          id_token_hint: currentToken,
-        });
-        window.location.assign(`${discovery.end_session_endpoint}?${params.toString()}`);
-        return;
-      }
-
       window.location.assign(returnTo);
     },
-    [persistSession, session?.accessToken],
+    [signOut],
   );
 
-  const handleCallback = useCallback(
-    async (url = window.location.href) => {
-      const pending = readStorage<PendingAuthState>(AUTH_PENDING_KEY);
-      if (!pending) {
-        throw new Error("Missing PKCE login state");
-      }
-
-      const currentUrl = new URL(url);
-      const code = currentUrl.searchParams.get("code");
-      const returnedState = currentUrl.searchParams.get("state");
-      const errorParam = currentUrl.searchParams.get("error");
-
-      if (errorParam) {
-        throw new Error(currentUrl.searchParams.get("error_description") ?? errorParam);
-      }
-      if (!code || !returnedState || returnedState !== pending.state) {
-        throw new Error("Invalid OIDC callback state");
-      }
-
-      const nextSession = await exchangeAuthorizationCode({
-        code,
-        codeVerifier: pending.codeVerifier,
-      });
-
-      persistSession({
-        ...nextSession,
-        portalSlug: pending.portalSlug,
-      });
-      writeStorage(AUTH_PENDING_KEY, null);
-      setError(null);
-      return pending.returnTo;
-    },
-    [persistSession],
+  const profile = useMemo<AuthProfile | null>(
+    () =>
+      currentUser
+        ? {
+            userId: currentUser._id,
+            email: currentUser.email,
+            name: currentUser.name,
+            isPlatformAdmin: currentUser.isPlatformAdmin,
+          }
+        : null,
+    [currentUser],
   );
 
-  const profile = useMemo(
-    () => (session?.accessToken ? getProfileFromToken(session.accessToken) : null),
-    [session?.accessToken],
-  );
+  const status: AuthStatus = isLoading
+    ? "loading"
+    : isAuthenticated
+      ? "authenticated"
+      : "anonymous";
 
   const value = useMemo<AuthContextValue>(
     () => ({
       status,
-      isConfigured,
+      isConfigured: true,
       isLoading: status === "loading",
       isAuthenticated: status === "authenticated",
       profile,
-      portalSlug: session?.portalSlug ?? null,
+      portalSlug,
       error,
       login,
+      signInWithPassword,
       logout,
-      handleCallback,
-      getAccessToken,
     }),
-    [error, getAccessToken, handleCallback, login, logout, profile, session?.portalSlug, status],
+    [error, login, logout, portalSlug, profile, signInWithPassword, status],
   );
 
   return <AuthSessionContext.Provider value={value}>{children}</AuthSessionContext.Provider>;
 }
 
-export function useMegatrendAuth() {
-  const context = useContext(AuthSessionContext);
-  if (!context) {
-    throw new Error("useMegatrendAuth must be used within AuthSessionProvider");
-  }
-  return context;
+/** Fallback context when VITE_CONVEX_URL is not set: everyone is anonymous. */
+export function UnconfiguredAuthSessionProvider({ children }: { children: ReactNode }) {
+  const login = useLoginRedirect();
+  const value = useMemo<AuthContextValue>(
+    () => ({
+      status: "anonymous",
+      isConfigured: false,
+      isLoading: false,
+      isAuthenticated: false,
+      profile: null,
+      portalSlug: null,
+      error: null,
+      login,
+      signInWithPassword: async () => {
+        throw new Error("Sign-in is not configured. Set VITE_CONVEX_URL first.");
+      },
+      logout: async ({ returnTo = "/portal" } = {}) => {
+        window.location.assign(returnTo);
+      },
+    }),
+    [login],
+  );
+
+  return <AuthSessionContext.Provider value={value}>{children}</AuthSessionContext.Provider>;
 }
 
-export function useConvexAuth() {
-  const auth = useMegatrendAuth();
-  return useMemo(
-    () => ({
-      isLoading: auth.isLoading,
-      isAuthenticated: auth.isAuthenticated,
-      fetchAccessToken: ({ forceRefreshToken }: { forceRefreshToken: boolean }) =>
-        auth.getAccessToken({ forceRefreshToken }),
-    }),
-    [auth],
-  );
+export function useCyphersoftAuth() {
+  const context = useContext(AuthSessionContext);
+  if (!context) {
+    throw new Error("useCyphersoftAuth must be used within an auth session provider");
+  }
+  return context;
 }

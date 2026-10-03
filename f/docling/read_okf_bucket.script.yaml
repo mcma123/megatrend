@@ -1,5 +1,6 @@
 summary: Read and search OKF bundles from MinIO
-description: Lists OKF bundles, fetches bundle files, and searches OKF markdown stored in the okfdata MinIO bucket for agent or tool use.
+description: Lists OKF bundles, fetches bundle files, and searches OKF markdown
+  stored in the okfdata MinIO bucket for agent or tool use.
 lock: '!inline f/docling/read_okf_bucket.script.lock'
 kind: script
 schema:
@@ -54,7 +55,7 @@ schema:
     minio_use_ssl:
       type: boolean
       description: Whether to use HTTPS for MinIO.
-      default: true
+      default: false
     object_key:
       type: string
       description: Exact markdown object key to fetch.

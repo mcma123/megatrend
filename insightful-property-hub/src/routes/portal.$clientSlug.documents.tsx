@@ -154,7 +154,7 @@ const initialQueue: UploadQueueItem[] = [
     progress: 72,
     currentStep: "Extracting",
     status: "active",
-    message: "Megatrend AI is extracting clauses and matching them to the active lease.",
+    message: "Cyphersoft AI is extracting clauses and matching them to the active lease.",
   },
   {
     id: "queue-2",
@@ -182,7 +182,7 @@ export const Route = createFileRoute("/portal/$clientSlug/documents")({
   },
   head: ({ loaderData }) => ({
     meta: [
-      { title: `Documents | ${loaderData?.client.name ?? "Client"} portal | Megatrend` },
+      { title: `Documents | ${loaderData?.client.name ?? "Client"} portal | Cyphersoft` },
       {
         name: "description",
         content: `Track uploaded invoices, contracts, utility statements, and lease documents for ${loaderData?.client.name ?? "your portfolio"}.`,

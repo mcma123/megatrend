@@ -1,5 +1,6 @@
 summary: Process and crop a scanned document image
-description: Applies perspective correction, rotation, cleanup, and enhancement filters to a scanned page image and returns the processed page as base64.
+description: Applies perspective correction, rotation, cleanup, and enhancement
+  filters to a scanned page image and returns the processed page as base64.
 lock: '!inline f/docling/scanner/scan_document_image.script.lock'
 kind: script
 schema:

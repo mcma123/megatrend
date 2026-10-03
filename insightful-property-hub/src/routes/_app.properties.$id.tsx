@@ -13,7 +13,7 @@ export const Route = createFileRoute("/_app/properties/$id")({
   },
   notFoundComponent: () => <div className="p-8">Property not found.</div>,
   head: ({ loaderData }) => ({
-    meta: [{ title: `${loaderData?.property.name ?? "Property"} · Megatrend OS` }],
+    meta: [{ title: `${loaderData?.property.name ?? "Property"} · Cyphersoft OS` }],
   }),
   component: PropertyDetail,
 });

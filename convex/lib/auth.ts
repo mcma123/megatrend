@@ -1,3 +1,4 @@
+import { getAuthUserId } from "@convex-dev/auth/server";
 import { QueryCtx, MutationCtx } from "../_generated/server";
 import { Doc, Id } from "../_generated/dataModel";
 
@@ -14,21 +15,43 @@ export async function requireIdentity(ctx: AuthCtx) {
   return identity;
 }
 
+export function normalizeEmail(email: string | undefined | null) {
+  const normalized = email?.trim().toLowerCase();
+  return normalized ? normalized : null;
+}
+
+export function isPlatformAdminEmail(email: string | undefined | null) {
+  const normalized = normalizeEmail(email);
+  if (!normalized) {
+    return false;
+  }
+  const allowList = (process.env.PLATFORM_ADMIN_EMAILS ?? "")
+    .split(",")
+    .map((entry) => normalizeEmail(entry))
+    .filter((entry): entry is string => entry !== null);
+  return allowList.includes(normalized);
+}
+
 export async function getCurrentUser(ctx: AuthCtx): Promise<Doc<"users"> | null> {
-  const identity = await ctx.auth.getUserIdentity();
-  if (!identity) {
+  const userId = await getAuthUserId(ctx);
+  if (!userId) {
     return null;
   }
-  return await ctx.db
-    .query("users")
-    .withIndex("by_tokenIdentifier", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
-    .unique();
+  return await ctx.db.get(userId);
 }
 
 export async function requireCurrentUser(ctx: AuthCtx): Promise<Doc<"users">> {
   const user = await getCurrentUser(ctx);
   if (!user) {
     throw new Error("Authenticated user is not provisioned");
+  }
+  return user;
+}
+
+export async function requirePlatformAdmin(ctx: AuthCtx): Promise<Doc<"users">> {
+  const user = await requireCurrentUser(ctx);
+  if (!isPlatformAdminEmail(user.email)) {
+    throw new Error("Platform administrator access required");
   }
   return user;
 }

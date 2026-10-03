@@ -6,7 +6,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { leases, getProperty, getClient, formatZAR, monthsUntil } from "@/lib/mock-data";
 
 export const Route = createFileRoute("/_app/leases")({
-  head: () => ({ meta: [{ title: "Leases · Megatrend OS" }, { name: "description", content: "Track every lease from start to renewal." }] }),
+  head: () => ({ meta: [{ title: "Leases · Cyphersoft OS" }, { name: "description", content: "Track every lease from start to renewal." }] }),
   component: LeasesPage,
 });
 

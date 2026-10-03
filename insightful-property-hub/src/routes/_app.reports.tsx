@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { clients, leases, properties, formatZAR } from "@/lib/mock-data";
 
 export const Route = createFileRoute("/_app/reports")({
-  head: () => ({ meta: [{ title: "Reports & ROI · Megatrend OS" }, { name: "description", content: "Portfolio analytics, renewal exposure and ROI of the system itself." }] }),
+  head: () => ({ meta: [{ title: "Reports & ROI · Cyphersoft OS" }, { name: "description", content: "Portfolio analytics, renewal exposure and ROI of the system itself." }] }),
   component: ReportsPage,
 });
 

@@ -20,7 +20,7 @@ def write_pdf_to_storage(document_name: str, pdf_base64: str) -> tuple[S3Object,
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
     path = f"scanner/{timestamp}-{slugify(document_name)}.pdf"
     stored = wmill.write_s3_file(
-        path,
+        S3Object(s3=path),
         pdf_bytes,
         None,
         "application/pdf",

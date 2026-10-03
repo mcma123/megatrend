@@ -7,7 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { automations, renewalSteps } from "@/lib/mock-data";
 
 export const Route = createFileRoute("/_app/automations")({
-  head: () => ({ meta: [{ title: "Automations · Megatrend OS" }, { name: "description", content: "Event-driven workflows for renewals, anomalies and client communication." }] }),
+  head: () => ({ meta: [{ title: "Automations · Cyphersoft OS" }, { name: "description", content: "Event-driven workflows for renewals, anomalies and client communication." }] }),
   component: AutomationsPage,
 });
 

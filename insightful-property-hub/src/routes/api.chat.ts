@@ -29,14 +29,28 @@ export const Route = createFileRoute("/api/chat")({
     handlers: {
       POST: async ({ request }) => {
         const body = await request.text();
-        const upstream = await fetch(resolveMastraChatUrl(body), {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body,
-          signal: request.signal,
-        });
+        const targetUrl = resolveMastraChatUrl(body);
+        let upstream: Response;
+        try {
+          upstream = await fetch(targetUrl, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body,
+            signal: request.signal,
+          });
+        } catch (error) {
+          if (request.signal.aborted) {
+            return new Response(null, { status: 499 });
+          }
+          console.error(`Mastra chat upstream unreachable at ${targetUrl}`, error);
+          // Plain text: the assistant panel shows the response body verbatim as the error.
+          return new Response(
+            "The Cyphersoft Assistant service is not reachable. Start it with `npm run dev:mastra` (or `npm run dev` to run web and assistant together).",
+            { status: 503, headers: { "Content-Type": "text/plain; charset=utf-8" } },
+          );
+        }
 
         return new Response(upstream.body, {
           status: upstream.status,

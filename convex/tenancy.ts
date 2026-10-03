@@ -1,7 +1,12 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { appendAuditEvent } from "./lib/audit";
-import { requireActiveMembership, requireCurrentUser, requireIdentity } from "./lib/auth";
+import {
+  requireActiveMembership,
+  requireCurrentUser,
+  requireIdentity,
+  requirePlatformAdmin,
+} from "./lib/auth";
 import { principalType, roleKey } from "./validators";
 
 export const me = query({
@@ -50,8 +55,16 @@ export const provisionTenant = mutation({
     primaryContactEmail: v.string(),
   },
   handler: async (ctx, args) => {
-    const actor = await requireCurrentUser(ctx);
+    const actor = await requirePlatformAdmin(ctx);
     const now = Date.now();
+
+    const existingTenant = await ctx.db
+      .query("tenants")
+      .withIndex("by_slug", (q) => q.eq("slug", args.slug))
+      .unique();
+    if (existingTenant) {
+      throw new Error("A tenant with this slug already exists");
+    }
 
     const tenantId = await ctx.db.insert("tenants", {
       slug: args.slug,

@@ -48,7 +48,7 @@ const demoInsights: ClientInsight[] = [
     source: "DHL Linbro Park Lease Agreement.pdf · Page 4",
     reviewLabel: "Published by your account manager",
     cta: "Request quote",
-    narrative: "Megatrend has reviewed the active lease timeline and confirmed that the renewal window for DHL Linbro Park DC is approaching. The current expiry and notice milestones suggest that market testing and landlord engagement should begin now.",
+    narrative: "Cyphersoft has reviewed the active lease timeline and confirmed that the renewal window for DHL Linbro Park DC is approaching. The current expiry and notice milestones suggest that market testing and landlord engagement should begin now.",
     publishedBy: "Jared van Niekerk",
     recommendedAction: "Request a renewal quote and review regional comparables.",
   },
@@ -62,7 +62,7 @@ const demoInsights: ClientInsight[] = [
     publishedDate: "2026-07-03",
     note: "The uplift exceeds the normal annual step-up we expected from the approved lease schedule.",
     source: "Rental Invoice May 2026.pdf · Line item check",
-    reviewLabel: "Reviewed by Megatrend",
+    reviewLabel: "Reviewed by Cyphersoft",
     cta: "View lease",
     narrative: "A reviewed comparison between the lease schedule and the latest invoiced amount shows that the monthly rental is above the expected escalation path. This may be due to a billing adjustment or an unlinked addendum.",
     publishedBy: "Jared van Niekerk",
@@ -78,7 +78,7 @@ const demoInsights: ClientInsight[] = [
     publishedDate: "2026-07-02",
     note: "Usage movement is material enough to investigate before the next billing cycle closes.",
     source: "June Utility Statement.pdf · Consumption trend",
-    reviewLabel: "Reviewed by Megatrend",
+    reviewLabel: "Reviewed by Cyphersoft",
     cta: "View source document",
     narrative: "Utility consumption has moved sharply relative to the trailing monthly trend. The source utility statement was reviewed and the variance looks operational rather than a simple reading-format change.",
     publishedBy: "Ops Intelligence Desk",
@@ -95,10 +95,10 @@ const demoInsights: ClientInsight[] = [
     note: "The current spend trend implies budget pressure if consumption normalisation does not happen soon.",
     source: "Airport Industria Utility Reconciliation.pdf · Forecast model",
     reviewLabel: "Published by your account manager",
-    cta: "Ask Megatrend",
-    narrative: "Megatrend reviewed the current utility run-rate and forward cost forecast for this site. Based on the recent billing pattern, annualised cost exposure is moving above the expected operating budget envelope.",
+    cta: "Ask Cyphersoft",
+    narrative: "Cyphersoft reviewed the current utility run-rate and forward cost forecast for this site. Based on the recent billing pattern, annualised cost exposure is moving above the expected operating budget envelope.",
     publishedBy: "Reza Patel",
-    recommendedAction: "Ask Megatrend for a cost-mitigation plan and budget outlook.",
+    recommendedAction: "Ask Cyphersoft for a cost-mitigation plan and budget outlook.",
   },
   {
     id: "insight-5",
@@ -110,7 +110,7 @@ const demoInsights: ClientInsight[] = [
     publishedDate: "2026-06-29",
     note: "We have enough evidence to flag the gap, but not enough to treat the annexure as definitively absent without client confirmation.",
     source: "DHL Linbro Park Lease Agreement.pdf · Annexure reference",
-    reviewLabel: "Reviewed by Megatrend",
+    reviewLabel: "Reviewed by Cyphersoft",
     cta: "Upload missing document",
     narrative: "The reviewed lease package refers to a signed annexure that is not present in the linked contract set. The clause references appear valid, but the supporting document has not been uploaded into the portal package yet.",
     publishedBy: "Jared van Niekerk",
@@ -125,10 +125,10 @@ const demoInsights: ClientInsight[] = [
     propertyId: "p1",
     publishedDate: "2026-06-27",
     note: "We have reviewed nearby comparables that could strengthen your renewal position.",
-    source: "Megatrend sourcing brief · Linbro Park set",
+    source: "Cyphersoft sourcing brief · Linbro Park set",
     reviewLabel: "Published by your account manager",
     cta: "Request quote",
-    narrative: "Megatrend has reviewed nearby logistics opportunities in the same region and found comparable options that may be relevant for negotiation leverage or relocation planning.",
+    narrative: "Cyphersoft has reviewed nearby logistics opportunities in the same region and found comparable options that may be relevant for negotiation leverage or relocation planning.",
     publishedBy: "Jared van Niekerk",
     recommendedAction: "Request a market quote pack for the comparable properties.",
   },
@@ -142,7 +142,7 @@ export const Route = createFileRoute("/portal/$clientSlug/insights")({
   },
   head: ({ loaderData }) => ({
     meta: [
-      { title: `Insights | ${loaderData?.client.name ?? "Client"} portal | Megatrend` },
+      { title: `Insights | ${loaderData?.client.name ?? "Client"} portal | Cyphersoft` },
       {
         name: "description",
         content: `Curated lease, rental, document, and property intelligence for ${loaderData?.client.name ?? "your portfolio"}.`,
@@ -193,14 +193,14 @@ function ClientInsightsPage() {
       <PageHeader
         eyebrow="Client portal | Insights"
         title="Insights"
-        description="Curated lease, rental, document, and property intelligence from your Megatrend team."
+        description="Curated lease, rental, document, and property intelligence from your Cyphersoft team."
         actions={
           <>
             <Button variant="outline">
               <Receipt className="h-4 w-4" /> Request quote
             </Button>
             <Button>
-              <Sparkles className="h-4 w-4" /> Ask Megatrend
+              <Sparkles className="h-4 w-4" /> Ask Cyphersoft
             </Button>
           </>
         }
@@ -210,7 +210,7 @@ function ClientInsightsPage() {
         <SummaryCard label="High priority" value={summary.highPriority} detail="Reviewed items that need immediate attention." />
         <SummaryCard label="Renewal alerts" value={summary.renewalAlerts} detail="Lease timing and market timing signals." />
         <SummaryCard label="Document issues" value={summary.documentIssues} detail="Approved gaps or inconsistencies in source documents." />
-        <SummaryCard label="New this month" value={summary.newThisMonth} detail="Fresh intelligence published by your Megatrend team." />
+        <SummaryCard label="New this month" value={summary.newThisMonth} detail="Fresh intelligence published by your Cyphersoft team." />
       </section>
 
       <Card className="surface-elevated mt-6 p-4">
@@ -328,7 +328,7 @@ function ClientInsightsPage() {
                   </Button>
                   <Button>{selectedInsight.cta}</Button>
                   <Button variant="ghost">
-                    <MessageSquare className="h-4 w-4" /> Ask Megatrend
+                    <MessageSquare className="h-4 w-4" /> Ask Cyphersoft
                   </Button>
                 </div>
               </Card>
@@ -340,7 +340,7 @@ function ClientInsightsPage() {
                 <div>
                   <h3 className="font-display text-lg text-warning">Trusted business intelligence</h3>
                   <p className="mt-2 text-sm text-muted-foreground">
-                    Insights here are curated by Megatrend before publication. Raw AI output is not shown directly to clients.
+                    Insights here are curated by Cyphersoft before publication. Raw AI output is not shown directly to clients.
                   </p>
                 </div>
               </div>
@@ -406,7 +406,7 @@ function EmptyState() {
       </div>
       <h3 className="mt-5 font-display text-2xl">No insights published yet.</h3>
       <p className="mt-2 text-sm text-muted-foreground">
-        Insights will appear here after your documents are processed and reviewed by Megatrend.
+        Insights will appear here after your documents are processed and reviewed by Cyphersoft.
       </p>
     </Card>
   );

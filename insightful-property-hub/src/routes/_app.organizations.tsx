@@ -12,7 +12,7 @@ import { listOrgs, listUsers, createOrg, type PortalOrg } from "@/lib/portal-aut
 export const Route = createFileRoute("/_app/organizations")({
   head: () => ({
     meta: [
-      { title: "Organisations · Megatrend OS" },
+      { title: "Organisations · Cyphersoft OS" },
       { name: "description", content: "Provision client organisations and seed their admin user." },
     ],
   }),
