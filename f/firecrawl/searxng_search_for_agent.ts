@@ -8,6 +8,9 @@ type SearxngResult = {
   url: string;
   title?: string | null;
   description?: string | null;
+  imageUrl?: string | null;
+  thumbnailUrl?: string | null;
+  source?: string | null;
 };
 
 const DEFAULT_HEADERS: Record<string, string> = {
@@ -74,6 +77,38 @@ function extractHtmlResults(html: string): SearxngResult[] {
   return results;
 }
 
+function extractImageResults(html: string): SearxngResult[] {
+  const results: SearxngResult[] = [];
+  const articleMatches =
+    html.match(/<article[^>]*class="[^"]*result-images[^"]*"[\s\S]*?<\/article>/gi) ?? [];
+
+  for (const article of articleMatches) {
+    // Card link points at the full image; the detail pane holds data-src and the source page.
+    const imageHref = article.match(/<a[^>]+href="([^"#]+)"/i)?.[1];
+    const dataSrc = article.match(/data-src="([^"]+)"/i)?.[1];
+    const imageUrl = decodeHtml(dataSrc || imageHref || "");
+    if (!imageUrl) {
+      continue;
+    }
+
+    const thumbnail = article.match(/<img[^>]*class="image_thumbnail"[^>]*src="([^"]+)"/i)?.[1];
+    const title = article.match(/<span class="title">([\s\S]*?)<\/span>/i)?.[1];
+    const source = article.match(/<span class="source">([\s\S]*?)<\/span>/i)?.[1];
+    const pageUrl = article.match(/<p class="result-url">[\s\S]*?<a[^>]+href="([^"]+)"/i)?.[1];
+
+    results.push({
+      url: pageUrl ? decodeHtml(pageUrl) : imageUrl,
+      title: title ? stripTags(title) : null,
+      description: null,
+      imageUrl,
+      thumbnailUrl: thumbnail ? decodeHtml(thumbnail) : null,
+      source: source ? stripTags(source) : null,
+    });
+  }
+
+  return results;
+}
+
 export async function main(
   query: string,
   limit: number = 50,
@@ -87,6 +122,7 @@ export async function main(
   const normalizedBaseUrl = searxngBaseUrl.replace(/\/$/, "");
   const safeLimit = Math.max(1, Math.min(limit, 100));
   const safeMaxPages = Math.max(1, Math.min(maxPages, 10));
+  const isImageSearch = categories.split(",").some((category) => category.trim() === "images");
   const uniqueResults = new Map<string, SearxngResult>();
   const pages: Array<{ page: number; count: number }> = [];
   // Instances without `json` in search.formats answer 403; stop retrying JSON once seen.
@@ -156,7 +192,7 @@ export async function main(
           };
         }
 
-        pageResults = extractHtmlResults(htmlText);
+        pageResults = isImageSearch ? extractImageResults(htmlText) : extractHtmlResults(htmlText);
         mode = "html";
         rawResponse = { rawText: htmlText };
       }
@@ -165,14 +201,23 @@ export async function main(
 
       for (const item of pageResults) {
         const url = item?.url ?? "";
-        if (!url || uniqueResults.has(url)) {
+        const imageUrl = isImageSearch ? item?.imageUrl ?? item?.img_src ?? null : null;
+        const key = isImageSearch ? imageUrl ?? "" : url;
+        if (!url || !key || uniqueResults.has(key)) {
           continue;
         }
 
-        uniqueResults.set(url, {
+        uniqueResults.set(key, {
           url,
           title: item?.title ?? null,
           description: item?.content ?? item?.description ?? null,
+          ...(isImageSearch
+            ? {
+                imageUrl,
+                thumbnailUrl: item?.thumbnailUrl ?? item?.thumbnail_src ?? null,
+                source: item?.source ?? item?.engine ?? null,
+              }
+            : {}),
         });
 
         if (uniqueResults.size >= safeLimit) {
@@ -187,6 +232,7 @@ export async function main(
 
     return {
       success: true,
+      type: isImageSearch ? "images" : "web",
       query,
       searxngBaseUrl,
       requestedLimit: safeLimit,

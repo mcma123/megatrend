@@ -9,6 +9,10 @@ import {
   Check,
   ChevronDown,
   ExternalLink,
+  Eye,
+  EyeOff,
+  Image as ImageIcon,
+  ImageOff,
   Loader2,
   Maximize2,
   Minimize2,
@@ -38,6 +42,10 @@ const DEFAULT_MODEL = "openai/gpt-4.1-mini";
 const DEFAULT_AGENT = "web-research-agent";
 const MODEL_STORAGE_KEY = "megatrend-assistant:selected-model";
 const AGENT_STORAGE_KEY = "megatrend-assistant:selected-agent";
+const SHOW_REASONING_STORAGE_KEY = "megatrend-assistant:show-reasoning";
+const SHOW_IMAGES_STORAGE_KEY = "megatrend-assistant:show-images";
+const IMAGE_SEARCH_TOOL_PART = "tool-windmill_searxng_image_search";
+const MAX_GALLERY_IMAGES = 12;
 
 type ModelOption = {
   id: string;
@@ -246,8 +254,104 @@ function ToolCard({ part }: { part: ToolLikePart }) {
   );
 }
 
-function AssistantMessageView({ message }: { message: AssistantMessage }) {
-  const visibleParts = message.parts.filter((part) => part.type !== "step-start");
+type GalleryImage = {
+  title: string | null;
+  imageUrl: string;
+  thumbnailUrl: string | null;
+  pageUrl: string | null;
+  source: string | null;
+};
+
+function getGalleryImages(part: AssistantPart): GalleryImage[] {
+  if (part.type !== IMAGE_SEARCH_TOOL_PART || !("state" in part) || part.state !== "output-available") {
+    return [];
+  }
+
+  const output = "output" in part ? (part.output as { results?: unknown } | null) : null;
+  if (!output || !Array.isArray(output.results)) {
+    return [];
+  }
+
+  return output.results
+    .filter(
+      (item): item is GalleryImage =>
+        typeof item === "object" &&
+        item !== null &&
+        typeof (item as { imageUrl?: unknown }).imageUrl === "string",
+    )
+    .slice(0, MAX_GALLERY_IMAGES);
+}
+
+function GalleryTile({ image }: { image: GalleryImage }) {
+  const [failed, setFailed] = useState(false);
+  if (failed) {
+    return null;
+  }
+
+  const caption = image.title || image.source;
+
+  return (
+    <a
+      href={image.pageUrl ?? image.imageUrl}
+      target="_blank"
+      rel="noreferrer"
+      title={image.title ?? undefined}
+      className="group overflow-hidden rounded-2xl border border-border/80 bg-muted/40 shadow-sm"
+    >
+      <img
+        src={image.thumbnailUrl ?? image.imageUrl}
+        alt={image.title ?? "Search result image"}
+        loading="lazy"
+        referrerPolicy="no-referrer"
+        onError={() => setFailed(true)}
+        className="aspect-[4/3] w-full object-cover transition-transform duration-300 group-hover:scale-105"
+      />
+      {caption ? (
+        <div className="space-y-0.5 px-2.5 py-2">
+          {image.title ? (
+            <p className="line-clamp-1 text-xs font-medium text-foreground">{image.title}</p>
+          ) : null}
+          {image.source ? (
+            <p className="line-clamp-1 text-[11px] text-muted-foreground">{image.source}</p>
+          ) : null}
+        </div>
+      ) : null}
+    </a>
+  );
+}
+
+function ImageGallery({ images }: { images: GalleryImage[] }) {
+  return (
+    <div className="rounded-2xl border border-border/80 bg-card p-3 shadow-sm">
+      <div className="mb-2 inline-flex items-center gap-2 text-xs font-medium text-muted-foreground">
+        <ImageIcon className="h-3.5 w-3.5" />
+        Images
+      </div>
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+        {images.map((image) => (
+          <GalleryTile key={image.imageUrl} image={image} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function AssistantMessageView({
+  message,
+  showReasoning,
+}: {
+  message: AssistantMessage;
+  showReasoning: boolean;
+}) {
+  // Reasoning and tool cards are the "working" output; hide them unless the user opts in.
+  // Image search results are content, not working output, so their gallery always shows.
+  const visibleParts = message.parts.filter(
+    (part) =>
+      part.type !== "step-start" &&
+      (showReasoning ||
+        (part.type !== "reasoning" && !isToolPart(part)) ||
+        getGalleryImages(part).length > 0),
+  );
 
   if (visibleParts.length === 0) {
     return null;
@@ -273,6 +377,16 @@ function AssistantMessageView({ message }: { message: AssistantMessage }) {
           }
 
           if (isToolPart(part)) {
+            const images = getGalleryImages(part);
+            if (images.length > 0) {
+              return (
+                <div key={`${message.id}-tool-${index}`} className="flex flex-col gap-3">
+                  <ImageGallery images={images} />
+                  {showReasoning ? <ToolCard part={part} /> : null}
+                </div>
+              );
+            }
+
             return <ToolCard key={`${message.id}-tool-${index}`} part={part} />;
           }
 
@@ -310,6 +424,8 @@ export function AdminAssistantPanel() {
   const [selectedAgent, setSelectedAgent] = useState(DEFAULT_AGENT);
   const [isModelPickerOpen, setIsModelPickerOpen] = useState(false);
   const [isAgentPickerOpen, setIsAgentPickerOpen] = useState(false);
+  const [showReasoning, setShowReasoning] = useState(false);
+  const [showImages, setShowImages] = useState(false);
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const draftRef = useRef<HTMLTextAreaElement | null>(null);
   const hasScrolledRef = useRef(false);
@@ -342,6 +458,9 @@ export function AdminAssistantPanel() {
       setSelectedModel(savedModel);
     }
 
+    setShowReasoning(window.localStorage.getItem(SHOW_REASONING_STORAGE_KEY) === "true");
+    setShowImages(window.localStorage.getItem(SHOW_IMAGES_STORAGE_KEY) === "true");
+
     const savedAgent = window.localStorage.getItem(AGENT_STORAGE_KEY);
     if (savedAgent && AGENT_OPTIONS.some((agent) => agent.id === savedAgent)) {
       setSelectedAgent(savedAgent);
@@ -355,6 +474,22 @@ export function AdminAssistantPanel() {
   useEffect(() => {
     window.localStorage.setItem(AGENT_STORAGE_KEY, selectedAgent);
   }, [selectedAgent]);
+
+  const toggleShowImages = () => {
+    setShowImages((current) => {
+      const next = !current;
+      window.localStorage.setItem(SHOW_IMAGES_STORAGE_KEY, String(next));
+      return next;
+    });
+  };
+
+  const toggleShowReasoning = () => {
+    setShowReasoning((current) => {
+      const next = !current;
+      window.localStorage.setItem(SHOW_REASONING_STORAGE_KEY, String(next));
+      return next;
+    });
+  };
 
   useEffect(() => {
     const controller = new AbortController();
@@ -436,6 +571,7 @@ export function AdminAssistantPanel() {
       requestContext: {
         selectedAgent,
         selectedModel,
+        includeImages: String(showImages),
       },
       providerOptions: modelSupportsReasoning
         ? {
@@ -573,7 +709,13 @@ export function AdminAssistantPanel() {
               );
             }
 
-            return <AssistantMessageView key={message.id} message={message} />;
+            return (
+              <AssistantMessageView
+                key={message.id}
+                message={message}
+                showReasoning={showReasoning}
+              />
+            );
           })}
 
           {isBusy ? (
@@ -715,10 +857,45 @@ export function AdminAssistantPanel() {
               Tools enabled
             </span>
           ) : null}
-          {modelSupportsReasoning ? (
-            <span className="rounded-full bg-primary/10 px-3 py-1 text-xs text-primary">
-              Reasoning visible
-            </span>
+          <button
+            type="button"
+            onClick={toggleShowReasoning}
+            aria-pressed={showReasoning}
+            title={
+              showReasoning
+                ? "Hide reasoning and tool output"
+                : "Show reasoning and tool output"
+            }
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs transition-colors",
+              showReasoning
+                ? "border-primary/30 bg-primary/10 text-primary hover:bg-primary/15"
+                : "border-border bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+            )}
+          >
+            {showReasoning ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
+            {showReasoning ? "Reasoning on" : "Reasoning off"}
+          </button>
+          {selectedAgent === "web-research-agent" ? (
+            <button
+              type="button"
+              onClick={toggleShowImages}
+              aria-pressed={showImages}
+              title={
+                showImages
+                  ? "Stop adding images to research answers"
+                  : "Add images to research answers"
+              }
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs transition-colors",
+                showImages
+                  ? "border-primary/30 bg-primary/10 text-primary hover:bg-primary/15"
+                  : "border-border bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+              )}
+            >
+              {showImages ? <ImageIcon className="h-3.5 w-3.5" /> : <ImageOff className="h-3.5 w-3.5" />}
+              {showImages ? "Images on" : "Images off"}
+            </button>
           ) : null}
           {isModelsLoading ? (
             <span className="inline-flex items-center gap-2 rounded-full bg-muted px-3 py-1 text-xs text-muted-foreground">

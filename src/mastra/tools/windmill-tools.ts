@@ -47,6 +47,44 @@ export const windmillResearchTools = {
     execute: async ({ query, limit, categories, maxPages }, options) =>
       webResearchService.searchAlternate({ query, limit, categories, maxPages }, options),
   }),
+  windmill_searxng_image_search: createTool({
+    id: "windmill_searxng_image_search",
+    description:
+      "Search for images with SearXNG. Use when the user wants photos, pictures, or to see what a place, property, product, or person looks like. Results are shown to the user as an image gallery automatically.",
+    inputSchema: z.object({
+      query: z.string().min(1).describe("A focused image search query, e.g. 'Sandton City office tower'."),
+      limit: z.number().int().min(1).max(30).default(12).describe("Maximum number of images to return."),
+    }),
+    outputSchema: z.any(),
+    execute: async ({ query, limit }, options) => {
+      const raw = (await webResearchService.searchAlternate(
+        { query, limit, categories: "images", maxPages: 1 },
+        options,
+      )) as { success?: boolean; error?: string | null; results?: unknown } | null;
+
+      // Keep only image fields: the UI gallery reads this output and it keeps model tokens down.
+      const results = (Array.isArray(raw?.results) ? raw.results : [])
+        .filter(
+          (item): item is Record<string, unknown> =>
+            typeof item === "object" && item !== null && typeof item.imageUrl === "string",
+        )
+        .map((item) => ({
+          title: typeof item.title === "string" ? item.title : null,
+          imageUrl: item.imageUrl as string,
+          thumbnailUrl: typeof item.thumbnailUrl === "string" ? item.thumbnailUrl : null,
+          pageUrl: typeof item.url === "string" ? item.url : null,
+          source: typeof item.source === "string" ? item.source : null,
+        }));
+
+      return {
+        success: raw?.success ?? results.length > 0,
+        query,
+        resultCount: results.length,
+        results,
+        error: raw?.error ?? null,
+      };
+    },
+  }),
 };
 
 export { windmillMcpServerProxies };

@@ -14,6 +14,7 @@
 - Do not move agent prompts, bundle summarization policy, or UI-facing text into this layer.
 - `WINDMILL_MCP_URL` (root `.env.local`) targets the `cyphersoft` workspace MCP endpoint and carries a token; never commit it.
 - Remote tool IDs such as `S-f_firecrawl_searxng__s4af63e1cc69a80a9` are derived by Windmill from the script path, so they survive moving workspaces but change if a script is renamed or moved. A tool only resolves once its script is deployed to the workspace.
+- `f/firecrawl/searxng_search_for_agent` parses image results when `categories` includes `images` (adds `imageUrl`, `thumbnailUrl`, `source`, response `type: "images"`); otherwise web results.
 
 # Work Guidance
 
