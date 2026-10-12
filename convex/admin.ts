@@ -1,106 +1,22 @@
-import { mutation, query } from "./_generated/server";
+import { internalMutation, mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { appendAuditEvent } from "./lib/audit";
 import { requireCurrentUser, requirePlatformAdmin, requireTenantAdministrator } from "./lib/auth";
+import { seedRoles } from "./lib/provisioning";
 import { exportType, roleScope } from "./validators";
-
-const defaultRoles = [
-  {
-    key: "platform_admin",
-    scope: "staff",
-    label: "Platform Admin",
-    description: "Global administration, tenancy setup, and policy control.",
-  },
-  {
-    key: "tenant_admin",
-    scope: "staff",
-    label: "Tenant Admin",
-    description: "Tenant-scoped governance, memberships, and settings.",
-  },
-  {
-    key: "account_manager",
-    scope: "staff",
-    label: "Account Manager",
-    description: "Portfolio review, publication, and client relationship work.",
-  },
-  {
-    key: "operations_analyst",
-    scope: "staff",
-    label: "Operations Analyst",
-    description: "Document triage, extraction review, and workflow operations.",
-  },
-  {
-    key: "finance_reviewer",
-    scope: "staff",
-    label: "Finance Reviewer",
-    description: "Invoice, utility, and financial anomaly review.",
-  },
-  {
-    key: "read_only_staff",
-    scope: "staff",
-    label: "Read Only Staff",
-    description: "Inspection access without mutation rights.",
-  },
-  {
-    key: "client_admin",
-    scope: "client",
-    label: "Client Admin",
-    description: "Team membership, portal access, and client governance.",
-  },
-  {
-    key: "property_manager",
-    scope: "client",
-    label: "Property Manager",
-    description: "Property operations, renewals, and action handling.",
-  },
-  {
-    key: "finance_user",
-    scope: "client",
-    label: "Finance User",
-    description: "Invoice, utility, and payment review access.",
-  },
-  {
-    key: "legal_reviewer",
-    scope: "client",
-    label: "Legal Reviewer",
-    description: "Lease and obligations review access.",
-  },
-  {
-    key: "executive_viewer",
-    scope: "client",
-    label: "Executive Viewer",
-    description: "Read-only executive portfolio and insight access.",
-  },
-] as const;
 
 export const seedRoleCatalog = mutation({
   args: {},
   handler: async (ctx) => {
     await requirePlatformAdmin(ctx);
-    let inserted = 0;
-
-    for (const role of defaultRoles) {
-      const existing = await ctx.db
-        .query("roles")
-        .withIndex("by_key", (q) => q.eq("key", role.key))
-        .unique();
-
-      if (existing) {
-        continue;
-      }
-
-      await ctx.db.insert("roles", {
-        ...role,
-        isSystem: true,
-      });
-      inserted += 1;
-    }
-
-    return {
-      inserted,
-      total: defaultRoles.length,
-    };
+    return await seedRoles(ctx);
   },
+});
+
+// CLI/bootstrap entry point: `npx convex run admin:seedRoleCatalogInternal`.
+export const seedRoleCatalogInternal = internalMutation({
+  args: {},
+  handler: async (ctx) => await seedRoles(ctx),
 });
 
 export const listRoles = query({

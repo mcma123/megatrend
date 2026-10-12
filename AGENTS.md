@@ -17,6 +17,11 @@ Deploy mode: wmill sync push (no CI wiring detected).
 - The `cyphersoft` workspace is shared with other projects (e.g. `f/rebsons`). `wmill.yaml` `includes` is scoped to `f/clitools/**`, `f/docling/**`, `f/firecrawl/**`; never widen it to `f/**`, or a push could delete and a pull could import other projects.
 - `f/docling/*` reads MinIO from Windmill variables `f/docling/MINIO_ENDPOINT` (in repo) and the secrets `f/docling/MINIO_ACCESS_KEY` / `f/docling/MINIO_SECRET_KEY` (workspace only, a bucket-scoped key for `parsedinjson` and `okfdata`). Never hard-code MinIO credentials in scripts or flow defaults.
 - Workspace object storage (`wmill.write_s3_file`, used by `f/docling/scanner/save_scanned_document`) points at resource `f/docling/scanner/minio_storage` (MinIO bucket `scanner`, secret `f/docling/scanner/S3_SECRET_KEY`); keep that resource file in the repo so pushes don't delete it.
+- App document pipeline: flow `f/docling/process_document_for_app` (Docling parse → OKF bundle under `<tenant-slug>/<document-id>` → `f/docling/extract_document_fields` → compact summary) is started by Convex (`convex/processing.ts`). Extraction calls OpenRouter with the workspace secret `f/docling/OPENROUTER_API_KEY` (not in the repo). Keep the field keys in `extract_document_fields.py` stable; Convex stores them.
+- Roadmap for replacing static/mock data with real Convex data, document upload and processing: `backend functionality.md` (phased checklists). Tick boxes there as phases are completed.
+- Document-processing hardening execution plan: `docling_file.md`. Execute its phases in order and tick tasks/phases only after their implementation and acceptance checks pass; record verification evidence and track production rollout separately.
+- App document flow results use `contract_version: 1` and optional `attempt_id` for legacy callers. New artifact paths include `<tenant-slug>/<document-id>/<attempt-id>`; keep attempt identity aligned with `convex/processing.ts`. Run `python scripts/test-docling-summary.py` when changing the compact summary contract.
+- The app flow accepts `retry_stage` (`parse`, `knowledge`, `extract`) and server-selected saved-parser inputs. Knowledge recovery skips field extraction; extraction recovery reuses parsing and the existing knowledge outcome. Keep conditional skips and error summaries aligned with Convex recovery ownership. Run `python scripts/test-docling-recovery.py` when changing saved-parser reuse; dependency locks remain valid when imports are unchanged.
 - Active product UI baseline: `insightful-property-hub/`.
 - Quarantine `megatrend/` from solution scope until it is explicitly reactivated for product work.
 - Use Windmill for backend automation workflows.
@@ -139,9 +144,10 @@ When the user requests a durable behavior change, record it here or in the relev
 - `megatrend/` -> `megatrend/AGENTS.md`: Quarantined standalone TanStack Start starter app, not part of the active product baseline.
 
 Root-owned without a child AGENTS.md:
+- Root execution plans: `backend functionality.md` and `docling_file.md`; maintain phase completion and verification evidence with the corresponding implementation work.
 - `f/`: Windmill scripts, flows, folder metadata, and deployed automation assets.
 - `scripts/`: Runtime wrapper scripts such as `mastra-openrouter.mjs`.
-- Root manifests and workspace config: `package.json`, `wmill.yaml`, `tsconfig*.json`, lockfiles, env files, `.wmill-config/`.
+- Root manifests and workspace config: `package.json`, `wmill.yaml`, `tsconfig*.json`, `vitest.config.ts` (Convex tests, `npm test`), lockfiles, env files, `.wmill-config/`.
 - Tooling metadata and caches: `.agents/`, `.claude/`, `.mastra/`, `.mastra-temp/`, `.pnpm-store/`, `node_modules/`, and other generated runtime outputs.
 
 

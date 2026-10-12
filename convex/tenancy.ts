@@ -1,12 +1,16 @@
 import { mutation, query } from "./_generated/server";
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import { appendAuditEvent } from "./lib/audit";
 import {
+  actorTypeFor,
+  findActiveMembership,
   requireActiveMembership,
   requireCurrentUser,
   requireIdentity,
   requirePlatformAdmin,
+  requireTenantAdministrator,
 } from "./lib/auth";
+import { provisionClientTenant } from "./lib/provisioning";
 import { principalType, roleKey } from "./validators";
 
 export const me = query({
@@ -56,76 +60,13 @@ export const provisionTenant = mutation({
   },
   handler: async (ctx, args) => {
     const actor = await requirePlatformAdmin(ctx);
-    const now = Date.now();
-
-    const existingTenant = await ctx.db
-      .query("tenants")
-      .withIndex("by_slug", (q) => q.eq("slug", args.slug))
-      .unique();
-    if (existingTenant) {
-      throw new Error("A tenant with this slug already exists");
-    }
-
-    const tenantId = await ctx.db.insert("tenants", {
+    const { tenantId, organizationId, settingsId } = await provisionClientTenant(ctx, actor, {
       slug: args.slug,
       displayName: args.displayName,
-      status: "active",
       primaryRegion: args.primaryRegion,
-      createdAt: now,
-      createdBy: actor._id,
-    });
-
-    const settingsId = await ctx.db.insert("tenantSettings", {
-      tenantId,
-      renewalHorizonDays: 180,
-      publishConfidenceThreshold: 90,
-      retentionPolicyKey: "default-7y",
-      defaultDocumentRegion: args.primaryRegion,
-      updatedAt: now,
-      updatedBy: actor._id,
-    });
-
-    await ctx.db.patch(tenantId, { settingsId });
-
-    const organizationId = await ctx.db.insert("organizations", {
-      tenantId,
-      name: args.organizationName,
-      slug: args.organizationSlug,
-      status: "active",
       primaryContactName: args.primaryContactName,
       primaryContactEmail: args.primaryContactEmail,
-      createdAt: now,
-      createdBy: actor._id,
     });
-
-    await ctx.db.insert("memberships", {
-      tenantId,
-      organizationId,
-      userId: actor._id,
-      principalType: "staff",
-      roleKey: "platform_admin",
-      status: "active",
-      createdAt: now,
-      createdBy: actor._id,
-    });
-
-    await appendAuditEvent(ctx, {
-      tenantId,
-      eventType: "tenant.created",
-      actorType: "staff_user",
-      actorId: actor._id,
-      targetType: "tenant",
-      targetId: tenantId,
-      correlationId: `tenant:${tenantId}`,
-      sourceSystem: "convex",
-      occurredAt: now,
-      payloadAfter: JSON.stringify({
-        slug: args.slug,
-        displayName: args.displayName,
-        organizationId,
-      }),
-    });
-
     return { tenantId, organizationId, settingsId };
   },
 });
@@ -140,12 +81,12 @@ export const addMembership = mutation({
   },
   handler: async (ctx, args) => {
     const actor = await requireCurrentUser(ctx);
-    const actorMembership = await requireActiveMembership(ctx, args.tenantId);
-    if (![
-      "platform_admin",
-      "tenant_admin",
-    ].includes(actorMembership.roleKey)) {
-      throw new Error("Insufficient permissions");
+    const access = await requireTenantAdministrator(ctx, args.tenantId);
+
+    // One active membership per user and tenant; duplicates break access checks.
+    const existing = await findActiveMembership(ctx, args.tenantId, args.userId);
+    if (existing) {
+      throw new ConvexError("This user already has an active membership in this workspace");
     }
 
     const now = Date.now();
@@ -159,7 +100,7 @@ export const addMembership = mutation({
     await appendAuditEvent(ctx, {
       tenantId: args.tenantId,
       eventType: "organization.membership_added",
-      actorType: "staff_user",
+      actorType: actorTypeFor(access),
       actorId: actor._id,
       targetType: "membership",
       targetId: membershipId,

@@ -20,7 +20,8 @@
     "start:mastra": "node scripts/mastra-openrouter.mjs start",
     "start:platform": "node scripts/start-platform.mjs",
     "wmill:pull": "wmill sync pull --workspace cyphersoft --yes --skip-branch-validation",
-    "wmill:push": "wmill sync push --workspace cyphersoft --yes --skip-branch-validation"
+    "wmill:push": "wmill sync push --workspace cyphersoft --yes --skip-branch-validation",
+    "test": "vitest run"
   },
   "dependencies": {
     "@auth/core": "^0.41.3",
@@ -33,9 +34,12 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@edge-runtime/vm": "^5.0.0",
     "@types/node": "^25.9.3",
     "concurrently": "^10.0.3",
+    "convex-test": "^0.0.60",
     "mastra": "^1.31.4",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "vitest": "^5.0.3"
   }
 }

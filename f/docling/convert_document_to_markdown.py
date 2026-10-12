@@ -380,8 +380,9 @@ def main(
     minio_use_ssl: bool = False,
     minio_region: str | None = DEFAULT_MINIO_REGION,
     minio_path_prefix: str | None = None,
+    parsed_json_key: str | None = None,
 ) -> dict[str, Any]:
-    if file is None and not file_url:
+    if file is None and not file_url and not parsed_json_key:
         raise ValueError("Provide either 'file' or 'file_url'.")
     if file is not None and file_url:
         raise ValueError("Provide only one source: either 'file' or 'file_url'.")
@@ -397,7 +398,18 @@ def main(
     detected_from_format = _guess_from_format(resolved_filename, from_format)
     session = _new_session()
 
-    if file is not None:
+    if parsed_json_key:
+        s3_client = boto3.client(
+            "s3", endpoint_url=f"{'https' if minio_use_ssl else 'http'}://{minio_endpoint}",
+            aws_access_key_id=minio_access_key, aws_secret_access_key=minio_secret_key,
+            region_name=minio_region, config=Config(s3={"addressing_style": "path"}, connect_timeout=15, read_timeout=60),
+        )
+        stored = json.loads(s3_client.get_object(Bucket=minio_bucket, Key=parsed_json_key)["Body"].read())
+        payload = stored.get("parsed_result")
+        if not isinstance(payload, dict):
+            raise ValueError("Invalid saved parsed JSON; retry reading the original document.")
+        source_kind = "saved_parse"
+    elif file is not None:
         payload = _convert_uploaded_file(
             session=session,
             docling_base_url=docling_base_url,
@@ -457,7 +469,9 @@ def main(
         )
 
     saved_json_to_minio: dict[str, str] | None = None
-    if save_json_to_minio:
+    if parsed_json_key:
+        saved_json_to_minio = {"bucket": minio_bucket, "key": parsed_json_key, "endpoint": minio_endpoint}
+    elif save_json_to_minio:
         saved_json_to_minio = _save_json_to_minio(
             payload=payload,
             resolved_filename=resolved_filename,
@@ -472,6 +486,7 @@ def main(
 
     return {
         "source_kind": source_kind,
+        "reused": bool(parsed_json_key),
         "filename": resolved_filename,
         "file_url": file_url,
         "from_format": detected_from_format,

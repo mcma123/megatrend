@@ -1,29 +1,96 @@
 import { mutation, query } from "./_generated/server";
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
+import { Doc } from "./_generated/dataModel";
 import { appendAuditEvent } from "./lib/audit";
-import { requireCurrentUser, requireTeamManager } from "./lib/auth";
+import {
+  actorTypeFor,
+  getTenantAccess,
+  requireCurrentUser,
+  requireTeamManager,
+} from "./lib/auth";
+import { createClientInvitation } from "./lib/provisioning";
+import { QueryCtx } from "./_generated/server";
 import { clientRoleKey } from "./validators";
+
+const TEAM_MANAGER_ROLE_KEYS = new Set(["platform_admin", "tenant_admin", "client_admin"]);
+
+async function getTenantBySlug(ctx: QueryCtx, slug: string) {
+  return await ctx.db
+    .query("tenants")
+    .withIndex("by_slug", (q) => q.eq("slug", slug.trim().toLowerCase()))
+    .unique();
+}
+
+async function getPrimaryOrganization(ctx: QueryCtx, tenant: Doc<"tenants">) {
+  const organizations = await ctx.db
+    .query("organizations")
+    .withIndex("by_tenantId", (q) => q.eq("tenantId", tenant._id))
+    .take(1);
+  return organizations[0] ?? null;
+}
+
+/**
+ * Resolves a portal slug to its client workspace and checks the viewer's access.
+ * Returns a status instead of throwing so the portal can render a friendly state.
+ */
+export const getPortalContext = query({
+  args: { slug: v.string() },
+  handler: async (ctx, args) => {
+    const tenant = await getTenantBySlug(ctx, args.slug);
+    if (!tenant) {
+      return { status: "not_found" as const };
+    }
+    const access = await getTenantAccess(ctx, tenant._id);
+    if (!access) {
+      return { status: "forbidden" as const };
+    }
+    const organization = await getPrimaryOrganization(ctx, tenant);
+    return {
+      status: "ok" as const,
+      client: {
+        tenantId: tenant._id,
+        organizationId: organization?._id ?? null,
+        slug: tenant.slug,
+        name: organization?.name ?? tenant.displayName,
+        contactName: organization?.primaryContactName ?? null,
+        contactEmail: organization?.primaryContactEmail ?? null,
+        accountManagerName: organization?.accountManagerName ?? null,
+      },
+      viewer: {
+        principalType: access.principalType,
+        roleKey: access.roleKey,
+        isPlatformAdmin: access.isPlatformAdmin,
+        canManageTeam: TEAM_MANAGER_ROLE_KEYS.has(access.roleKey),
+      },
+    };
+  },
+});
 
 export const getPortalTeamWorkspace = query({
   args: {
     slug: v.string(),
   },
   handler: async (ctx, args) => {
-    const tenant = await ctx.db
-      .query("tenants")
-      .withIndex("by_slug", (q) => q.eq("slug", args.slug))
-      .unique();
-
+    const tenant = await getTenantBySlug(ctx, args.slug);
     if (!tenant) {
       return null;
     }
 
-    const currentMembership = await requireTeamManager(ctx, tenant._id);
-    const organization = await ctx.db
-      .query("organizations")
-      .withIndex("by_tenantId", (q) => q.eq("tenantId", tenant._id))
-      .take(1);
+    const access = await getTenantAccess(ctx, tenant._id);
+    if (!access || !TEAM_MANAGER_ROLE_KEYS.has(access.roleKey)) {
+      return {
+        tenantId: tenant._id,
+        tenantSlug: tenant.slug,
+        organizationId: null,
+        currentUserId: access?.user._id ?? null,
+        currentRoleKey: access?.roleKey ?? null,
+        canManageTeam: false,
+        members: [],
+        invitations: [],
+      };
+    }
 
+    const organization = await getPrimaryOrganization(ctx, tenant);
     const memberships = await ctx.db
       .query("memberships")
       .withIndex("by_tenantId", (q) => q.eq("tenantId", tenant._id))
@@ -59,28 +126,27 @@ export const getPortalTeamWorkspace = query({
 
     const invitations = await ctx.db
       .query("membershipInvitations")
-      .withIndex("by_tenantId", (q) => q.eq("tenantId", tenant._id))
+      .withIndex("by_tenantId_and_status", (q) => q.eq("tenantId", tenant._id).eq("status", "pending"))
       .take(100);
 
     return {
       tenantId: tenant._id,
       tenantSlug: tenant.slug,
-      organizationId: organization[0]?._id ?? null,
-      currentRoleKey: currentMembership.roleKey,
+      organizationId: organization?._id ?? null,
+      currentUserId: access.user._id,
+      currentRoleKey: access.roleKey,
       canManageTeam: true,
       members,
-      invitations: invitations
-        .filter((invitation) => invitation.status === "pending")
-        .map((invitation) => ({
-          invitationId: invitation._id,
-          email: invitation.email,
-          fullName: invitation.fullName ?? null,
-          roleKey: invitation.roleKey,
-          status: invitation.status,
-          providerHint: invitation.providerHint ?? null,
-          createdAt: invitation.createdAt,
-          expiresAt: invitation.expiresAt ?? null,
-        })),
+      invitations: invitations.map((invitation) => ({
+        invitationId: invitation._id,
+        email: invitation.email,
+        fullName: invitation.fullName ?? null,
+        roleKey: invitation.roleKey,
+        status: invitation.status,
+        providerHint: invitation.providerHint ?? null,
+        createdAt: invitation.createdAt,
+        expiresAt: invitation.expiresAt ?? null,
+      })),
     };
   },
 });
@@ -94,71 +160,30 @@ export const invitePortalMember = mutation({
   },
   handler: async (ctx, args) => {
     const actor = await requireCurrentUser(ctx);
-    const tenant = await ctx.db
-      .query("tenants")
-      .withIndex("by_slug", (q) => q.eq("slug", args.slug))
-      .unique();
-
+    const tenant = await getTenantBySlug(ctx, args.slug);
     if (!tenant) {
-      throw new Error("Tenant not found");
+      throw new ConvexError("Client workspace not found");
     }
 
-    await requireTeamManager(ctx, tenant._id);
-
-    const organization = await ctx.db
-      .query("organizations")
-      .withIndex("by_tenantId", (q) => q.eq("tenantId", tenant._id))
-      .take(1);
-
-    if (!organization[0]) {
-      throw new Error("Organization is not provisioned for this tenant");
+    const access = await requireTeamManager(ctx, tenant._id);
+    const organization = await getPrimaryOrganization(ctx, tenant);
+    if (!organization) {
+      throw new ConvexError("Organization is not provisioned for this client");
     }
 
-    const normalizedEmail = args.email.trim().toLowerCase();
-    const existingInvitation = await ctx.db
-      .query("membershipInvitations")
-      .withIndex("by_email_and_status", (q) => q.eq("email", normalizedEmail).eq("status", "pending"))
-      .take(25);
-
-    if (existingInvitation.some((invitation) => invitation.tenantId === tenant._id)) {
-      throw new Error("A pending invitation already exists for this email");
-    }
-
-    const now = Date.now();
-    const invitationId = await ctx.db.insert("membershipInvitations", {
+    const { invitationId, email } = await createClientInvitation(ctx, {
       tenantId: tenant._id,
-      organizationId: organization[0]._id,
-      email: normalizedEmail,
-      fullName: args.fullName?.trim() || undefined,
-      principalType: "client",
+      organizationId: organization._id,
+      email: args.email,
+      fullName: args.fullName,
       roleKey: args.roleKey,
-      status: "pending",
       invitedBy: actor._id,
-      providerHint: "password",
-      createdAt: now,
-      updatedAt: now,
-      expiresAt: now + 1000 * 60 * 60 * 24 * 7,
-    });
-
-    await appendAuditEvent(ctx, {
-      tenantId: tenant._id,
-      eventType: "membership.invited",
-      actorType: "staff_user",
-      actorId: actor._id,
-      targetType: "membership_invitation",
-      targetId: invitationId,
-      correlationId: `membership-invitation:${invitationId}`,
-      sourceSystem: "portal",
-      occurredAt: now,
-      payloadAfter: JSON.stringify({
-        email: normalizedEmail,
-        roleKey: args.roleKey,
-      }),
+      actorType: actorTypeFor(access),
     });
 
     return {
       invitationId,
-      inviteTarget: normalizedEmail,
+      inviteTarget: email,
       providerHint: "password",
     };
   },
@@ -173,10 +198,17 @@ export const revokePortalMember = mutation({
     const membership = await ctx.db.get(args.membershipId);
 
     if (!membership) {
-      throw new Error("Membership not found");
+      throw new ConvexError("Membership not found");
+    }
+    if (membership.userId === actor._id) {
+      throw new ConvexError("You cannot remove your own access");
     }
 
-    await requireTeamManager(ctx, membership.tenantId);
+    const access = await requireTeamManager(ctx, membership.tenantId);
+    // Client admins manage client users only; staff access is managed by Cyphersoft.
+    if (access.principalType === "client" && membership.principalType !== "client") {
+      throw new ConvexError("Only Cyphersoft staff can remove staff access");
+    }
 
     const now = Date.now();
     await ctx.db.patch(args.membershipId, {
@@ -188,7 +220,7 @@ export const revokePortalMember = mutation({
     await appendAuditEvent(ctx, {
       tenantId: membership.tenantId,
       eventType: "organization.membership_removed",
-      actorType: "staff_user",
+      actorType: actorTypeFor(access),
       actorId: actor._id,
       targetType: "membership",
       targetId: args.membershipId,

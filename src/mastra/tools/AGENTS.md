@@ -21,7 +21,7 @@
 
 # Verification
 
-- Run `npm run build` from the repository root when tool exports, imports, or wiring change.
+- Run `npm run build:mastra` from the repository root when tool exports, imports, or wiring change.
 
 # Child DOX Index
 

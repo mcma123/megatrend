@@ -1,5 +1,11 @@
 import { mutation, query } from "./_generated/server";
-import { getCurrentUser, isPlatformAdminEmail, normalizeEmail, requireCurrentUser } from "./lib/auth";
+import {
+  getCurrentUser,
+  getStaffContext,
+  isPlatformAdminEmail,
+  normalizeEmail,
+  requireCurrentUser,
+} from "./lib/auth";
 import { acceptPendingInvitations } from "./lib/invitations";
 
 // Called by the client after sign-in: refreshes lastSeenAt and accepts any invitations
@@ -26,11 +32,37 @@ export const currentUser = query({
     if (!user) {
       return null;
     }
+
+    const memberships = await ctx.db
+      .query("memberships")
+      .withIndex("by_userId", (q) => q.eq("userId", user._id))
+      .take(50);
+
+    // Client portals this user can open (active client memberships).
+    const portals: Array<{ slug: string; name: string; roleKey: string }> = [];
+    const seen = new Set<string>();
+    for (const membership of memberships) {
+      if (membership.status !== "active" || membership.principalType !== "client") {
+        continue;
+      }
+      if (seen.has(membership.tenantId)) {
+        continue;
+      }
+      seen.add(membership.tenantId);
+      const tenant = await ctx.db.get(membership.tenantId);
+      if (tenant && tenant.status === "active") {
+        portals.push({ slug: tenant.slug, name: tenant.displayName, roleKey: membership.roleKey });
+      }
+    }
+
+    const staff = await getStaffContext(ctx);
     return {
       _id: user._id,
       email: user.email ?? null,
       name: user.name ?? null,
       isPlatformAdmin: isPlatformAdminEmail(user.email),
+      isStaff: staff !== null,
+      portals,
     };
   },
 });

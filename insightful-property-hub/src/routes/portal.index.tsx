@@ -1,5 +1,5 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { Globe, LogIn, Building2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useCyphersoftAuth } from "@/lib/auth-session";
-import { listOrgs } from "@/lib/portal-auth";
 
 export const Route = createFileRoute("/portal/")({
   head: () => ({
@@ -45,7 +44,15 @@ function PortalLogin() {
     }
   };
 
-  const orgs = listOrgs();
+  const navigate = useNavigate();
+  const portals = auth.profile?.portals ?? [];
+
+  // A signed-in client with exactly one portal goes straight to it.
+  useEffect(() => {
+    if (auth.profile && !auth.profile.isStaff && auth.profile.portals.length === 1) {
+      void navigate({ to: "/portal/$clientSlug", params: { clientSlug: auth.profile.portals[0].slug } });
+    }
+  }, [auth.profile, navigate]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -77,19 +84,35 @@ function PortalLogin() {
             Each Cyphersoft client organisation has its own private workspace. Enter the
             organisation code Cyphersoft provisioned, then continue through secure sign-in.
           </p>
-          <div className="rounded-lg border border-border bg-card p-4 text-sm">
-            <div className="mb-2 flex items-center gap-2 text-xs uppercase tracking-[0.14em] text-muted-foreground">
-              <Building2 className="h-3.5 w-3.5" /> Provisioned organisations
+          {auth.isAuthenticated && auth.profile ? (
+            <div className="rounded-lg border border-border bg-card p-4 text-sm">
+              <div className="mb-2 flex items-center gap-2 text-xs uppercase tracking-[0.14em] text-muted-foreground">
+                <Building2 className="h-3.5 w-3.5" /> Your portals
+              </div>
+              {portals.length === 0 ? (
+                <p className="text-xs text-muted-foreground">
+                  {auth.profile.isStaff
+                    ? "Staff open client portals from the Clients page."
+                    : "Your account isn't linked to a client portal yet. Ask your Cyphersoft contact for an invitation."}
+                </p>
+              ) : (
+                <ul className="space-y-1">
+                  {portals.map((portal) => (
+                    <li key={portal.slug}>
+                      <Link
+                        to="/portal/$clientSlug"
+                        params={{ clientSlug: portal.slug }}
+                        className="flex items-center justify-between rounded-md px-2 py-1.5 hover:bg-accent"
+                      >
+                        <span className="text-foreground">{portal.name}</span>
+                        <span className="font-mono text-xs text-muted-foreground">{portal.slug}</span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
-            <ul className="space-y-1 font-mono text-xs">
-              {orgs.slice(0, 4).map((o) => (
-                <li key={o.slug} className="flex items-center justify-between">
-                  <span className="text-foreground">{o.slug}</span>
-                  <span className="text-muted-foreground">Email sign-in enabled</span>
-                </li>
-              ))}
-            </ul>
-          </div>
+          ) : null}
         </div>
 
         <Card className="surface-elevated p-8">

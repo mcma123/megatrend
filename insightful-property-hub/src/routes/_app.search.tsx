@@ -1,84 +1,256 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
-import { Sparkles, ArrowRight, Download } from "lucide-react";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useEffect, useState, type FormEvent } from "react";
+import { useQuery } from "convex/react";
+import { Download, FileText, Search, Sparkles } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { suggestedQueries, leases, clients, getProperty, getClient, formatZAR, monthsUntil } from "@/lib/mock-data";
+import { useAdminAssistant } from "@/components/admin-assistant/admin-assistant-context";
+import { DocumentStatusBadge } from "@/components/documents/document-status-badge";
+import { EmptyState, LoadingState } from "@/components/portfolio/form-fields";
+import { DOCUMENT_TYPE_LABELS } from "@/lib/documents";
+import { describeLeaseStatus, formatDate, formatZAR } from "@/lib/portfolio";
+import { api } from "../../../convex/_generated/api";
+
+type SearchParams = { q?: string };
 
 export const Route = createFileRoute("/_app/search")({
-  head: () => ({ meta: [{ title: "Ask anything · Cyphersoft OS" }, { name: "description", content: "Natural-language search across leases, clients, invoices and documents." }] }),
+  validateSearch: (search: Record<string, unknown>): SearchParams => ({
+    q: typeof search.q === "string" ? search.q : undefined,
+  }),
+  head: () => ({
+    meta: [
+      { title: "Search · Cyphersoft OS" },
+      { name: "description", content: "Search clients, properties, leases and documents." },
+    ],
+  }),
   component: SearchPage,
 });
 
-function SearchPage() {
-  const [q, setQ] = useState("Show all DHL leases expiring in 18 months");
-  const ran = q.length > 0;
+function toCsv(rows: string[][]) {
+  return rows.map((row) => row.map((cell) => `"${cell.replace(/"/g, '""')}"`).join(",")).join("\n");
+}
 
-  const dhl = clients.find((c) => c.slug === "dhl-logistics-sa");
-  const results = leases.filter((l) => l.clientId === dhl?.id && monthsUntil(l.end) <= 18);
+function SearchPage() {
+  const { q } = Route.useSearch();
+  const navigate = useNavigate();
+  const { openWithPrompt } = useAdminAssistant();
+  const [input, setInput] = useState(q ?? "");
+  const term = (q ?? "").trim();
+  const results = useQuery(api.search.global, term.length >= 2 ? { q: term } : "skip");
+
+  useEffect(() => {
+    setInput(q ?? "");
+  }, [q]);
+
+  const submit = (event: FormEvent) => {
+    event.preventDefault();
+    void navigate({ to: "/search", search: { q: input.trim() || undefined } });
+  };
+
+  const total = results
+    ? results.clients.length +
+      results.properties.length +
+      results.leases.length +
+      results.documents.length
+    : 0;
+
+  const exportCsv = () => {
+    if (!results) return;
+    const rows: string[][] = [["Type", "Name", "Client", "Details"]];
+    for (const client of results.clients)
+      rows.push(["Client", client.name, client.name, client.industry ?? ""]);
+    for (const property of results.properties)
+      rows.push(["Property", property.name, property.client.name, property.city]);
+    for (const lease of results.leases)
+      rows.push([
+        "Lease",
+        lease.propertyName,
+        lease.client.name,
+        `${lease.startDate} to ${lease.endDate}; R ${lease.monthlyRental}/month; ${lease.status}`,
+      ]);
+    for (const document of results.documents)
+      rows.push([
+        "Document",
+        document.filename,
+        document.client.name,
+        `${document.documentType ?? ""}; ${document.status}`,
+      ]);
+    const blob = new Blob([toCsv(rows)], { type: "text/csv;charset=utf-8" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `cyphersoft-search-${term.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}.csv`;
+    link.click();
+    URL.revokeObjectURL(link.href);
+  };
 
   return (
     <div className="mx-auto max-w-6xl">
       <PageHeader
         eyebrow="Internal · Search"
-        title="Ask anything."
-        description="Natural-language portfolio search across leases, clients, documents and invoices."
+        title="Find anything in the portfolio."
+        description="Searches client names, properties, leases and document text. For questions about what documents say, ask the knowledge assistant."
       />
-      <Card className="surface-elevated p-2">
-        <div className="flex items-center gap-2 px-2">
-          <Sparkles className="h-4 w-4 text-primary" />
-          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Ask anything…" className="h-12 border-0 bg-transparent text-base shadow-none focus-visible:ring-0" />
-          <Button>Ask <ArrowRight className="h-4 w-4" /></Button>
+
+      <form onSubmit={submit} className="flex flex-col gap-2 sm:flex-row">
+        <div className="relative flex-1">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            autoFocus
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="e.g. Linbro, City of Johannesburg, escalation…"
+            className="h-11 pl-9"
+          />
         </div>
-      </Card>
+        <Button type="submit" className="h-11">
+          Search
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          className="h-11"
+          disabled={!input.trim()}
+          onClick={() => openWithPrompt("okf-agent", input.trim())}
+        >
+          <Sparkles className="h-4 w-4" /> Ask the documents
+        </Button>
+      </form>
 
-      <div className="mt-4 flex flex-wrap gap-2">
-        {suggestedQueries.map((s) => (
-          <button key={s} onClick={() => setQ(s)} className="rounded-full border border-border bg-card px-3 py-1.5 text-xs hover:border-primary hover:text-primary">{s}</button>
-        ))}
-      </div>
-
-      {ran && (
+      {term.length < 2 ? (
+        <div className="mt-8">
+          <EmptyState title="Type at least two characters to search" />
+        </div>
+      ) : results === undefined ? (
+        <LoadingState label="Searching…" />
+      ) : total === 0 ? (
+        <div className="mt-8">
+          <EmptyState
+            title={`No matches for “${term}”`}
+            description="Try a client, property or supplier name — or ask the knowledge assistant about document contents."
+          />
+        </div>
+      ) : (
         <>
-          <Card className="surface-elevated mt-6 border-primary/30 bg-accent/30 p-5">
-            <div className="text-[10px] uppercase tracking-[0.14em] text-primary">AI insight</div>
-            <p className="mt-1 text-sm">
-              {dhl?.name} has <strong>{results.length} leases</strong> expiring within 18 months, representing{" "}
-              <strong>{formatZAR(results.reduce((s, l) => s + l.monthlyRental * 12, 0))}</strong> in annual rental.
-              Renewal workflows are already running on each.
+          <div className="mt-6 flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">
+              {total} result{total === 1 ? "" : "s"} for “{term}”
             </p>
-          </Card>
-          <Card className="surface-elevated mt-4 p-4">
-            <div className="mb-3 flex items-center justify-between">
-              <h3 className="font-display text-lg">Results · {results.length}</h3>
-              <Button variant="outline" size="sm"><Download className="h-3.5 w-3.5" /> Export CSV</Button>
-            </div>
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border text-left text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
-                  <th className="py-2 pr-3">Property</th><th className="py-2 pr-3">Client</th>
-                  <th className="py-2 pr-3">Expiry</th><th className="py-2 pr-3 text-right">Monthly</th><th className="py-2">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {results.map((l) => {
-                  const p = getProperty(l.propertyId)!;
-                  return (
-                    <tr key={l.id} className="border-b border-border/50">
-                      <td className="py-2 pr-3 font-medium">{p.name}</td>
-                      <td className="py-2 pr-3 text-muted-foreground">{getClient(l.clientId)?.name}</td>
-                      <td className="py-2 pr-3 font-mono text-xs">{l.end}</td>
-                      <td className="py-2 pr-3 text-right font-mono">{formatZAR(l.monthlyRental)}</td>
-                      <td className="py-2"><span className="tag-pill">{l.status}</span></td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-            <div className="mt-3 text-xs text-muted-foreground">Sources · leases.csv · DHL portfolio · document_index</div>
-          </Card>
+            <Button size="sm" variant="outline" onClick={exportCsv}>
+              <Download className="h-3.5 w-3.5" /> Export CSV
+            </Button>
+          </div>
+          <div className="mt-4 grid gap-4 lg:grid-cols-2">
+            {results.clients.length > 0 ? (
+              <Card className="surface-elevated p-5">
+                <h3 className="font-display text-lg">Clients</h3>
+                <ul className="mt-3 divide-y divide-border text-sm">
+                  {results.clients.map((client) => (
+                    <li key={client.tenantId} className="py-2">
+                      <Link
+                        to="/clients/$id"
+                        params={{ id: client.slug }}
+                        className="font-medium hover:text-primary"
+                      >
+                        {client.name}
+                      </Link>
+                      {client.industry ? (
+                        <span className="text-muted-foreground"> · {client.industry}</span>
+                      ) : null}
+                    </li>
+                  ))}
+                </ul>
+              </Card>
+            ) : null}
+            {results.properties.length > 0 ? (
+              <Card className="surface-elevated p-5">
+                <h3 className="font-display text-lg">Properties</h3>
+                <ul className="mt-3 divide-y divide-border text-sm">
+                  {results.properties.map((property) => (
+                    <li key={property.propertyId} className="py-2">
+                      <Link
+                        to="/properties/$id"
+                        params={{ id: property.propertyId }}
+                        className="font-medium hover:text-primary"
+                      >
+                        {property.name}
+                      </Link>
+                      <span className="text-muted-foreground">
+                        {" "}
+                        · {property.city} · {property.client.name}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </Card>
+            ) : null}
+            {results.leases.length > 0 ? (
+              <Card className="surface-elevated p-5">
+                <h3 className="font-display text-lg">Leases</h3>
+                <ul className="mt-3 divide-y divide-border text-sm">
+                  {results.leases.map((lease) => (
+                    <li
+                      key={lease.leaseId}
+                      className="flex items-center justify-between gap-3 py-2"
+                    >
+                      <div className="min-w-0">
+                        <Link
+                          to="/leases/$id"
+                          params={{ id: lease.leaseId }}
+                          className="font-medium hover:text-primary"
+                        >
+                          {lease.propertyName}
+                        </Link>
+                        <div className="text-xs text-muted-foreground">
+                          {lease.client.name} · {formatDate(lease.startDate)} →{" "}
+                          {formatDate(lease.endDate)} · {formatZAR(lease.monthlyRental)}/mo
+                        </div>
+                      </div>
+                      <span className="tag-pill">{describeLeaseStatus(lease)}</span>
+                    </li>
+                  ))}
+                </ul>
+              </Card>
+            ) : null}
+            {results.documents.length > 0 ? (
+              <Card className="surface-elevated p-5 lg:col-span-2">
+                <h3 className="font-display text-lg">Documents</h3>
+                <ul className="mt-3 divide-y divide-border text-sm">
+                  {results.documents.map((document) => (
+                    <li
+                      key={document.documentId}
+                      className="flex items-start justify-between gap-3 py-2"
+                    >
+                      <div className="min-w-0">
+                        <Link
+                          to="/documents/$id"
+                          params={{ id: document.documentId }}
+                          className="inline-flex items-center gap-2 font-medium hover:text-primary"
+                        >
+                          <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />{" "}
+                          {document.filename}
+                        </Link>
+                        <div className="pl-6 text-xs text-muted-foreground">
+                          {document.client.name}
+                          {document.documentType
+                            ? ` · ${DOCUMENT_TYPE_LABELS[document.documentType]}`
+                            : ""}
+                          {document.match === "content" ? " · matched in text" : ""}
+                        </div>
+                        {document.snippet ? (
+                          <p className="pl-6 text-xs italic text-muted-foreground">
+                            …{document.snippet}…
+                          </p>
+                        ) : null}
+                      </div>
+                      <DocumentStatusBadge status={document.status} />
+                    </li>
+                  ))}
+                </ul>
+              </Card>
+            ) : null}
+          </div>
         </>
       )}
     </div>

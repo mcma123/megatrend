@@ -1,12 +1,12 @@
 import {
   createFileRoute,
   Link,
-  notFound,
   Outlet,
   useNavigate,
   useRouterState,
 } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, type ReactNode } from "react";
+import { useQuery } from "convex/react";
 import {
   FileText,
   Globe,
@@ -21,8 +21,10 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { getClientBySlug, properties } from "@/lib/mock-data";
+import { NotificationBell } from "@/components/notifications/notification-bell";
 import { useCyphersoftAuth } from "@/lib/auth-session";
+import { PortalContextProvider, type PortalClient } from "@/lib/portal-context";
+import { api } from "../../../convex/_generated/api";
 import {
   Sidebar,
   SidebarContent,
@@ -40,18 +42,12 @@ import {
 } from "@/components/ui/sidebar";
 
 export const Route = createFileRoute("/portal/$clientSlug")({
-  loader: ({ params }) => {
-    const client = getClientBySlug(params.clientSlug);
-    if (!client) throw notFound();
-    return { client };
-  },
-  head: ({ loaderData }) => ({
+  head: () => ({
     meta: [
-      { title: `${loaderData?.client.name ?? "Client"} portal | Cyphersoft` },
-      { name: "description", content: `Live portfolio portal for ${loaderData?.client.name}.` },
+      { title: "Client portal | Cyphersoft" },
+      { name: "description", content: "Live portfolio portal." },
     ],
   }),
-  notFoundComponent: () => <div className="p-8">Client portal not found.</div>,
   component: ClientPortalShell,
 });
 
@@ -73,33 +69,59 @@ type PortalNavItem = {
 };
 
 function ClientPortalShell() {
-  const { client } = Route.useLoaderData();
+  const { clientSlug } = Route.useParams();
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (router) => router.location.pathname });
   const auth = useCyphersoftAuth();
-  const [ready, setReady] = useState(false);
+  const context = useQuery(
+    api.portal.getPortalContext,
+    auth.isAuthenticated ? { slug: clientSlug } : "skip",
+  );
+  const client = context?.status === "ok" ? context.client : null;
+  const properties = useQuery(api.properties.list, client ? { tenantId: client.tenantId } : "skip");
 
   useEffect(() => {
     if (auth.isLoading) {
       return;
     }
     if (!auth.isAuthenticated) {
-      navigate({ to: "/portal" });
-      return;
+      void navigate({ to: "/portal" });
     }
-    if (auth.portalSlug && auth.portalSlug !== client.slug) {
-      navigate({ to: "/portal/$clientSlug", params: { clientSlug: auth.portalSlug } });
-      return;
-    }
-    setReady(true);
-  }, [auth.isAuthenticated, auth.isLoading, auth.portalSlug, client.slug, navigate]);
+  }, [auth.isAuthenticated, auth.isLoading, navigate]);
+
+  if (!auth.isAuthenticated || context === undefined || !auth.profile) {
+    return <PortalMessage title="Loading your portal…" />;
+  }
+  if (context.status !== "ok" || !client) {
+    const ownPortals = auth.profile.portals.filter((portal) => portal.slug !== clientSlug);
+    return (
+      <PortalMessage
+        title={context.status === "not_found" ? "Portal not found" : "You don't have access to this portal"}
+        description={
+          context.status === "not_found"
+            ? `There is no client portal with the code "${clientSlug}".`
+            : "Ask your Cyphersoft contact or your team admin for an invitation."
+        }
+      >
+        <div className="mt-5 flex flex-wrap justify-center gap-2">
+          {ownPortals.map((portal) => (
+            <Button key={portal.slug} asChild variant="outline">
+              <Link to="/portal/$clientSlug" params={{ clientSlug: portal.slug }}>Open {portal.name}</Link>
+            </Button>
+          ))}
+          <Button variant="ghost" onClick={() => void auth.logout({ returnTo: "/portal" })}>
+            <LogOut className="h-4 w-4" /> Sign out
+          </Button>
+        </div>
+      </PortalMessage>
+    );
+  }
 
   const logout = () => {
     void auth.logout({ returnTo: "/portal" });
   };
 
-  const clientProperties = properties.filter((property) => property.clientId === client.id);
-  const primaryProperty = clientProperties[0];
+  const primaryProperty = properties?.[0];
   const basePath = `/portal/${client.slug}`;
   const normalizedPath =
     pathname.length > 1 && pathname.endsWith("/") ? pathname.slice(0, -1) : pathname;
@@ -118,7 +140,7 @@ function ClientPortalShell() {
         {
           title: "Property detail",
           to: "/portal/$clientSlug/properties/$propertyId",
-          params: { clientSlug: client.slug, propertyId: primaryProperty?.id },
+          params: { clientSlug: client.slug, propertyId: primaryProperty?._id },
           icon: MapPinned,
           active:
             normalizedPath.startsWith(`${basePath}/properties/`) &&
@@ -128,7 +150,7 @@ function ClientPortalShell() {
         {
           title: "Lease detail",
           to: "/portal/$clientSlug/properties/$propertyId/lease",
-          params: { clientSlug: client.slug, propertyId: primaryProperty?.id },
+          params: { clientSlug: client.slug, propertyId: primaryProperty?._id },
           icon: ScrollText,
           active: normalizedPath.endsWith("/lease"),
           disabled: !primaryProperty,
@@ -170,21 +192,40 @@ function ClientPortalShell() {
     },
   ];
 
-  if (!ready || !auth.profile) return null;
+  const fullName = auth.profile.name ?? auth.profile.email ?? "Portal user";
 
   return (
-    <SidebarProvider>
-      <ClientPortalFrame
-        client={client}
-        session={{
-          fullName: auth.profile.name ?? auth.profile.email ?? "Portal user",
-          email: auth.profile.email ?? "",
-        }}
-        logout={logout}
-        navGroups={navGroups}
-        primaryPropertyName={primaryProperty?.name}
-      />
-    </SidebarProvider>
+    <PortalContextProvider value={{ client, viewer: { ...context.viewer, fullName } }}>
+      <SidebarProvider>
+        <ClientPortalFrame
+          client={client}
+          session={{ fullName, email: auth.profile.email ?? "" }}
+          logout={logout}
+          navGroups={navGroups}
+          primaryPropertyName={primaryProperty?.name}
+        />
+      </SidebarProvider>
+    </PortalContextProvider>
+  );
+}
+
+function PortalMessage({
+  title,
+  description,
+  children,
+}: {
+  title: string;
+  description?: string;
+  children?: ReactNode;
+}) {
+  return (
+    <div className="grid min-h-screen place-items-center bg-background px-4">
+      <div className="max-w-md text-center">
+        <p className="font-display text-xl text-foreground">{title}</p>
+        {description ? <p className="mt-2 text-sm text-muted-foreground">{description}</p> : null}
+        {children}
+      </div>
+    </div>
   );
 }
 
@@ -195,7 +236,7 @@ function ClientPortalFrame({
   navGroups,
   primaryPropertyName,
 }: {
-  client: NonNullable<ReturnType<typeof Route.useLoaderData>["client"]>;
+  client: PortalClient;
   session: {
     fullName: string;
     email: string;
@@ -226,6 +267,7 @@ function ClientPortalFrame({
             <Button variant="ghost" size="icon" aria-label="Portal workspace">
               <PanelLeft className="h-4 w-4" />
             </Button>
+            <NotificationBell />
             <ThemeToggle />
             <span className="hidden text-xs text-muted-foreground md:inline">
               {session.fullName}
@@ -319,7 +361,7 @@ function ClientPortalSidebar({
             <div>Client workspace</div>
             {primaryPropertyName ? (
               <div className="normal-case tracking-normal text-xs text-sidebar-foreground/80">
-                Demo property: {primaryPropertyName}
+                Primary property: {primaryPropertyName}
               </div>
             ) : null}
           </div>

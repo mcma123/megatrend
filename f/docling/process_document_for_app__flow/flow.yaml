@@ -1,0 +1,167 @@
+summary: 'Process an uploaded app document: OCR, OKF bundle, field extraction'
+description: 'Called by Convex for each uploaded document: Docling converts it
+  (parsed JSON to MinIO under tenant/document), writes a per-client OKF bundle,
+  then extracts typed fields with confidence for staff review.'
+value:
+  modules:
+    - id: parse
+      summary: Convert the document with Docling and save parsed JSON to MinIO
+      value:
+        type: script
+        input_transforms:
+          do_ocr:
+            type: javascript
+            expr: flow_input.do_ocr
+          file_url:
+            type: javascript
+            expr: flow_input.file_url
+          filename:
+            type: javascript
+            expr: flow_input.filename
+          minio_path_prefix:
+            type: javascript
+            expr: '`${flow_input.tenant_slug}/${flow_input.document_id}${flow_input.attempt_id ? "/" + flow_input.attempt_id : ""}`'
+          parsed_json_key:
+            type: javascript
+            expr: flow_input.parsed_json_key ?? null
+          minio_bucket:
+            type: javascript
+            expr: flow_input.parsed_json_bucket ?? 'parsedinjson'
+          request_timeout_seconds:
+            type: static
+            value: 600
+          save_json_to_minio:
+            type: static
+            value: true
+        path: f/docling/convert_document_to_markdown
+      timeout:
+        type: static
+        value: 900
+      continue_on_error: true
+    - id: okf
+      summary: Write the per-client OKF bundle (optional; extraction continues if it
+        fails)
+      value:
+        type: script
+        input_transforms:
+          bundle_prefix:
+            type: javascript
+            expr: '`${flow_input.tenant_slug}/${flow_input.document_id}${flow_input.attempt_id ? "/" + flow_input.attempt_id : ""}`'
+          parsed_json_key:
+            type: javascript
+            expr: results.parse?.saved_json_to_minio?.key ?? ''
+          source_bucket:
+            type: javascript
+            expr: results.parse?.saved_json_to_minio?.bucket ?? 'parsedinjson'
+          tags:
+            type: javascript
+            expr: "['app-upload', flow_input.tenant_slug]"
+        path: f/docling/convert_parsed_json_to_okf
+      continue_on_error: true
+      skip_if:
+        expr: flow_input.retry_stage === 'extract' || !results.parse?.saved_json_to_minio?.key
+    - id: extract
+      summary: Classify the document and extract typed fields with confidence
+      value:
+        type: script
+        input_transforms:
+          document_type_hint:
+            type: javascript
+            expr: flow_input.document_type_hint
+          filename:
+            type: javascript
+            expr: flow_input.filename
+          markdown:
+            type: javascript
+            expr: results.parse?.markdown ?? ''
+        path: f/docling/extract_document_fields
+      retry:
+        constant:
+          attempts: 2
+          seconds: 10
+        retry_if:
+          expr: '/429|50[0-4]|timeout|connection|network/i.test(error?.message ?? "")'
+      continue_on_error: true
+      skip_if:
+        expr: flow_input.retry_stage === 'knowledge' || !results.parse?.markdown
+    - id: summarize
+      summary: Compact result for Convex (no full markdown)
+      value:
+        type: rawscript
+        content: '!inline summarize.py'
+        input_transforms:
+          extraction:
+            type: javascript
+            expr: results.extract ?? {}
+          okf_result:
+            type: javascript
+            expr: results.okf ?? {}
+          parse_result:
+            type: javascript
+            expr: results.parse ?? {}
+          attempt_id:
+            type: javascript
+            expr: flow_input.attempt_id ?? null
+          retry_stage:
+            type: javascript
+            expr: flow_input.retry_stage ?? null
+          reused_knowledge:
+            type: javascript
+            expr: flow_input.reused_knowledge ?? null
+        lock: '!inline summarize.lock'
+        language: python3
+schema:
+  $schema: https://json-schema.org/draft/2020-12/schema
+  type: object
+  order:
+    - file_url
+    - filename
+    - tenant_slug
+    - document_id
+    - attempt_id
+    - document_type_hint
+    - do_ocr
+  properties:
+    retry_stage:
+      type: string
+      enum: [parse, knowledge, extract]
+      default: null
+    parsed_json_key:
+      type: string
+      default: null
+    parsed_json_bucket:
+      type: string
+      default: parsedinjson
+    reused_knowledge:
+      type: object
+      default: null
+      description: Prior knowledge stage supplied by Convex for extraction-only recovery.
+    attempt_id:
+      type: string
+      description: Optional Convex processing attempt id; isolates artifacts and identifies results. Omit only for legacy callers.
+      default: null
+    do_ocr:
+      type: boolean
+      description: Run OCR on scanned pages.
+      default: true
+    document_id:
+      type: string
+      description: Convex document id; keeps object keys unique per upload.
+    document_type_hint:
+      type: string
+      description: Optional type chosen by the uploader (lease, invoice, ...).
+      default: null
+    file_url:
+      type: string
+      description: Signed URL of the original file (Convex storage).
+    filename:
+      type: string
+      description: Original filename, used for format detection and naming.
+    tenant_slug:
+      type: string
+      description: Client portal code; MinIO and OKF keys are prefixed with it.
+  required:
+    - file_url
+    - filename
+    - tenant_slug
+    - document_id

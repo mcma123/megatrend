@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import {
+import { Inbox, Lightbulb,
   LayoutDashboard, Users, Building2, Compass, FileText, Search,
   ScrollText, Workflow, Receipt, ListChecks, BarChart3, Globe2, Shield,
 } from "lucide-react";
@@ -12,7 +12,10 @@ import {
 const groups: { label: string; items: { title: string; url: string; icon: any }[] }[] = [
   {
     label: "Overview",
-    items: [{ title: "Dashboard", url: "/dashboard", icon: LayoutDashboard }],
+    items: [
+      { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
+      { title: "Review inbox", url: "/review", icon: Inbox },
+    ],
   },
   {
     label: "External bucket",
@@ -27,6 +30,7 @@ const groups: { label: string; items: { title: string; url: string; icon: any }[
       { title: "Clients", url: "/clients", icon: Users },
       { title: "Leases", url: "/leases", icon: ScrollText },
       { title: "Documents", url: "/documents", icon: FileText },
+      { title: "Insights", url: "/insights", icon: Lightbulb },
       { title: "Search", url: "/search", icon: Search },
       { title: "Invoices", url: "/invoices", icon: Receipt },
     ],

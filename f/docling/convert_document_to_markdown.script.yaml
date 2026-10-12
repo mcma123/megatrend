@@ -7,6 +7,11 @@ schema:
   $schema: https://json-schema.org/draft/2020-12/schema
   type: object
   properties:
+    parsed_json_key:
+      type: string
+      description: Optional stored parsed JSON to reuse without OCR. App callers must supply a server-validated document artifact.
+      default: null
+      originalType: string
     do_ocr:
       type: boolean
       description: ''

@@ -8,6 +8,10 @@ type AdminAssistantContextValue = {
   close: () => void;
   toggleOpen: () => void;
   toggleExpanded: () => void;
+  /** A request to open with a given agent and a pre-filled message (consumed by the panel). */
+  pendingPrompt: { agentId: string; text: string; nonce: number } | null;
+  openWithPrompt: (agentId: string, text: string) => void;
+  clearPendingPrompt: () => void;
 };
 
 const AdminAssistantContext = createContext<AdminAssistantContextValue | null>(null);
@@ -15,6 +19,7 @@ const AdminAssistantContext = createContext<AdminAssistantContextValue | null>(n
 export function AdminAssistantProvider({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  const [pendingPrompt, setPendingPrompt] = useState<AdminAssistantContextValue["pendingPrompt"]>(null);
 
   const value = useMemo<AdminAssistantContextValue>(
     () => ({
@@ -46,8 +51,14 @@ export function AdminAssistantProvider({ children }: { children: React.ReactNode
         setOpen(true);
         setExpanded((currentExpanded) => !currentExpanded);
       },
+      pendingPrompt,
+      openWithPrompt: (agentId: string, text: string) => {
+        setPendingPrompt({ agentId, text, nonce: Date.now() });
+        setOpen(true);
+      },
+      clearPendingPrompt: () => setPendingPrompt(null),
     }),
-    [expanded, open],
+    [expanded, open, pendingPrompt],
   );
 
   return <AdminAssistantContext.Provider value={value}>{children}</AdminAssistantContext.Provider>;

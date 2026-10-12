@@ -1,191 +1,60 @@
-import { useMemo, useState } from "react";
-import { createFileRoute, notFound } from "@tanstack/react-router";
-import {
-  CalendarRange,
-  FileSearch,
-  Lightbulb,
-  MessageSquare,
-  Receipt,
-  Search,
-  Sparkles,
-} from "lucide-react";
+import { createFileRoute } from "@tanstack/react-router";
+import { useState } from "react";
+import { useMutation, useQuery } from "convex/react";
+import { toast } from "sonner";
+import { FileText, MessageSquare, ShieldCheck } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { getClientBySlug, properties } from "@/lib/mock-data";
-
-type InsightPriority = "High" | "Medium" | "Low";
-type InsightType = "Renewal" | "Rental anomaly" | "Utility anomaly" | "Cost forecast" | "Document issue" | "Property opportunity";
-
-type ClientInsight = {
-  id: string;
-  title: string;
-  type: InsightType;
-  priority: InsightPriority;
-  confidence: string;
-  propertyId: string;
-  publishedDate: string;
-  note: string;
-  source: string;
-  reviewLabel: string;
-  cta: string;
-  narrative: string;
-  publishedBy: string;
-  recommendedAction: string;
-};
-
-const demoInsights: ClientInsight[] = [
-  {
-    id: "insight-1",
-    title: "DHL Linbro Park DC renewal window opens in 2 months.",
-    type: "Renewal",
-    priority: "High",
-    confidence: "95%",
-    propertyId: "p1",
-    publishedDate: "2026-07-05",
-    note: "We should align on renewal options before the August negotiation window closes.",
-    source: "DHL Linbro Park Lease Agreement.pdf · Page 4",
-    reviewLabel: "Published by your account manager",
-    cta: "Request quote",
-    narrative: "Cyphersoft has reviewed the active lease timeline and confirmed that the renewal window for DHL Linbro Park DC is approaching. The current expiry and notice milestones suggest that market testing and landlord engagement should begin now.",
-    publishedBy: "Jared van Niekerk",
-    recommendedAction: "Request a renewal quote and review regional comparables.",
-  },
-  {
-    id: "insight-2",
-    title: "Monthly rental increased above expected escalation.",
-    type: "Rental anomaly",
-    priority: "Medium",
-    confidence: "88%",
-    propertyId: "p1",
-    publishedDate: "2026-07-03",
-    note: "The uplift exceeds the normal annual step-up we expected from the approved lease schedule.",
-    source: "Rental Invoice May 2026.pdf · Line item check",
-    reviewLabel: "Reviewed by Cyphersoft",
-    cta: "View lease",
-    narrative: "A reviewed comparison between the lease schedule and the latest invoiced amount shows that the monthly rental is above the expected escalation path. This may be due to a billing adjustment or an unlinked addendum.",
-    publishedBy: "Jared van Niekerk",
-    recommendedAction: "Compare the invoice against the lease escalation clause and any recent addenda.",
-  },
-  {
-    id: "insight-3",
-    title: "Electricity usage changed sharply compared to prior months.",
-    type: "Utility anomaly",
-    priority: "Medium",
-    confidence: "82%",
-    propertyId: "p1",
-    publishedDate: "2026-07-02",
-    note: "Usage movement is material enough to investigate before the next billing cycle closes.",
-    source: "June Utility Statement.pdf · Consumption trend",
-    reviewLabel: "Reviewed by Cyphersoft",
-    cta: "View source document",
-    narrative: "Utility consumption has moved sharply relative to the trailing monthly trend. The source utility statement was reviewed and the variance looks operational rather than a simple reading-format change.",
-    publishedBy: "Ops Intelligence Desk",
-    recommendedAction: "Open the source statement and confirm equipment or occupancy changes with site operations.",
-  },
-  {
-    id: "insight-4",
-    title: "Projected annual utility cost is trending upward.",
-    type: "Cost forecast",
-    priority: "Medium",
-    confidence: "79%",
-    propertyId: "p5",
-    publishedDate: "2026-07-01",
-    note: "The current spend trend implies budget pressure if consumption normalisation does not happen soon.",
-    source: "Airport Industria Utility Reconciliation.pdf · Forecast model",
-    reviewLabel: "Published by your account manager",
-    cta: "Ask Cyphersoft",
-    narrative: "Cyphersoft reviewed the current utility run-rate and forward cost forecast for this site. Based on the recent billing pattern, annualised cost exposure is moving above the expected operating budget envelope.",
-    publishedBy: "Reza Patel",
-    recommendedAction: "Ask Cyphersoft for a cost-mitigation plan and budget outlook.",
-  },
-  {
-    id: "insight-5",
-    title: "Lease contract appears to be missing a signed annexure.",
-    type: "Document issue",
-    priority: "High",
-    confidence: "73%",
-    propertyId: "p1",
-    publishedDate: "2026-06-29",
-    note: "We have enough evidence to flag the gap, but not enough to treat the annexure as definitively absent without client confirmation.",
-    source: "DHL Linbro Park Lease Agreement.pdf · Annexure reference",
-    reviewLabel: "Reviewed by Cyphersoft",
-    cta: "Upload missing document",
-    narrative: "The reviewed lease package refers to a signed annexure that is not present in the linked contract set. The clause references appear valid, but the supporting document has not been uploaded into the portal package yet.",
-    publishedBy: "Jared van Niekerk",
-    recommendedAction: "Upload the missing annexure so lease intelligence can be finalised.",
-  },
-  {
-    id: "insight-6",
-    title: "Comparable logistics properties are available in the same region.",
-    type: "Property opportunity",
-    priority: "Low",
-    confidence: "86%",
-    propertyId: "p1",
-    publishedDate: "2026-06-27",
-    note: "We have reviewed nearby comparables that could strengthen your renewal position.",
-    source: "Cyphersoft sourcing brief · Linbro Park set",
-    reviewLabel: "Published by your account manager",
-    cta: "Request quote",
-    narrative: "Cyphersoft has reviewed nearby logistics opportunities in the same region and found comparable options that may be relevant for negotiation leverage or relocation planning.",
-    publishedBy: "Jared van Niekerk",
-    recommendedAction: "Request a market quote pack for the comparable properties.",
-  },
-];
+import { EmptyState, LoadingState, NativeSelect } from "@/components/portfolio/form-fields";
+import { usePortal } from "@/lib/portal-context";
+import { errorMessage } from "@/lib/portfolio";
+import { useOpenDocument } from "@/lib/use-document-upload";
+import { cn } from "@/lib/utils";
+import {
+  INSIGHT_CATEGORY_LABELS,
+  PRIORITY_CLASSES,
+  PRIORITY_LABELS,
+  type InsightCategory,
+} from "@/lib/workflow";
+import { api } from "../../../convex/_generated/api";
 
 export const Route = createFileRoute("/portal/$clientSlug/insights")({
-  loader: ({ params }) => {
-    const client = getClientBySlug(params.clientSlug);
-    if (!client) throw notFound();
-    return { client };
-  },
-  head: ({ loaderData }) => ({
-    meta: [
-      { title: `Insights | ${loaderData?.client.name ?? "Client"} portal | Cyphersoft` },
-      {
-        name: "description",
-        content: `Curated lease, rental, document, and property intelligence for ${loaderData?.client.name ?? "your portfolio"}.`,
-      },
-    ],
-  }),
+  head: () => ({ meta: [{ title: "Insights | Client portal | Cyphersoft" }] }),
   component: ClientInsightsPage,
 });
 
 function ClientInsightsPage() {
-  const { client } = Route.useLoaderData();
-  const clientProperties = properties.filter((property) => property.clientId === client.id);
-  const propertyOptions = clientProperties.map((property) => ({ id: property.id, name: property.name }));
-  const [query, setQuery] = useState("");
-  const [priorityFilter, setPriorityFilter] = useState<"All" | InsightPriority>("All");
-  const [typeFilter, setTypeFilter] = useState<"All" | InsightType>("All");
-  const [propertyFilter, setPropertyFilter] = useState<"All" | string>("All");
-  const [selectedInsightId, setSelectedInsightId] = useState<string>(demoInsights[0]?.id ?? "");
+  const { client, viewer } = usePortal();
+  const insights = useQuery(api.insights.list, { tenantId: client.tenantId });
+  const properties = useQuery(api.properties.list, { tenantId: client.tenantId }) ?? [];
+  const createAction = useMutation(api.actions.create);
+  const openDocument = useOpenDocument();
+  const [category, setCategory] = useState<InsightCategory | "all">("all");
+  const [propertyFilter, setPropertyFilter] = useState("all");
+  const canAsk = viewer.roleKey !== "executive_viewer" && viewer.roleKey !== "read_only_staff";
 
-  const filteredInsights = useMemo(() => {
-    return demoInsights.filter((insight) => {
-      const propertyName = getPropertyName(insight.propertyId, propertyOptions);
-      const matchesQuery =
-        query.trim().length === 0 ||
-        insight.title.toLowerCase().includes(query.toLowerCase()) ||
-        insight.note.toLowerCase().includes(query.toLowerCase()) ||
-        propertyName.toLowerCase().includes(query.toLowerCase());
-      const matchesPriority = priorityFilter === "All" || insight.priority === priorityFilter;
-      const matchesType = typeFilter === "All" || insight.type === typeFilter;
-      const matchesProperty = propertyFilter === "All" || insight.propertyId === propertyFilter;
+  const rows = (insights ?? []).filter(
+    (insight) =>
+      (category === "all" || insight.category === category) &&
+      (propertyFilter === "all" || insight.property?.propertyId === propertyFilter),
+  );
+  const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).getTime();
 
-      return matchesQuery && matchesPriority && matchesType && matchesProperty;
-    });
-  }, [priorityFilter, propertyFilter, propertyOptions, query, typeFilter]);
-
-  const selectedInsight =
-    filteredInsights.find((insight) => insight.id === selectedInsightId) ?? filteredInsights[0] ?? null;
-
-  const summary = {
-    highPriority: demoInsights.filter((insight) => insight.priority === "High").length,
-    renewalAlerts: demoInsights.filter((insight) => insight.type === "Renewal").length,
-    documentIssues: demoInsights.filter((insight) => insight.type === "Document issue").length,
-    newThisMonth: demoInsights.filter((insight) => insight.publishedDate.startsWith("2026-07")).length,
+  const ask = async (title: string, propertyId?: string) => {
+    const question = window.prompt(`What would you like to ask about "${title}"?`);
+    if (!question) return;
+    try {
+      await createAction({
+        tenantId: client.tenantId,
+        title: `Question: ${title}`.slice(0, 200),
+        description: question,
+        propertyId: propertyId as never,
+      });
+      toast.success("Sent to your Cyphersoft team. Track the reply under Actions.");
+    } catch (askError) {
+      toast.error(errorMessage(askError));
+    }
   };
 
   return (
@@ -193,231 +62,141 @@ function ClientInsightsPage() {
       <PageHeader
         eyebrow="Client portal | Insights"
         title="Insights"
-        description="Curated lease, rental, document, and property intelligence from your Cyphersoft team."
-        actions={
-          <>
-            <Button variant="outline">
-              <Receipt className="h-4 w-4" /> Request quote
-            </Button>
-            <Button>
-              <Sparkles className="h-4 w-4" /> Ask Cyphersoft
-            </Button>
-          </>
-        }
+        description="Curated lease, cost and document intelligence from your Cyphersoft team. Every insight is reviewed by a person and linked to its source."
       />
 
-      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <SummaryCard label="High priority" value={summary.highPriority} detail="Reviewed items that need immediate attention." />
-        <SummaryCard label="Renewal alerts" value={summary.renewalAlerts} detail="Lease timing and market timing signals." />
-        <SummaryCard label="Document issues" value={summary.documentIssues} detail="Approved gaps or inconsistencies in source documents." />
-        <SummaryCard label="New this month" value={summary.newThisMonth} detail="Fresh intelligence published by your Cyphersoft team." />
+      <section className="grid gap-3 sm:grid-cols-3">
+        <Summary
+          label="Published insights"
+          value={insights === undefined ? "—" : String(insights.length)}
+        />
+        <Summary
+          label="High priority"
+          value={
+            insights === undefined
+              ? "—"
+              : String(
+                  insights.filter((i) => i.priority === "high" || i.priority === "critical").length,
+                )
+          }
+        />
+        <Summary
+          label="New this month"
+          value={
+            insights === undefined
+              ? "—"
+              : String(insights.filter((i) => (i.publishedAt ?? 0) >= startOfMonth).length)
+          }
+        />
       </section>
 
-      <Card className="surface-elevated mt-6 p-4">
-        <div className="flex flex-col gap-3 xl:flex-row xl:items-center">
-          <div className="relative min-w-0 flex-1 xl:max-w-sm">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search insights"
-              className="pl-9"
-            />
-          </div>
-          <FilterSelect
-            value={priorityFilter}
-            onChange={(event) => setPriorityFilter(event.target.value as "All" | InsightPriority)}
-            options={["All", "High", "Medium", "Low"]}
-            ariaLabel="Filter by priority"
-          />
-          <FilterSelect
-            value={typeFilter}
-            onChange={(event) => setTypeFilter(event.target.value as "All" | InsightType)}
-            options={["All", "Renewal", "Rental anomaly", "Utility anomaly", "Cost forecast", "Document issue", "Property opportunity"]}
-            ariaLabel="Filter by type"
-          />
-          <select
-            value={propertyFilter}
-            onChange={(event) => setPropertyFilter(event.target.value)}
-            aria-label="Filter by property"
-            className="h-9 min-w-[12rem] rounded-md border border-input bg-transparent px-3 text-sm text-foreground"
-          >
-            <option value="All">All properties</option>
-            {propertyOptions.map((property) => (
-              <option key={property.id} value={property.id}>
-                {property.name}
-              </option>
-            ))}
-          </select>
-          <Button variant="outline" className="justify-start xl:min-w-[11rem]">
-            <CalendarRange className="h-4 w-4" /> Date filter
-          </Button>
-        </div>
-      </Card>
+      <div className="mt-6 flex flex-wrap gap-3">
+        <NativeSelect
+          className="w-auto"
+          value={category}
+          onChange={(e) => setCategory(e.target.value as InsightCategory | "all")}
+          aria-label="Category"
+        >
+          <option value="all">All categories</option>
+          {Object.entries(INSIGHT_CATEGORY_LABELS).map(([value, label]) => (
+            <option key={value} value={value}>
+              {label}
+            </option>
+          ))}
+        </NativeSelect>
+        <NativeSelect
+          className="w-auto"
+          value={propertyFilter}
+          onChange={(e) => setPropertyFilter(e.target.value)}
+          aria-label="Property"
+        >
+          <option value="all">All properties</option>
+          {properties.map((property) => (
+            <option key={property._id} value={property._id}>
+              {property.name}
+            </option>
+          ))}
+        </NativeSelect>
+      </div>
 
-      {filteredInsights.length === 0 ? (
-        <EmptyState />
-      ) : (
-        <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_22rem]">
-          <section>
-            <div className="grid gap-4 lg:grid-cols-2">
-              {filteredInsights.map((insight) => {
-                const isSelected = selectedInsight?.id === insight.id;
-                return (
-                  <Card
-                    key={insight.id}
-                    className={`surface-elevated cursor-pointer p-5 transition-colors ${isSelected ? "border-primary/40 bg-primary/5" : "hover:bg-accent/20"}`}
-                    onClick={() => setSelectedInsightId(insight.id)}
+      <div className="mt-4">
+        {insights === undefined ? (
+          <LoadingState label="Loading insights…" />
+        ) : rows.length === 0 ? (
+          <EmptyState
+            title={insights.length === 0 ? "No insights yet" : "No insights match these filters"}
+            description="Insights appear here after your documents are processed and reviewed by Cyphersoft."
+          />
+        ) : (
+          <div className="grid gap-4 lg:grid-cols-2">
+            {rows.map((insight) => (
+              <Card key={insight._id} className="surface-elevated flex flex-col p-5">
+                <div className="flex flex-wrap items-center gap-2 text-xs">
+                  <span
+                    className={cn(
+                      "rounded-full border px-2 py-0.5",
+                      PRIORITY_CLASSES[insight.priority],
+                    )}
                   >
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{insight.type}</div>
-                        <h3 className="mt-2 font-display text-xl leading-tight">{insight.title}</h3>
-                      </div>
-                      <span className={`rounded-md border px-2.5 py-1 text-xs font-medium ${priorityClass(insight.priority)}`}>{insight.priority}</span>
-                    </div>
-                    <div className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
-                      <MetaItem label="Confidence" value={insight.confidence} mono />
-                      <MetaItem label="Related property" value={getPropertyName(insight.propertyId, propertyOptions)} />
-                      <MetaItem label="Published date" value={insight.publishedDate} mono />
-                      <MetaItem label="Review" value={insight.reviewLabel} />
-                    </div>
-                    <div className="mt-4 rounded-md border border-border/70 bg-card/50 p-3 text-sm text-muted-foreground">
-                      {insight.note}
-                    </div>
-                    <div className="mt-4 flex items-center justify-between gap-3">
-                      <div className="text-xs text-muted-foreground">
-                        Source: <span className="text-foreground">{insight.source}</span>
-                      </div>
-                      <Button variant="outline" size="sm">
-                        {insight.cta}
-                      </Button>
-                    </div>
-                  </Card>
-                );
-              })}
-            </div>
-          </section>
-
-          <aside className="space-y-4">
-            {selectedInsight && (
-              <Card className="surface-elevated p-6">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">Insight detail</div>
-                    <h2 className="mt-2 font-display text-xl">{selectedInsight.title}</h2>
-                  </div>
-                  <span className={`rounded-md border px-2.5 py-1 text-xs font-medium ${priorityClass(selectedInsight.priority)}`}>{selectedInsight.priority}</span>
+                    {PRIORITY_LABELS[insight.priority]} priority
+                  </span>
+                  <span className="text-muted-foreground">
+                    {INSIGHT_CATEGORY_LABELS[insight.category]}
+                  </span>
+                  {insight.property ? (
+                    <span className="text-muted-foreground">· {insight.property.name}</span>
+                  ) : null}
                 </div>
-                <p className="mt-4 text-sm text-muted-foreground">{selectedInsight.narrative}</p>
-                <div className="mt-5 grid gap-4 text-sm">
-                  <MetaItem label="Confidence score" value={selectedInsight.confidence} mono />
-                  <MetaItem label="Related property" value={getPropertyName(selectedInsight.propertyId, propertyOptions)} />
-                  <MetaItem label="Source document" value={selectedInsight.source} />
-                  <MetaItem label="Account manager note" value={selectedInsight.note} />
-                  <MetaItem label="Published by" value={selectedInsight.publishedBy} />
-                  <MetaItem label="Published date" value={selectedInsight.publishedDate} mono />
-                  <MetaItem label="Recommended next action" value={selectedInsight.recommendedAction} />
+                <h3 className="mt-3 font-display text-lg">{insight.title}</h3>
+                <p className="mt-2 whitespace-pre-wrap text-sm">{insight.body}</p>
+                {insight.recommendedAction ? (
+                  <p className="mt-3 rounded-md bg-primary/5 px-3 py-2 text-sm">
+                    <span className="text-muted-foreground">Recommended: </span>
+                    {insight.recommendedAction}
+                  </p>
+                ) : null}
+                <div className="mt-3 inline-flex items-center gap-1 text-xs text-muted-foreground">
+                  <ShieldCheck className="h-3.5 w-3.5 text-success" />
+                  Reviewed by Cyphersoft
+                  {insight.publishedAt
+                    ? ` · ${new Date(insight.publishedAt).toLocaleDateString("en-ZA")}`
+                    : ""}
                 </div>
-                <div className="mt-5 rounded-md border border-success/30 bg-success/5 px-3 py-2 text-xs text-success">
-                  {selectedInsight.reviewLabel}
-                </div>
-                <div className="mt-5 flex flex-wrap gap-2">
-                  <Button variant="outline">
-                    <FileSearch className="h-4 w-4" /> Source document
-                  </Button>
-                  <Button>{selectedInsight.cta}</Button>
-                  <Button variant="ghost">
-                    <MessageSquare className="h-4 w-4" /> Ask Cyphersoft
-                  </Button>
+                <div className="mt-4 flex flex-wrap gap-2 border-t border-border pt-3">
+                  {insight.documents.map((document) => (
+                    <Button
+                      key={document.documentId}
+                      size="sm"
+                      variant="outline"
+                      onClick={() => void openDocument(document.documentId)}
+                    >
+                      <FileText className="h-3.5 w-3.5" /> Source: {document.filename}
+                    </Button>
+                  ))}
+                  {canAsk ? (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => void ask(insight.title, insight.property?.propertyId)}
+                    >
+                      <MessageSquare className="h-3.5 w-3.5" /> Ask Cyphersoft
+                    </Button>
+                  ) : null}
                 </div>
               </Card>
-            )}
-
-            <Card className="surface-elevated border-warning/30 bg-warning/5 p-5">
-              <div className="flex items-start gap-3">
-                <Lightbulb className="mt-0.5 h-5 w-5 text-warning" />
-                <div>
-                  <h3 className="font-display text-lg text-warning">Trusted business intelligence</h3>
-                  <p className="mt-2 text-sm text-muted-foreground">
-                    Insights here are curated by Cyphersoft before publication. Raw AI output is not shown directly to clients.
-                  </p>
-                </div>
-              </div>
-            </Card>
-          </aside>
-        </div>
-      )}
+            ))}
+          </div>
+        )}
+      </div>
     </main>
   );
 }
 
-function SummaryCard({ label, value, detail }: { label: string; value: number; detail: string }) {
+function Summary({ label, value }: { label: string; value: string }) {
   return (
     <Card className="surface-elevated p-5">
       <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{label}</div>
-      <div className="mt-3 font-display text-3xl">{value}</div>
-      <p className="mt-2 text-sm text-muted-foreground">{detail}</p>
+      <div className="mt-2 font-display text-2xl">{value}</div>
     </Card>
   );
-}
-
-function FilterSelect({
-  value,
-  onChange,
-  options,
-  ariaLabel,
-}: {
-  value: string;
-  onChange: (event: React.ChangeEvent<HTMLSelectElement>) => void;
-  options: string[];
-  ariaLabel: string;
-}) {
-  return (
-    <select
-      value={value}
-      onChange={onChange}
-      aria-label={ariaLabel}
-      className="h-9 min-w-[10rem] rounded-md border border-input bg-transparent px-3 text-sm text-foreground"
-    >
-      {options.map((option) => (
-        <option key={option} value={option}>
-          {option === "All" ? `All ${ariaLabel.replace("Filter by ", "")}` : option}
-        </option>
-      ))}
-    </select>
-  );
-}
-
-function MetaItem({ label, value, mono = false }: { label: string; value: string; mono?: boolean }) {
-  return (
-    <div>
-      <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{label}</div>
-      <div className={`mt-1 ${mono ? "font-mono text-xs" : "text-sm"}`}>{value}</div>
-    </div>
-  );
-}
-
-function EmptyState() {
-  return (
-    <Card className="surface-elevated mt-6 px-6 py-16 text-center">
-      <div className="mx-auto grid h-14 w-14 place-items-center rounded-full border border-dashed border-border bg-accent/30">
-        <Lightbulb className="h-6 w-6 text-muted-foreground" />
-      </div>
-      <h3 className="mt-5 font-display text-2xl">No insights published yet.</h3>
-      <p className="mt-2 text-sm text-muted-foreground">
-        Insights will appear here after your documents are processed and reviewed by Cyphersoft.
-      </p>
-    </Card>
-  );
-}
-
-function getPropertyName(propertyId: string, propertyOptions: Array<{ id: string; name: string }>) {
-  return propertyOptions.find((property) => property.id === propertyId)?.name ?? "Unassigned property";
-}
-
-function priorityClass(priority: InsightPriority) {
-  if (priority === "High") return "border-warning/40 bg-warning/10 text-warning";
-  if (priority === "Medium") return "border-primary/30 bg-primary/10 text-primary";
-  return "border-border bg-card text-muted-foreground";
 }

@@ -1,5 +1,5 @@
-import { createFileRoute, useNavigate, notFound } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { createFileRoute } from "@tanstack/react-router";
+import { useState } from "react";
 import { Shield, UserPlus, UserX } from "lucide-react";
 import { useMutation, useQuery } from "convex/react";
 import { Card } from "@/components/ui/card";
@@ -7,9 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PageHeader } from "@/components/page-header";
-import { getClientBySlug } from "@/lib/mock-data";
-import { useCyphersoftAuth } from "@/lib/auth-session";
+import { usePortal } from "@/lib/portal-context";
+import { errorMessage } from "@/lib/portfolio";
 import { api } from "../../../convex/_generated/api";
+import type { Id } from "../../../convex/_generated/dataModel";
 
 const clientRoleOptions = [
   { value: "client_admin", label: "Client Admin" },
@@ -20,22 +21,12 @@ const clientRoleOptions = [
 ] as const;
 
 export const Route = createFileRoute("/portal/$clientSlug/team")({
-  loader: ({ params }) => {
-    const client = getClientBySlug(params.clientSlug);
-    if (!client) throw notFound();
-    return { client };
-  },
-  head: ({ loaderData }) => ({
-    meta: [{ title: `Team | ${loaderData?.client.name} | Cyphersoft portal` }],
-  }),
-  notFoundComponent: () => <div className="p-8">Organisation not found.</div>,
+  head: () => ({ meta: [{ title: "Team | Cyphersoft portal" }] }),
   component: TeamPage,
 });
 
 function TeamPage() {
-  const { client } = Route.useLoaderData();
-  const navigate = useNavigate();
-  const auth = useCyphersoftAuth();
+  const { client, viewer } = usePortal();
   const workspace = useQuery(api.portal.getPortalTeamWorkspace, { slug: client.slug });
   const invitePortalMember = useMutation(api.portal.invitePortalMember);
   const revokePortalMember = useMutation(api.portal.revokePortalMember);
@@ -47,15 +38,6 @@ function TeamPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (auth.isLoading) {
-      return;
-    }
-    if (!auth.isAuthenticated) {
-      navigate({ to: "/portal" });
-    }
-  }, [auth.isAuthenticated, auth.isLoading, navigate]);
 
   const handleInvite = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -72,7 +54,7 @@ function TeamPage() {
       setSuccess(`Invitation queued for ${form.email}. They get access when they create their account with this email.`);
       setForm({ fullName: "", email: "", roleKey: "property_manager" });
     } catch (inviteError) {
-      setError(inviteError instanceof Error ? inviteError.message : "Failed to invite member.");
+      setError(errorMessage(inviteError, "Failed to invite member."));
     } finally {
       setSubmitting(false);
     }
@@ -82,15 +64,30 @@ function TeamPage() {
     setError(null);
     setSuccess(null);
     try {
-      await revokePortalMember({ membershipId: membershipId as never });
+      await revokePortalMember({ membershipId: membershipId as Id<"memberships"> });
       setSuccess("Membership revoked.");
     } catch (revokeError) {
-      setError(revokeError instanceof Error ? revokeError.message : "Failed to revoke member.");
+      setError(errorMessage(revokeError, "Failed to revoke member."));
     }
   };
 
   if (workspace === undefined) {
-    return <main className="px-0 py-2"><Card className="surface-elevated p-6">Loading team workspace?</Card></main>;
+    return <main className="px-0 py-2"><Card className="surface-elevated p-6">Loading team workspace…</Card></main>;
+  }
+
+  if (workspace !== null && !workspace.canManageTeam) {
+    return (
+      <main className="px-0 py-2">
+        <PageHeader
+          eyebrow="Organisation | Team"
+          title="Team"
+          description={`Only team admins can manage portal access for ${client.name}.`}
+        />
+        <Card className="surface-elevated p-6 text-sm text-muted-foreground">
+          Ask your client admin or your Cyphersoft contact to invite or remove people.
+        </Card>
+      </main>
+    );
   }
 
   if (workspace === null) {
@@ -113,12 +110,12 @@ function TeamPage() {
       <PageHeader
         eyebrow="Organisation | Team"
         title="Manage your team"
-        description={`Invite teammates through your identity provider and manage tenant memberships for ${client.name}.`}
+        description={`Invite teammates and manage portal access for ${client.name}.`}
       />
 
       <Card className="surface-elevated mb-6 border-primary/40 bg-primary/5 p-4 text-sm">
         <Shield className="mr-2 inline h-4 w-4 text-primary" />
-        Invitations are now tracked in Convex. Membership is provisioned automatically when the invited user creates their account with the invited email.
+        Invited people get access automatically when they create their account at /sign-in with the invited email address.
       </Card>
 
       {error ? (
@@ -154,9 +151,15 @@ function TeamPage() {
                   <td className="py-2 pr-2"><span className="tag-pill">{member.roleKey}</span></td>
                   <td className="py-2 pr-2 text-xs uppercase tracking-[0.14em] text-muted-foreground">{member.principalType}</td>
                   <td className="py-2 text-right">
-                    <Button variant="ghost" size="sm" onClick={() => { void handleRevoke(member.membershipId); }}>
-                      <UserX className="h-4 w-4" /> Revoke
-                    </Button>
+                    {member.userId === workspace.currentUserId ? (
+                      <span className="text-xs text-muted-foreground">You</span>
+                    ) : viewer.principalType === "client" && member.principalType !== "client" ? (
+                      <span className="text-xs text-muted-foreground">Cyphersoft</span>
+                    ) : (
+                      <Button variant="ghost" size="sm" onClick={() => { void handleRevoke(member.membershipId); }}>
+                        <UserX className="h-4 w-4" /> Revoke
+                      </Button>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -192,7 +195,7 @@ function TeamPage() {
                 </select>
               </div>
               <Button type="submit" className="w-full" disabled={submitting}>
-                <UserPlus className="h-4 w-4" /> {submitting ? "Queuing invitation?" : "Invite member"}
+                <UserPlus className="h-4 w-4" /> {submitting ? "Inviting…" : "Invite member"}
               </Button>
             </form>
           </Card>
@@ -208,7 +211,7 @@ function TeamPage() {
                   <div className="text-muted-foreground">{invitation.email}</div>
                   <div className="mt-2 flex items-center gap-2 text-xs uppercase tracking-[0.14em] text-muted-foreground">
                     <span>{invitation.roleKey}</span>
-                    <span>?</span>
+                    <span>·</span>
                     <span>{invitation.providerHint ?? "password"}</span>
                   </div>
                 </div>

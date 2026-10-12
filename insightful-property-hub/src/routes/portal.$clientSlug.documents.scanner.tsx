@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { createFileRoute, notFound } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { Camera, FileScan, Save, ScanLine, Sparkles } from "lucide-react";
 import { DocumentCameraCapture } from "@/components/document-scanner/document-camera-capture";
 import { DocumentEnhancementControls } from "@/components/document-scanner/document-enhancement-controls";
@@ -24,7 +24,10 @@ import {
   type ScanPage,
   type ScannerApiEnvelope,
 } from "@/lib/document-scanner";
-import { getClientBySlug } from "@/lib/mock-data";
+import { useAuthToken } from "@convex-dev/auth/react";
+import { useCyphersoftAuth } from "@/lib/auth-session";
+import { usePortal } from "@/lib/portal-context";
+import { useDocumentUpload } from "@/lib/use-document-upload";
 
 type DetectEdgesResult = {
   detectedCorners: DocumentCorners;
@@ -48,25 +51,15 @@ type GeneratePdfResult = {
 };
 
 export const Route = createFileRoute("/portal/$clientSlug/documents/scanner")({
-  loader: ({ params }) => {
-    const client = getClientBySlug(params.clientSlug);
-    if (!client) throw notFound();
-    return { client };
-  },
-  head: ({ loaderData }) => ({
-    meta: [
-      { title: `Document Scanner | ${loaderData?.client.name ?? "Client"} portal | Cyphersoft` },
-      {
-        name: "description",
-        content: `Capture, process, and export multi-page scanned documents for ${loaderData?.client.name ?? "your client portal"}.`,
-      },
-    ],
-  }),
+  head: () => ({ meta: [{ title: "Scanner | Client portal | Cyphersoft" }] }),
   component: ClientDocumentScannerPage,
 });
 
 function ClientDocumentScannerPage() {
-  const { client } = Route.useLoaderData();
+  const { client, viewer } = usePortal();
+  const viewerUserId = useCyphersoftAuth().profile?.userId ?? null;
+  const authToken = useAuthToken();
+  const { upload } = useDocumentUpload();
   const [pages, setPages] = useState<ScanPage[]>([]);
   const [selectedPageId, setSelectedPageId] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<string>("Ready to capture or upload pages.");
@@ -154,6 +147,8 @@ function ClientDocumentScannerPage() {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        "X-Cyphersoft-Portal": client.slug,
+        ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
       },
       body: JSON.stringify(payload),
     });
@@ -171,7 +166,7 @@ function ClientDocumentScannerPage() {
       const result = await callScannerApi<DetectEdgesResult>("detect-edges", {
         imageData: page.originalImageBase64,
         fileName: page.name,
-        userId: client.id,
+        userId: viewerUserId,
         scanSessionId,
         metadata: {
           clientSlug: client.slug,
@@ -214,7 +209,7 @@ function ClientDocumentScannerPage() {
           sharpness: selectedPage.sharpness,
           denoise: selectedPage.denoise,
         },
-        userId: client.id,
+        userId: viewerUserId,
         scanSessionId,
         metadata: {
           clientSlug: client.slug,
@@ -259,7 +254,7 @@ function ClientDocumentScannerPage() {
         pageSize: exportOptions.pageSize,
         orientation: exportOptions.orientation,
         compression: exportOptions.compression,
-        userId: client.id,
+        userId: viewerUserId,
         scanSessionId,
         metadata: {
           clientSlug: client.slug,
@@ -296,24 +291,27 @@ function ClientDocumentScannerPage() {
     setIsSavingDocument(true);
     setErrorMessage(null);
     try {
-      await callScannerApi("save-document", {
-        pdfBase64: pdfResult.pdfBase64,
-        pdfUrl: pdfResult.pdfUrl,
-        documentName: exportOptions.fileName,
-        documentType: "scanner",
-        uploadedBy: client.contact,
-        userId: client.id,
-        scanSessionId,
-        scanMetadata: {
-          source: "scanner",
-          createdFromImages: true,
-          pageCount: pages.length,
-        },
-        metadata: {
-          clientSlug: client.slug,
-        },
+      // Store the scan as a real document (Convex storage); processing starts automatically.
+      let pdfBlob: Blob;
+      if (pdfResult.pdfBase64) {
+        const bytes = Uint8Array.from(atob(pdfResult.pdfBase64), (char) => char.charCodeAt(0));
+        pdfBlob = new Blob([bytes], { type: "application/pdf" });
+      } else if (pdfResult.pdfUrl) {
+        pdfBlob = await (await fetch(pdfResult.pdfUrl)).blob();
+      } else {
+        throw new Error("The generated PDF is empty. Generate it again.");
+      }
+      const fileName = exportOptions.fileName.toLowerCase().endsWith(".pdf")
+        ? exportOptions.fileName
+        : `${exportOptions.fileName}.pdf`;
+      const result = await upload(new File([pdfBlob], fileName, { type: "application/pdf" }), {
+        tenantId: client.tenantId,
+        source: "scanner",
       });
-      setStatusMessage("The scanned document record has been saved.");
+      if (!result.ok) {
+        throw new Error(result.error);
+      }
+      setStatusMessage("Saved to your documents. It is being processed now.");
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "The document could not be saved.");
     } finally {

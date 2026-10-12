@@ -1,72 +1,138 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Workflow, CheckCircle2, Play } from "lucide-react";
+import { useMutation, useQuery } from "convex/react";
+import { toast } from "sonner";
+import { Play, Workflow } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { automations, renewalSteps } from "@/lib/mock-data";
+import { LoadingState } from "@/components/portfolio/form-fields";
+import { useCyphersoftAuth } from "@/lib/auth-session";
+import { errorMessage } from "@/lib/portfolio";
+import { timeAgo } from "@/lib/workflow";
+import { api } from "../../../convex/_generated/api";
+import type { Doc } from "../../../convex/_generated/dataModel";
 
 export const Route = createFileRoute("/_app/automations")({
-  head: () => ({ meta: [{ title: "Automations · Cyphersoft OS" }, { name: "description", content: "Event-driven workflows for renewals, anomalies and client communication." }] }),
+  head: () => ({
+    meta: [
+      { title: "Automations · Cyphersoft OS" },
+      {
+        name: "description",
+        content: "Renewal cadence, overdue reminders and invoice anomaly checks.",
+      },
+    ],
+  }),
   component: AutomationsPage,
 });
 
+type AutomationKey = Doc<"automations">["key"];
+
 function AutomationsPage() {
+  const automations = useQuery(api.automations.list);
+  const setEnabled = useMutation(api.automations.setEnabled);
+  const simulate = useMutation(api.automations.simulate);
+  const auth = useCyphersoftAuth();
+  const canManage = auth.profile?.isPlatformAdmin === true;
+
+  const toggle = async (key: AutomationKey, enabled: boolean) => {
+    try {
+      await setEnabled({ key, enabled });
+      toast.success(enabled ? "Automation enabled" : "Automation paused");
+    } catch (toggleError) {
+      toast.error(errorMessage(toggleError));
+    }
+  };
+
+  const dryRun = async (key: AutomationKey) => {
+    try {
+      const result = await simulate({ key });
+      const fired = result.stats.stepsFired ?? result.stats.remindersSent ?? 0;
+      toast.success(
+        `Dry run recorded: ${fired} item${fired === 1 ? "" : "s"} would run now. See the run history.`,
+      );
+    } catch (runError) {
+      toast.error(errorMessage(runError));
+    }
+  };
+
   return (
     <div className="mx-auto max-w-7xl">
       <PageHeader
-        eyebrow="Bucket 03 · Automation"
+        eyebrow="Automation · Workflows"
         title="Workflows that run themselves."
-        description="Lease renewal cadences, anomaly detection, missing-document chasers — the operational follow-ups that used to fall through the cracks."
-        actions={<Button><Play className="h-4 w-4" /> Simulate run</Button>}
+        description="The lease renewal cadence and overdue reminders run every morning; invoice checks run whenever an invoice review is completed. Every run is recorded."
+        actions={
+          <Button variant="outline" onClick={() => void dryRun("renewal_cadence")}>
+            <Play className="h-4 w-4" /> Simulate renewal run
+          </Button>
+        }
       />
 
-      {/* Renewal timeline (hero) */}
-      <Card className="surface-elevated mb-8 p-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="tag-pill">Featured workflow</div>
-            <h3 className="mt-3 font-display text-xl">Lease renewal cadence</h3>
-            <p className="text-sm text-muted-foreground">Six time-based triggers from T-180 to T-7 days before expiry.</p>
-          </div>
-          <Switch defaultChecked />
-        </div>
-        <div className="relative mt-8 overflow-x-auto">
-          <div className="absolute left-0 right-0 top-[19px] h-px bg-border" />
-          <ol className="relative flex min-w-[700px] justify-between">
-            {renewalSteps.map((s, i) => (
-              <li key={s.offset} className="flex w-full flex-col items-center px-2 text-center">
-                <div className={`relative z-10 grid h-10 w-10 place-items-center rounded-full border ${i < 3 ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-muted-foreground"}`}>
-                  {i < 3 ? <CheckCircle2 className="h-4 w-4" /> : <span className="font-mono text-[10px]">{s.offset}</span>}
+      {automations === undefined ? (
+        <LoadingState label="Loading automations…" />
+      ) : (
+        <div className="grid gap-4 md:grid-cols-3">
+          {automations.map((automation) => (
+            <Card key={automation.key} className="surface-elevated flex flex-col p-5">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <span className="tag-pill">{automation.category}</span>
+                  <Link
+                    to="/automations/$id"
+                    params={{ id: automation.key }}
+                    className="mt-2 block font-display text-lg hover:text-primary"
+                  >
+                    {automation.name}
+                  </Link>
                 </div>
-                <div className="mt-2 font-mono text-[10px] text-primary">{s.offset}</div>
-                <div className="mt-1 max-w-[120px] text-xs font-medium">{s.title}</div>
-              </li>
-            ))}
-          </ol>
-        </div>
-      </Card>
-
-      <div className="grid gap-3 md:grid-cols-2">
-        {automations.map((a) => (
-          <Card key={a.id} className="surface-elevated p-5">
-            <div className="flex items-start justify-between">
-              <div>
-                <span className="tag-pill">{a.category}</span>
-                <Link to="/automations/$id" params={{ id: a.id }} className="mt-2 block font-display text-lg hover:text-primary">
-                  {a.name}
-                </Link>
-                <div className="mt-1 text-xs text-muted-foreground">Trigger · {a.trigger}</div>
+                <Switch
+                  checked={automation.enabled}
+                  disabled={!canManage}
+                  onCheckedChange={(checked) => void toggle(automation.key, checked)}
+                  aria-label={`${automation.enabled ? "Pause" : "Enable"} ${automation.name}`}
+                />
               </div>
-              <Switch defaultChecked={a.enabled} />
-            </div>
-            <div className="mt-4 flex items-center justify-between text-xs text-muted-foreground">
-              <span><Workflow className="mr-1 inline h-3 w-3" /> {a.runs} runs</span>
-              <span>Last · {a.lastRun}</span>
-            </div>
-          </Card>
-        ))}
-      </div>
+              <p className="mt-2 text-xs text-muted-foreground">{automation.trigger}</p>
+              <p className="mt-3 flex-1 text-sm text-muted-foreground">{automation.description}</p>
+              <div className="mt-4 border-t border-border pt-3 text-xs text-muted-foreground">
+                <div className="flex items-center justify-between">
+                  <span>
+                    <Workflow className="mr-1 inline h-3 w-3" /> {automation.runCount} run
+                    {automation.runCount === 1 ? "" : "s"}
+                  </span>
+                  <span>
+                    {automation.lastRunAt
+                      ? `Last · ${timeAgo(automation.lastRunAt)}`
+                      : "Not run yet"}
+                  </span>
+                </div>
+                {automation.lastRunSummary ? (
+                  <p className="mt-1">{automation.lastRunSummary}</p>
+                ) : null}
+                {!automation.enabled ? <p className="mt-1 text-warning">Paused</p> : null}
+              </div>
+              <div className="mt-3 flex gap-2">
+                <Button asChild size="sm" variant="outline">
+                  <Link to="/automations/$id" params={{ id: automation.key }}>
+                    History
+                  </Link>
+                </Button>
+                {automation.canRunManually ? (
+                  <Button size="sm" variant="ghost" onClick={() => void dryRun(automation.key)}>
+                    <Play className="h-3.5 w-3.5" /> Simulate
+                  </Button>
+                ) : null}
+              </div>
+            </Card>
+          ))}
+        </div>
+      )}
+      {!canManage ? (
+        <p className="mt-4 text-xs text-muted-foreground">
+          Only platform admins can pause or enable automations.
+        </p>
+      ) : null}
     </div>
   );
 }

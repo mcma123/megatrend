@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { canAccessPortal, unauthorized } from "../lib/server-auth";
 
 type ScannerAction = "detect-edges" | "process-image" | "generate-pdf" | "save-document";
 
@@ -24,6 +25,12 @@ export const Route = createFileRoute("/api/scanner/$action")({
             },
             { status: 503 },
           );
+        }
+
+        // Only signed-in users with access to the client portal may run the scanner scripts.
+        const portalSlug = request.headers.get("x-cyphersoft-portal");
+        if (!(await canAccessPortal(request, portalSlug))) {
+          return unauthorized("Sign in to your client portal to use the scanner.");
         }
 
         const body = await request.text();

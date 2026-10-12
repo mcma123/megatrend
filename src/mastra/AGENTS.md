@@ -14,6 +14,7 @@
 - Shared integrations belong behind stable ports and concrete infrastructure adapters.
 - Mastra tools are adapter surfaces; use-case orchestration belongs in `application/`.
 - Keep the chat route surface in `index.ts` synchronized with the registered agents. The current runtime exposes `/chat` for `web-research-agent`, `/chat/okf` for `okf-agent`, and `/chat/facebook-marketplace` for `facebook-marketplace-agent`.
+- `routes/property-sourcing.ts` exposes `POST /sourcing/research` for Convex background sourcing. It requires `Authorization: Bearer <MASTRA_SOURCING_SERVICE_TOKEN>` and fails closed when unconfigured. It resolves the existing `webResearchAgent`; research remains Windmill-backed. The endpoint shares the brief/result contract in `convex/lib/sourcing.ts`, returns JSON candidates/warnings, and has a four-minute execution deadline.
 
 # Work Guidance
 
@@ -23,7 +24,7 @@
 
 # Verification
 
-- Run `npm run build` from the repository root when Mastra wiring, imports, or exported agent registrations change.
+- Run `npm run build:mastra` from the repository root when Mastra wiring, imports, or exported agent registrations change.
 
 # Child DOX Index
 
@@ -32,4 +33,5 @@
 - `infrastructure/` -> `src/mastra/infrastructure/AGENTS.md`: Concrete adapters for CLI, MCP, and other provider/runtime integrations.
 - `agents/` -> `src/mastra/agents/AGENTS.md`: Agent definitions, prompts, model selection, and per-agent behavior contracts.
 - `tools/` -> `src/mastra/tools/AGENTS.md`: Mastra tool adapters that expose approved actions while delegating work to application services.
-- `index.ts`, `routes/`, and `public/` remain owned by this doc until they need more specific local contracts.
+- `routes/` -> `src/mastra/routes/AGENTS.md`: Custom sourcing HTTP endpoint, service authentication, and response contracts.
+- `index.ts` and `public/` remain owned by this doc until they need more specific local contracts.

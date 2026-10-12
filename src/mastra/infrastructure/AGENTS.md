@@ -20,7 +20,7 @@
 
 # Verification
 
-- Run `npm run build` from the repository root when infrastructure adapters change.
+- Run `npm run build:mastra` from the repository root when infrastructure adapters change.
 
 # Child DOX Index
 

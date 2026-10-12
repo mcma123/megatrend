@@ -20,7 +20,7 @@
 
 # Verification
 
-- Run `npm run build` from the repository root when port contracts change.
+- Run `npm run build:mastra` from the repository root when port contracts change.
 
 # Child DOX Index
 

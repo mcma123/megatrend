@@ -1,81 +1,178 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { UploadCloud, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { useQuery } from "convex/react";
+import { AlertTriangle, FileText, Search, Upload } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { documents, getClient } from "@/lib/mock-data";
+import { Input } from "@/components/ui/input";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { DocumentStatusBadge } from "@/components/documents/document-status-badge";
+import { DocumentUploadDialog } from "@/components/documents/document-upload-dialog";
+import { EmptyState, LoadingState } from "@/components/portfolio/form-fields";
+import { DOCUMENT_TYPE_LABELS, formatTimestamp, isProcessing } from "@/lib/documents";
+import { api } from "../../../convex/_generated/api";
 
 export const Route = createFileRoute("/_app/documents")({
-  head: () => ({ meta: [{ title: "Document intelligence · Cyphersoft OS" }, { name: "description", content: "Turn lease PDFs, addenda, invoices and memos into structured searchable data." }] }),
-  component: DocsPage,
+  head: () => ({
+    meta: [
+      { title: "Document intelligence · Cyphersoft OS" },
+      {
+        name: "description",
+        content: "Uploaded leases, invoices and statements, read and extracted automatically.",
+      },
+    ],
+  }),
+  component: DocumentsPage,
 });
 
-function DocsPage() {
-  const [drag, setDrag] = useState(false);
+type DocumentTab = "all" | "processing" | "review" | "failed";
+
+function DocumentsPage() {
+  const documents = useQuery(api.documents.list, {});
+  const [tab, setTab] = useState<DocumentTab>("all");
+  const [q, setQ] = useState("");
+  const query = q.trim().toLowerCase();
+
+  const counts = {
+    processing: (documents ?? []).filter((d) => isProcessing(d.status)).length,
+    review: (documents ?? []).filter((d) => d.status === "review_required").length,
+    failed: (documents ?? []).filter((d) => d.status === "processing_failed").length,
+  };
+  const filtered = (documents ?? []).filter((d) => {
+    const matchesTab =
+      tab === "all"
+        ? true
+        : tab === "processing"
+          ? isProcessing(d.status)
+          : tab === "review"
+            ? d.status === "review_required"
+            : d.status === "processing_failed";
+    const matchesQuery =
+      !query ||
+      [d.filename, d.client.name, d.property?.name ?? ""].some((v) =>
+        v.toLowerCase().includes(query),
+      );
+    return matchesTab && matchesQuery;
+  });
+
+  const uploadButton = (
+    <DocumentUploadDialog
+      trigger={
+        <Button>
+          <Upload className="h-4 w-4" /> Upload documents
+        </Button>
+      }
+    />
+  );
+
   return (
     <div className="mx-auto max-w-7xl">
       <PageHeader
         eyebrow="Internal · Document intelligence"
-        title="Every clause, extracted."
-        description="Leases, addenda, invoices, memos — classified, parsed, scored for confidence, and surfaced for human review when needed."
+        title="From PDF to structured data."
+        description="Leases, invoices and statements uploaded by your team or clients are read by Docling and their key fields extracted for review."
+        actions={uploadButton}
       />
 
-      <Card
-        className={`surface-elevated mb-6 flex flex-col items-center justify-center gap-2 border-2 border-dashed p-10 transition-colors ${drag ? "border-primary bg-accent/40" : "border-border"}`}
-        onDragOver={(e) => { e.preventDefault(); setDrag(true); }}
-        onDragLeave={() => setDrag(false)}
-        onDrop={(e) => { e.preventDefault(); setDrag(false); }}
-      >
-        <UploadCloud className="h-8 w-8 text-primary" />
-        <div className="font-display text-lg">Drop PDFs, DOCX or images</div>
-        <div className="text-xs text-muted-foreground">Auto-classified · extracted · flagged within 60 seconds</div>
-        <Button className="mt-2">Choose files</Button>
-      </Card>
+      <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <Tabs value={tab} onValueChange={(value) => setTab(value as DocumentTab)}>
+          <TabsList>
+            <TabsTrigger value="all">All</TabsTrigger>
+            <TabsTrigger value="processing">
+              Processing{counts.processing ? ` (${counts.processing})` : ""}
+            </TabsTrigger>
+            <TabsTrigger value="review">
+              Needs review{counts.review ? ` (${counts.review})` : ""}
+            </TabsTrigger>
+            <TabsTrigger value="failed">
+              Failed{counts.failed ? ` (${counts.failed})` : ""}
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+        <div className="relative w-full max-w-sm">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Search files, clients, properties…"
+            className="pl-9"
+          />
+        </div>
+      </div>
 
-      <Tabs defaultValue="all">
-        <TabsList>
-          <TabsTrigger value="all">All ({documents.length})</TabsTrigger>
-          <TabsTrigger value="review">Needs review ({documents.filter(d => d.status === "Needs review").length})</TabsTrigger>
-          <TabsTrigger value="approved">Approved</TabsTrigger>
-        </TabsList>
-        {(["all", "review", "approved"] as const).map((tab) => (
-          <TabsContent key={tab} value={tab}>
-            <Card className="surface-elevated p-4">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border text-left text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
-                    <th className="py-3 pr-3">File</th><th className="py-3 pr-3">Type</th>
-                    <th className="py-3 pr-3">Client</th><th className="py-3 pr-3">Uploaded</th>
-                    <th className="py-3 pr-3 text-right">Confidence</th><th className="py-3">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {documents
-                    .filter((d) => tab === "all" || (tab === "review" && d.status === "Needs review") || (tab === "approved" && d.status === "Approved"))
-                    .map((d) => (
-                      <tr key={d.id} className="border-b border-border/50 hover:bg-accent/30">
-                        <td className="py-3 pr-3"><Link to="/documents/$id" params={{ id: d.id }} className="font-medium hover:text-primary">{d.name}</Link>
-                          {d.missing && <div className="mt-1 flex items-center gap-1 text-xs text-warning"><AlertTriangle className="h-3 w-3" /> {d.missing[0]}</div>}
-                        </td>
-                        <td className="py-3 pr-3"><span className="tag-pill">{d.type}</span></td>
-                        <td className="py-3 pr-3 text-muted-foreground">{getClient(d.clientId)?.name}</td>
-                        <td className="py-3 pr-3 font-mono text-xs">{d.uploaded}</td>
-                        <td className="py-3 pr-3 text-right font-mono">{Math.round(d.confidence * 100)}%</td>
-                        <td className="py-3">
-                          <span className={`tag-pill ${d.status === "Approved" ? "!text-success !border-success/40 !bg-success/10" : d.status === "Needs review" ? "!text-warning !border-warning/40 !bg-warning/10" : ""}`}>
-                            {d.status === "Approved" ? <CheckCircle2 className="h-3 w-3" /> : null}{d.status}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                </tbody>
-              </table>
-            </Card>
-          </TabsContent>
-        ))}
-      </Tabs>
+      <Card className="surface-elevated overflow-x-auto p-4">
+        {documents === undefined ? (
+          <LoadingState label="Loading documents…" />
+        ) : documents.length === 0 ? (
+          <EmptyState
+            title="No documents yet"
+            description="Upload a lease, invoice or statement to get started."
+            action={uploadButton}
+          />
+        ) : filtered.length === 0 ? (
+          <EmptyState title="No documents match this view" />
+        ) : (
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-border text-left text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+                <th className="py-3 pr-3">File</th>
+                <th className="py-3 pr-3">Type</th>
+                <th className="py-3 pr-3">Client</th>
+                <th className="py-3 pr-3">Uploaded</th>
+                <th className="py-3 pr-3">Status</th>
+                <th className="py-3">Flags</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((d) => (
+                <tr key={d._id} className="border-b border-border/50 hover:bg-accent/30">
+                  <td className="py-3 pr-3">
+                    <Link
+                      to="/documents/$id"
+                      params={{ id: d._id }}
+                      className="inline-flex items-center gap-2 font-medium hover:text-primary"
+                    >
+                      <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
+                      <span className="max-w-[18rem] truncate">{d.filename}</span>
+                    </Link>
+                    {d.property ? (
+                      <div className="pl-6 text-xs text-muted-foreground">{d.property.name}</div>
+                    ) : null}
+                  </td>
+                  <td className="py-3 pr-3">
+                    {(d.documentType ?? d.declaredType)
+                      ? DOCUMENT_TYPE_LABELS[(d.documentType ?? d.declaredType)!]
+                      : "—"}
+                  </td>
+                  <td className="py-3 pr-3 text-muted-foreground">{d.client.name}</td>
+                  <td className="py-3 pr-3 text-xs text-muted-foreground">
+                    {formatTimestamp(d.createdAt)}
+                    <div>
+                      {d.uploaderName}
+                      {d.uploaderPrincipal === "client" ? " · client" : ""}
+                      {d.source === "scanner" ? " · scanned" : ""}
+                    </div>
+                  </td>
+                  <td className="py-3 pr-3">
+                    <DocumentStatusBadge status={d.status} />
+                  </td>
+                  <td className="py-3 text-xs">
+                    {d.missingFields.length > 0 ? (
+                      <span className="inline-flex items-center gap-1 text-warning">
+                        <AlertTriangle className="h-3.5 w-3.5" /> Missing {d.missingFields.length}
+                      </span>
+                    ) : null}
+                    {d.deletionRequestedAt ? (
+                      <div className="text-destructive">Deletion requested</div>
+                    ) : null}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </Card>
     </div>
   );
 }

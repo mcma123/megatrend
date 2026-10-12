@@ -28,12 +28,28 @@ export async function acceptPendingInvitations(
       continue;
     }
 
-    const existingMembership = await ctx.db
+    const existingMemberships = await ctx.db
       .query("memberships")
       .withIndex("by_tenantId_and_userId", (q) => q.eq("tenantId", invitation.tenantId).eq("userId", userId))
-      .unique();
+      .take(10);
+    const samePrincipal = existingMemberships.filter(
+      (membership) => membership.principalType === invitation.principalType,
+    );
+    const activeMembership = samePrincipal.find((membership) => membership.status === "active");
+    const inactiveMembership = samePrincipal.find((membership) => membership.status !== "active");
 
-    if (!existingMembership) {
+    if (activeMembership) {
+      // Already a member; the invitation only confirms access.
+    } else if (inactiveMembership) {
+      // Re-invited after being revoked or suspended: reactivate instead of leaving access off.
+      await ctx.db.patch(inactiveMembership._id, {
+        status: "active",
+        roleKey: invitation.roleKey,
+        organizationId: invitation.organizationId,
+        revokedAt: undefined,
+        revokedBy: undefined,
+      });
+    } else {
       await ctx.db.insert("memberships", {
         tenantId: invitation.tenantId,
         organizationId: invitation.organizationId,

@@ -16,11 +16,17 @@ import { api } from "../../../convex/_generated/api";
 
 type AuthStatus = "loading" | "anonymous" | "authenticated";
 
+export type PortalMembership = { slug: string; name: string; roleKey: string };
+
 type AuthProfile = {
   userId: string;
   email: string | null;
   name: string | null;
   isPlatformAdmin: boolean;
+  /** Platform admin or holder of an active staff membership. */
+  isStaff: boolean;
+  /** Client portals this user can open. */
+  portals: PortalMembership[];
 };
 
 export type PasswordSignInArgs = {
@@ -182,6 +188,8 @@ export function ConvexAuthSessionProvider({ children }: { children: ReactNode })
             email: currentUser.email,
             name: currentUser.name,
             isPlatformAdmin: currentUser.isPlatformAdmin,
+            isStaff: currentUser.isStaff,
+            portals: currentUser.portals,
           }
         : null,
     [currentUser],

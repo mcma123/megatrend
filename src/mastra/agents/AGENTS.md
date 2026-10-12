@@ -4,7 +4,7 @@
 
 # Ownership
 
-- Owns every agent file in this folder, including `facebook-marketplace-agent.ts`, `okf-agent.ts`, and `web-research-agent.ts`.
+- Owns every agent file in this folder, including `facebook-marketplace-agent.ts`, `insight-drafter-agent.ts`, `okf-agent.ts`, and `web-research-agent.ts`.
 
 # Local Contracts
 
@@ -12,6 +12,7 @@
 - Agent files may depend on `../tools/*` but should not duplicate shared tool transport or provider setup.
 - Prompt and behavior changes that alter external expectations should be reflected in the nearest owning AGENTS.md.
 - `okf-agent.ts` is the document-questioning agent for OKF bundles stored behind the Windmill-backed knowledge gateway. Keep its tool access focused on bundle discovery, retrieval, and grounded summarization rather than raw provider plumbing.
+- `insight-drafter-agent.ts` has no tools: it turns a list of approved facts into one JSON insight draft (title, body, recommendedAction, category, priority). It is called through Mastra's REST `POST /api/agents/insight-drafter-agent/generate` by the web app's staff-only `/api/insights/draft` route; keep the JSON contract stable. Drafts are never published without staff review.
 
 # Work Guidance
 
@@ -21,7 +22,7 @@
 
 # Verification
 
-- Run `npm run build` from the repository root when agent exports, imports, or tool wiring change.
+- Run `npm run build:mastra` from the repository root when agent exports, imports, or tool wiring change.
 
 # Child DOX Index
 

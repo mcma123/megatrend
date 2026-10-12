@@ -1,0 +1,35 @@
+summary: ''
+description: ''
+lock: '!inline f/docling/extract_document_fields.script.lock'
+kind: script
+schema:
+  $schema: https://json-schema.org/draft/2020-12/schema
+  type: object
+  properties:
+    document_type_hint:
+      type: string
+      description: ''
+      default: null
+      originalType: string
+    filename:
+      type: string
+      description: ''
+      default: null
+      originalType: string
+    markdown:
+      type: string
+      description: ''
+      default: null
+      originalType: string
+    max_chars:
+      type: integer
+      description: ''
+      default: 60000
+    model:
+      type: string
+      description: ''
+      default: openai/gpt-4.1-mini
+      originalType: string
+  required:
+    - markdown
+    - filename

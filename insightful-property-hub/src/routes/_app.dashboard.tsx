@@ -1,102 +1,174 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useQuery } from "convex/react";
 import {
-  Users, ScrollText, AlertTriangle, FileText, Compass, Receipt,
-  TrendingUp, ArrowUpRight, Sparkles, Workflow, Building2, ListChecks,
+  AlertTriangle,
+  ArrowUpRight,
+  Building2,
+  FileText,
+  Inbox,
+  Lightbulb,
+  ListChecks,
+  ScrollText,
+  Sparkles,
+  TrendingUp,
+  Users,
+  Workflow,
 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import {
-  clients, leases, properties, documents, tasks, invoices, briefs, recentActivity,
-  formatZAR, monthsUntil,
-} from "@/lib/mock-data";
+import { DocumentStatusBadge } from "@/components/documents/document-status-badge";
+import { EmptyState, LoadingState } from "@/components/portfolio/form-fields";
+import { DOCUMENT_TYPE_LABELS } from "@/lib/documents";
+import { formatDate, formatZAR } from "@/lib/portfolio";
+import { ACTION_STATUS_LABELS, timeAgo } from "@/lib/workflow";
+import { api } from "../../../convex/_generated/api";
 
 export const Route = createFileRoute("/_app/dashboard")({
   head: () => ({
     meta: [
       { title: "Dashboard · Cyphersoft OS" },
-      { name: "description", content: "Live overview of clients, leases, sourcing, automation and document intelligence." },
+      {
+        name: "description",
+        content: "Live overview of clients, leases, documents, tasks and anomalies.",
+      },
     ],
   }),
   component: Dashboard,
 });
 
+const BUCKETS = [
+  {
+    tag: "Review",
+    title: "Documents & insights awaiting a decision",
+    desc: "Approve extracted fields, apply them to leases and publish insights to clients.",
+    href: "/review",
+    icon: Inbox,
+  },
+  {
+    tag: "Portfolio",
+    title: "Clients, leases & document intelligence",
+    desc: "Every lease, addendum, invoice and statement as structured, searchable data.",
+    href: "/clients",
+    icon: Users,
+  },
+  {
+    tag: "Work",
+    title: "Tasks & client requests",
+    desc: "Client requests, document follow-ups and anomaly investigations in one board.",
+    href: "/tasks",
+    icon: Workflow,
+  },
+] as const;
+
 function Dashboard() {
-  const activeClients = clients.filter((c) => c.status === "Active").length;
-  const upcomingRenewals = leases.filter((l) => {
-    const m = monthsUntil(l.end);
-    return m <= 18 && m >= 0;
-  }).length;
-  const openTasks = tasks.filter((t) => t.status !== "Completed").length;
-  const totalRental = clients.reduce((s, c) => s + c.annualRental, 0);
-  const anomalies = invoices.filter((i) => i.severity === "High" || i.severity === "Critical").length;
+  const overview = useQuery(api.dashboard.staffOverview);
 
-  const kpis = [
-    { label: "Active clients", value: activeClients, icon: Users, sub: `${clients.length} total` },
-    { label: "Active leases", value: leases.length, icon: ScrollText, sub: `${upcomingRenewals} renewing ≤18mo` },
-    { label: "Annual rental managed", value: formatZAR(totalRental), icon: TrendingUp, sub: "across portfolio" },
-    { label: "Open action items", value: openTasks, icon: ListChecks, sub: `${tasks.filter(t=>t.status==="Overdue").length} overdue` },
-    { label: "Documents processed", value: documents.length, icon: FileText, sub: `${documents.filter(d=>d.status==="Needs review").length} need review` },
-    { label: "Anomalies flagged", value: anomalies, icon: AlertTriangle, sub: "high or critical" },
-    { label: "Briefs in progress", value: briefs.length, icon: Compass, sub: `${briefs.filter(b=>b.status==="Generated").length} generated` },
-    { label: "Properties tracked", value: properties.length, icon: Building2, sub: "client + market" },
-  ];
+  if (overview === undefined) {
+    return <LoadingState label="Loading dashboard…" />;
+  }
+  const { kpis } = overview;
 
-  const buckets = [
+  const cards = [
     {
-      tag: "Bucket 01 · External",
-      title: "Sourcing & market intelligence",
-      desc: "Type a brief, get a ranked options pack in under a minute. Replaces a 3-hour manual cycle.",
-      href: "/sourcing",
-      icon: Compass,
-    },
-    {
-      tag: "Bucket 02 · Internal",
-      title: "Clients, leases & document intelligence",
-      desc: "Every lease, addendum, invoice and memo turned into structured, searchable data.",
-      href: "/clients",
+      label: "Active clients",
+      value: kpis.activeClients,
       icon: Users,
+      sub: `${kpis.totalClients} total`,
+      href: "/clients",
     },
     {
-      tag: "Bucket 03 · Automation",
-      title: "Event-driven workflows",
-      desc: "Renewal timelines, anomaly checks, client comms — running on a T-180 → T-7 cadence.",
-      href: "/automations",
-      icon: Workflow,
+      label: "Live leases",
+      value: kpis.liveLeases,
+      icon: ScrollText,
+      sub: `${kpis.renewingWithin18Months} renewing ≤18mo`,
+      href: "/leases",
     },
-  ];
+    {
+      label: "Annual rental managed",
+      value: formatZAR(kpis.annualRental),
+      icon: TrendingUp,
+      sub: "live leases",
+      href: "/reports",
+    },
+    {
+      label: "Open tasks",
+      value: kpis.openTasks,
+      icon: ListChecks,
+      sub: `${kpis.overdueTasks} overdue`,
+      href: "/tasks",
+    },
+    {
+      label: "Documents",
+      value: kpis.documentsTotal,
+      icon: FileText,
+      sub: `${kpis.documentsNeedReview} need review · ${kpis.documentsProcessing} processing`,
+      href: "/documents",
+    },
+    {
+      label: "Open anomalies",
+      value: kpis.openAnomalies,
+      icon: AlertTriangle,
+      sub: `${kpis.criticalAnomalies} high or critical`,
+      href: "/invoices",
+    },
+    {
+      label: "Published insights",
+      value: kpis.publishedInsights,
+      icon: Lightbulb,
+      sub: `${kpis.draftInsights} in draft or review`,
+      href: "/insights",
+    },
+    {
+      label: "Properties tracked",
+      value: kpis.properties,
+      icon: Building2,
+      sub: "across clients",
+      href: "/properties",
+    },
+  ] as const;
 
   return (
     <div className="mx-auto max-w-7xl">
       <PageHeader
         eyebrow="01 · Overview"
         title="The operating system for Cyphersoft."
-        description="Spreadsheets, folder trees and manual options packs — replaced by one cohesive surface for clients, leases, sourcing, documents and automation."
+        description="Clients, leases, documents, tasks and anomalies — live from the platform."
         actions={
           <>
-            <Button variant="outline" asChild><Link to="/search"><Sparkles className="h-4 w-4" /> Ask anything</Link></Button>
-            <Button asChild><Link to="/sourcing">New brief <ArrowUpRight className="h-4 w-4" /></Link></Button>
+            <Button variant="outline" asChild>
+              <Link to="/search">
+                <Sparkles className="h-4 w-4" /> Search
+              </Link>
+            </Button>
+            <Button asChild>
+              <Link to="/review">
+                Review inbox <ArrowUpRight className="h-4 w-4" />
+              </Link>
+            </Button>
           </>
         }
       />
 
-      {/* KPIs */}
       <section className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        {kpis.map((k) => (
-          <Card key={k.label} className="surface-elevated p-4">
-            <div className="flex items-start justify-between">
-              <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{k.label}</div>
-              <k.icon className="h-4 w-4 text-primary" />
-            </div>
-            <div className="mt-3 font-display text-2xl md:text-3xl font-medium">{k.value}</div>
-            <div className="mt-1 text-xs text-muted-foreground">{k.sub}</div>
-          </Card>
+        {cards.map((k) => (
+          <Link key={k.label} to={k.href} className="group">
+            <Card className="surface-elevated h-full p-4 transition-colors group-hover:border-primary/40">
+              <div className="flex items-start justify-between">
+                <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+                  {k.label}
+                </div>
+                <k.icon className="h-4 w-4 text-primary" />
+              </div>
+              <div className="mt-3 font-display text-2xl font-medium md:text-3xl">{k.value}</div>
+              <div className="mt-1 text-xs text-muted-foreground">{k.sub}</div>
+            </Card>
+          </Link>
         ))}
       </section>
 
-      {/* Buckets */}
       <section className="mt-10 grid gap-4 md:grid-cols-3">
-        {buckets.map((b) => (
+        {BUCKETS.map((b) => (
           <Link key={b.tag} to={b.href} className="group">
             <Card className="surface-elevated h-full p-6 transition-all group-hover:-translate-y-0.5 group-hover:border-primary/50">
               <div className="flex items-center justify-between">
@@ -113,79 +185,127 @@ function Dashboard() {
         ))}
       </section>
 
-      {/* Two-col: activity & alerts */}
       <section className="mt-10 grid gap-4 lg:grid-cols-3">
         <Card className="surface-elevated p-6 lg:col-span-2">
           <div className="flex items-center justify-between">
             <h3 className="font-display text-lg">Recent activity</h3>
-            <span className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">live feed</span>
+            <span className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+              from the audit log
+            </span>
           </div>
-          <ul className="mt-4 divide-y divide-border">
-            {recentActivity.map((a, i) => (
-              <li key={i} className="flex items-start gap-3 py-3">
-                <div className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
-                <div className="flex-1 text-sm">{a.text}</div>
-                <div className="text-xs text-muted-foreground">{a.t}</div>
-              </li>
-            ))}
-          </ul>
+          {overview.activity.length === 0 ? (
+            <div className="mt-4">
+              <EmptyState title="No activity yet" />
+            </div>
+          ) : (
+            <ul className="mt-4 divide-y divide-border">
+              {overview.activity.map((a) => (
+                <li key={a.id} className="flex items-start gap-3 py-3">
+                  <div className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
+                  <div className="min-w-0 flex-1 text-sm">
+                    {a.text}
+                    {a.actorName ? (
+                      <span className="text-muted-foreground"> · {a.actorName}</span>
+                    ) : null}
+                  </div>
+                  <div className="shrink-0 text-xs text-muted-foreground">
+                    {timeAgo(a.occurredAt)}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
         </Card>
 
         <Card className="surface-elevated p-6">
           <h3 className="font-display text-lg">Renewal alerts</h3>
-          <ul className="mt-4 space-y-3">
-            {leases
-              .filter((l) => monthsUntil(l.end) <= 18)
-              .map((l) => {
-                const p = properties.find((p) => p.id === l.propertyId)!;
-                const c = clients.find((c) => c.id === l.clientId)!;
-                const months = monthsUntil(l.end);
-                return (
-                  <li key={l.id} className="rounded-md border border-border bg-card/50 p-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">{c.name}</span>
-                      <span className="font-mono text-xs text-primary">T-{months}mo</span>
+          {overview.renewals.length === 0 ? (
+            <p className="mt-4 text-sm text-muted-foreground">
+              No live leases end in the next 18 months.
+            </p>
+          ) : (
+            <ul className="mt-4 space-y-3">
+              {overview.renewals.map((renewal) => (
+                <li key={renewal.leaseId}>
+                  <Link
+                    to="/leases/$id"
+                    params={{ id: renewal.leaseId }}
+                    className="block rounded-md border border-border bg-card/50 p-3 transition-colors hover:border-primary/40"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="truncate text-sm font-medium">{renewal.client.name}</span>
+                      <span
+                        className={`font-mono text-xs ${renewal.monthsLeft <= 6 ? "text-destructive" : "text-primary"}`}
+                      >
+                        {renewal.monthsLeft < 0 ? "ended" : `${renewal.monthsLeft} mo`}
+                      </span>
                     </div>
-                    <div className="text-xs text-muted-foreground">{p.name} · {p.suburb}</div>
-                  </li>
-                );
-              })}
-          </ul>
+                    <div className="text-xs text-muted-foreground">
+                      {renewal.propertyName} · ends {formatDate(renewal.endDate)}
+                    </div>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
         </Card>
       </section>
 
       <section className="mt-10 grid gap-4 md:grid-cols-2">
         <Card className="surface-elevated p-6">
-          <h3 className="font-display text-lg">Document processing</h3>
-          <ul className="mt-4 space-y-2">
-            {documents.slice(0, 5).map((d) => (
-              <li key={d.id} className="flex items-center justify-between text-sm">
-                <div className="min-w-0">
-                  <div className="truncate font-medium">{d.name}</div>
-                  <div className="text-xs text-muted-foreground">{d.type} · uploaded {d.uploaded}</div>
-                </div>
-                <span className={`tag-pill ${d.status === "Needs review" ? "!text-warning !border-warning/40 !bg-warning/10" : ""}`}>
-                  {d.status}
-                </span>
-              </li>
-            ))}
-          </ul>
+          <h3 className="font-display text-lg">Latest documents</h3>
+          {overview.latestDocuments.length === 0 ? (
+            <p className="mt-4 text-sm text-muted-foreground">No documents uploaded yet.</p>
+          ) : (
+            <ul className="mt-4 space-y-2">
+              {overview.latestDocuments.map((d) => (
+                <li key={d.documentId} className="flex items-center justify-between gap-3 text-sm">
+                  <div className="min-w-0">
+                    <Link
+                      to="/documents/$id"
+                      params={{ id: d.documentId }}
+                      className="block truncate font-medium hover:text-primary"
+                    >
+                      {d.filename}
+                    </Link>
+                    <div className="text-xs text-muted-foreground">
+                      {d.client.name}
+                      {d.documentType ? ` · ${DOCUMENT_TYPE_LABELS[d.documentType]}` : ""} ·{" "}
+                      {timeAgo(d.createdAt)}
+                    </div>
+                  </div>
+                  <DocumentStatusBadge status={d.status} />
+                </li>
+              ))}
+            </ul>
+          )}
         </Card>
         <Card className="surface-elevated p-6">
-          <h3 className="font-display text-lg">Client actions</h3>
-          <ul className="mt-4 space-y-2">
-            {tasks.slice(0, 5).map((t) => (
-              <li key={t.id} className="flex items-center justify-between text-sm">
-                <div className="min-w-0">
-                  <div className="truncate font-medium">{t.title}</div>
-                  <div className="text-xs text-muted-foreground">{t.assignee} · due {t.due}</div>
-                </div>
-                <span className={`tag-pill ${t.status === "Overdue" ? "!text-destructive !border-destructive/40 !bg-destructive/10" : ""}`}>
-                  {t.status}
-                </span>
-              </li>
-            ))}
-          </ul>
+          <h3 className="font-display text-lg">Open tasks</h3>
+          {overview.latestTasks.length === 0 ? (
+            <p className="mt-4 text-sm text-muted-foreground">No open tasks.</p>
+          ) : (
+            <ul className="mt-4 space-y-2">
+              {overview.latestTasks.map((t) => (
+                <li key={t.actionId} className="flex items-center justify-between gap-3 text-sm">
+                  <div className="min-w-0">
+                    <Link to="/tasks" className="block truncate font-medium hover:text-primary">
+                      {t.title}
+                    </Link>
+                    <div
+                      className={`text-xs ${t.overdue ? "text-destructive" : "text-muted-foreground"}`}
+                    >
+                      {t.client.name}
+                      {t.dueDate
+                        ? ` · ${t.overdue ? "overdue" : "due"} ${formatDate(t.dueDate)}`
+                        : ""}
+                    </div>
+                  </div>
+                  <span className="tag-pill">{ACTION_STATUS_LABELS[t.status]}</span>
+                </li>
+              ))}
+            </ul>
+          )}
         </Card>
       </section>
     </div>

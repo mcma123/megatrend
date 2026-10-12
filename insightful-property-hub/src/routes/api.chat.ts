@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { getRequestUser } from "../lib/server-auth";
 
 const DEFAULT_MASTRA_CHAT_URL = process.env.MASTRA_CHAT_URL ?? "http://localhost:4111/chat";
 const MASTRA_CHAT_URLS: Record<string, string> = {
@@ -28,6 +29,15 @@ export const Route = createFileRoute("/api/chat")({
   server: {
     handlers: {
       POST: async ({ request }) => {
+        // The assistant lives in the staff app; only signed-in staff may use it.
+        const user = await getRequestUser(request);
+        if (!user?.isStaff) {
+          return new Response("Sign in with a Cyphersoft staff account to use the assistant.", {
+            status: 401,
+            headers: { "Content-Type": "text/plain; charset=utf-8" },
+          });
+        }
+
         const body = await request.text();
         const targetUrl = resolveMastraChatUrl(body);
         let upstream: Response;

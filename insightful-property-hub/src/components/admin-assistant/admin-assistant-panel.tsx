@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useChat } from "@ai-sdk/react";
+import { useAuthToken } from "@convex-dev/auth/react";
 import { DefaultChatTransport, type UIMessage, type UIMessagePart } from "ai";
 import { useRouterState } from "@tanstack/react-router";
 import {
@@ -414,9 +415,10 @@ function AssistantMessageView({
 
 export function AdminAssistantPanel() {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
-  const { close, expanded, toggleExpanded } = useAdminAssistant();
+  const { close, expanded, toggleExpanded, pendingPrompt, clearPendingPrompt } = useAdminAssistant();
   const pageContext = getAdminAssistantPageContext(pathname);
   const [draft, setDraft] = useState("");
+
   const [models, setModels] = useState<ModelOption[]>([]);
   const [isModelsLoading, setIsModelsLoading] = useState(true);
   const [modelsError, setModelsError] = useState<string | null>(null);
@@ -427,12 +429,20 @@ export function AdminAssistantPanel() {
   const [showReasoning, setShowReasoning] = useState(false);
   const [showImages, setShowImages] = useState(false);
   const viewportRef = useRef<HTMLDivElement | null>(null);
+  const authToken = useAuthToken();
+  const authTokenRef = useRef<string | null>(authToken);
+  useEffect(() => {
+    authTokenRef.current = authToken;
+  }, [authToken]);
   const draftRef = useRef<HTMLTextAreaElement | null>(null);
   const hasScrolledRef = useRef(false);
   const { messages, sendMessage, status, stop, error } = useChat<AssistantMessage>({
     id: `megatrend-assistant:${selectedAgent}`,
     transport: new DefaultChatTransport({
       api: "/api/chat",
+      // Read the latest token at send time; the transport is created once.
+      headers: (): Record<string, string> =>
+        authTokenRef.current ? { Authorization: `Bearer ${authTokenRef.current}` } : {},
     }),
   });
 
@@ -565,6 +575,16 @@ export function AdminAssistantPanel() {
     textarea.style.height = "auto";
     textarea.style.height = `${textarea.scrollHeight}px`;
   }, [draft]);
+
+  // Another page (e.g. Search) asked to open the assistant with an agent and a question.
+  useEffect(() => {
+    if (!pendingPrompt) return;
+    if (AGENT_OPTIONS.some((agent) => agent.id === pendingPrompt.agentId)) {
+      setSelectedAgent(pendingPrompt.agentId);
+    }
+    setDraft(pendingPrompt.text);
+    clearPendingPrompt();
+  }, [pendingPrompt, clearPendingPrompt]);
 
   const getRequestOptions = () => ({
     body: {

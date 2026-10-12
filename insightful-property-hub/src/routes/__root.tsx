@@ -1,4 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { Toaster } from "@/components/ui/sonner";
 import {
   Outlet, Link, createRootRouteWithContext, useRouter,
   HeadContent, Scripts,
@@ -97,6 +98,7 @@ function RootComponent() {
       <QueryClientProvider client={queryClient}>
         <ThemeProvider>
           <Outlet />
+          <Toaster richColors position="top-right" />
         </ThemeProvider>
       </QueryClientProvider>
     </CyphersoftAppProviders>

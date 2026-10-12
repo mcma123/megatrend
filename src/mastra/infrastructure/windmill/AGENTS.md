@@ -23,7 +23,7 @@
 
 # Verification
 
-- Run `npm run build` from the repository root when Windmill adapters or their imports change.
+- Run `npm run build:mastra` from the repository root when Windmill adapters or their imports change.
 
 # Child DOX Index
 

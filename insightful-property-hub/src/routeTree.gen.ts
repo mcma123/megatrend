@@ -20,11 +20,13 @@ import { Route as ApiChatRouteImport } from './routes/api.chat'
 import { Route as AppTasksRouteImport } from './routes/_app.tasks'
 import { Route as AppSourcingRouteImport } from './routes/_app.sourcing'
 import { Route as AppSearchRouteImport } from './routes/_app.search'
+import { Route as AppReviewRouteImport } from './routes/_app.review'
 import { Route as AppReportsRouteImport } from './routes/_app.reports'
 import { Route as AppPropertiesRouteImport } from './routes/_app.properties'
 import { Route as AppOrganizationsRouteImport } from './routes/_app.organizations'
 import { Route as AppLeasesRouteImport } from './routes/_app.leases'
 import { Route as AppInvoicesRouteImport } from './routes/_app.invoices'
+import { Route as AppInsightsRouteImport } from './routes/_app.insights'
 import { Route as AppDocumentsRouteImport } from './routes/_app.documents'
 import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
 import { Route as AppClientsRouteImport } from './routes/_app.clients'
@@ -35,6 +37,7 @@ import { Route as PortalClientSlugInsightsRouteImport } from './routes/portal.$c
 import { Route as PortalClientSlugDocumentsRouteImport } from './routes/portal.$clientSlug.documents'
 import { Route as PortalClientSlugActionsRouteImport } from './routes/portal.$clientSlug.actions'
 import { Route as ApiScannerActionRouteImport } from './routes/api.scanner.$action'
+import { Route as ApiInsightsDraftRouteImport } from './routes/api.insights.draft'
 import { Route as AppPropertiesIdRouteImport } from './routes/_app.properties.$id'
 import { Route as AppLeasesIdRouteImport } from './routes/_app.leases.$id'
 import { Route as AppDocumentsIdRouteImport } from './routes/_app.documents.$id'
@@ -98,6 +101,11 @@ const AppSearchRoute = AppSearchRouteImport.update({
   path: '/search',
   getParentRoute: () => AppRoute,
 } as any)
+const AppReviewRoute = AppReviewRouteImport.update({
+  id: '/review',
+  path: '/review',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppReportsRoute = AppReportsRouteImport.update({
   id: '/reports',
   path: '/reports',
@@ -121,6 +129,11 @@ const AppLeasesRoute = AppLeasesRouteImport.update({
 const AppInvoicesRoute = AppInvoicesRouteImport.update({
   id: '/invoices',
   path: '/invoices',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppInsightsRoute = AppInsightsRouteImport.update({
+  id: '/insights',
+  path: '/insights',
   getParentRoute: () => AppRoute,
 } as any)
 const AppDocumentsRoute = AppDocumentsRouteImport.update({
@@ -175,6 +188,11 @@ const ApiScannerActionRoute = ApiScannerActionRouteImport.update({
   path: '/api/scanner/$action',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiInsightsDraftRoute = ApiInsightsDraftRouteImport.update({
+  id: '/api/insights/draft',
+  path: '/api/insights/draft',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AppPropertiesIdRoute = AppPropertiesIdRouteImport.update({
   id: '/$id',
   path: '/$id',
@@ -227,11 +245,13 @@ export interface FileRoutesByFullPath {
   '/clients': typeof AppClientsRouteWithChildren
   '/dashboard': typeof AppDashboardRoute
   '/documents': typeof AppDocumentsRouteWithChildren
+  '/insights': typeof AppInsightsRoute
   '/invoices': typeof AppInvoicesRoute
   '/leases': typeof AppLeasesRouteWithChildren
   '/organizations': typeof AppOrganizationsRoute
   '/properties': typeof AppPropertiesRouteWithChildren
   '/reports': typeof AppReportsRoute
+  '/review': typeof AppReviewRoute
   '/search': typeof AppSearchRoute
   '/sourcing': typeof AppSourcingRoute
   '/tasks': typeof AppTasksRoute
@@ -244,6 +264,7 @@ export interface FileRoutesByFullPath {
   '/documents/$id': typeof AppDocumentsIdRoute
   '/leases/$id': typeof AppLeasesIdRoute
   '/properties/$id': typeof AppPropertiesIdRoute
+  '/api/insights/draft': typeof ApiInsightsDraftRoute
   '/api/scanner/$action': typeof ApiScannerActionRoute
   '/portal/$clientSlug/actions': typeof PortalClientSlugActionsRoute
   '/portal/$clientSlug/documents': typeof PortalClientSlugDocumentsRouteWithChildren
@@ -262,11 +283,13 @@ export interface FileRoutesByTo {
   '/clients': typeof AppClientsRouteWithChildren
   '/dashboard': typeof AppDashboardRoute
   '/documents': typeof AppDocumentsRouteWithChildren
+  '/insights': typeof AppInsightsRoute
   '/invoices': typeof AppInvoicesRoute
   '/leases': typeof AppLeasesRouteWithChildren
   '/organizations': typeof AppOrganizationsRoute
   '/properties': typeof AppPropertiesRouteWithChildren
   '/reports': typeof AppReportsRoute
+  '/review': typeof AppReviewRoute
   '/search': typeof AppSearchRoute
   '/sourcing': typeof AppSourcingRoute
   '/tasks': typeof AppTasksRoute
@@ -278,6 +301,7 @@ export interface FileRoutesByTo {
   '/documents/$id': typeof AppDocumentsIdRoute
   '/leases/$id': typeof AppLeasesIdRoute
   '/properties/$id': typeof AppPropertiesIdRoute
+  '/api/insights/draft': typeof ApiInsightsDraftRoute
   '/api/scanner/$action': typeof ApiScannerActionRoute
   '/portal/$clientSlug/actions': typeof PortalClientSlugActionsRoute
   '/portal/$clientSlug/documents': typeof PortalClientSlugDocumentsRouteWithChildren
@@ -298,11 +322,13 @@ export interface FileRoutesById {
   '/_app/clients': typeof AppClientsRouteWithChildren
   '/_app/dashboard': typeof AppDashboardRoute
   '/_app/documents': typeof AppDocumentsRouteWithChildren
+  '/_app/insights': typeof AppInsightsRoute
   '/_app/invoices': typeof AppInvoicesRoute
   '/_app/leases': typeof AppLeasesRouteWithChildren
   '/_app/organizations': typeof AppOrganizationsRoute
   '/_app/properties': typeof AppPropertiesRouteWithChildren
   '/_app/reports': typeof AppReportsRoute
+  '/_app/review': typeof AppReviewRoute
   '/_app/search': typeof AppSearchRoute
   '/_app/sourcing': typeof AppSourcingRoute
   '/_app/tasks': typeof AppTasksRoute
@@ -315,6 +341,7 @@ export interface FileRoutesById {
   '/_app/documents/$id': typeof AppDocumentsIdRoute
   '/_app/leases/$id': typeof AppLeasesIdRoute
   '/_app/properties/$id': typeof AppPropertiesIdRoute
+  '/api/insights/draft': typeof ApiInsightsDraftRoute
   '/api/scanner/$action': typeof ApiScannerActionRoute
   '/portal/$clientSlug/actions': typeof PortalClientSlugActionsRoute
   '/portal/$clientSlug/documents': typeof PortalClientSlugDocumentsRouteWithChildren
@@ -335,11 +362,13 @@ export interface FileRouteTypes {
     | '/clients'
     | '/dashboard'
     | '/documents'
+    | '/insights'
     | '/invoices'
     | '/leases'
     | '/organizations'
     | '/properties'
     | '/reports'
+    | '/review'
     | '/search'
     | '/sourcing'
     | '/tasks'
@@ -352,6 +381,7 @@ export interface FileRouteTypes {
     | '/documents/$id'
     | '/leases/$id'
     | '/properties/$id'
+    | '/api/insights/draft'
     | '/api/scanner/$action'
     | '/portal/$clientSlug/actions'
     | '/portal/$clientSlug/documents'
@@ -370,11 +400,13 @@ export interface FileRouteTypes {
     | '/clients'
     | '/dashboard'
     | '/documents'
+    | '/insights'
     | '/invoices'
     | '/leases'
     | '/organizations'
     | '/properties'
     | '/reports'
+    | '/review'
     | '/search'
     | '/sourcing'
     | '/tasks'
@@ -386,6 +418,7 @@ export interface FileRouteTypes {
     | '/documents/$id'
     | '/leases/$id'
     | '/properties/$id'
+    | '/api/insights/draft'
     | '/api/scanner/$action'
     | '/portal/$clientSlug/actions'
     | '/portal/$clientSlug/documents'
@@ -405,11 +438,13 @@ export interface FileRouteTypes {
     | '/_app/clients'
     | '/_app/dashboard'
     | '/_app/documents'
+    | '/_app/insights'
     | '/_app/invoices'
     | '/_app/leases'
     | '/_app/organizations'
     | '/_app/properties'
     | '/_app/reports'
+    | '/_app/review'
     | '/_app/search'
     | '/_app/sourcing'
     | '/_app/tasks'
@@ -422,6 +457,7 @@ export interface FileRouteTypes {
     | '/_app/documents/$id'
     | '/_app/leases/$id'
     | '/_app/properties/$id'
+    | '/api/insights/draft'
     | '/api/scanner/$action'
     | '/portal/$clientSlug/actions'
     | '/portal/$clientSlug/documents'
@@ -442,6 +478,7 @@ export interface RootRouteChildren {
   ApiModelsRoute: typeof ApiModelsRoute
   PortalClientSlugRoute: typeof PortalClientSlugRouteWithChildren
   PortalIndexRoute: typeof PortalIndexRoute
+  ApiInsightsDraftRoute: typeof ApiInsightsDraftRoute
   ApiScannerActionRoute: typeof ApiScannerActionRoute
 }
 
@@ -524,6 +561,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSearchRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/review': {
+      id: '/_app/review'
+      path: '/review'
+      fullPath: '/review'
+      preLoaderRoute: typeof AppReviewRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/reports': {
       id: '/_app/reports'
       path: '/reports'
@@ -557,6 +601,13 @@ declare module '@tanstack/react-router' {
       path: '/invoices'
       fullPath: '/invoices'
       preLoaderRoute: typeof AppInvoicesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/insights': {
+      id: '/_app/insights'
+      path: '/insights'
+      fullPath: '/insights'
+      preLoaderRoute: typeof AppInsightsRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/documents': {
@@ -627,6 +678,13 @@ declare module '@tanstack/react-router' {
       path: '/api/scanner/$action'
       fullPath: '/api/scanner/$action'
       preLoaderRoute: typeof ApiScannerActionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/insights/draft': {
+      id: '/api/insights/draft'
+      path: '/api/insights/draft'
+      fullPath: '/api/insights/draft'
+      preLoaderRoute: typeof ApiInsightsDraftRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_app/properties/$id': {
@@ -753,11 +811,13 @@ interface AppRouteChildren {
   AppClientsRoute: typeof AppClientsRouteWithChildren
   AppDashboardRoute: typeof AppDashboardRoute
   AppDocumentsRoute: typeof AppDocumentsRouteWithChildren
+  AppInsightsRoute: typeof AppInsightsRoute
   AppInvoicesRoute: typeof AppInvoicesRoute
   AppLeasesRoute: typeof AppLeasesRouteWithChildren
   AppOrganizationsRoute: typeof AppOrganizationsRoute
   AppPropertiesRoute: typeof AppPropertiesRouteWithChildren
   AppReportsRoute: typeof AppReportsRoute
+  AppReviewRoute: typeof AppReviewRoute
   AppSearchRoute: typeof AppSearchRoute
   AppSourcingRoute: typeof AppSourcingRoute
   AppTasksRoute: typeof AppTasksRoute
@@ -768,11 +828,13 @@ const AppRouteChildren: AppRouteChildren = {
   AppClientsRoute: AppClientsRouteWithChildren,
   AppDashboardRoute: AppDashboardRoute,
   AppDocumentsRoute: AppDocumentsRouteWithChildren,
+  AppInsightsRoute: AppInsightsRoute,
   AppInvoicesRoute: AppInvoicesRoute,
   AppLeasesRoute: AppLeasesRouteWithChildren,
   AppOrganizationsRoute: AppOrganizationsRoute,
   AppPropertiesRoute: AppPropertiesRouteWithChildren,
   AppReportsRoute: AppReportsRoute,
+  AppReviewRoute: AppReviewRoute,
   AppSearchRoute: AppSearchRoute,
   AppSourcingRoute: AppSourcingRoute,
   AppTasksRoute: AppTasksRoute,
@@ -841,6 +903,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiModelsRoute: ApiModelsRoute,
   PortalClientSlugRoute: PortalClientSlugRouteWithChildren,
   PortalIndexRoute: PortalIndexRoute,
+  ApiInsightsDraftRoute: ApiInsightsDraftRoute,
   ApiScannerActionRoute: ApiScannerActionRoute,
 }
 export const routeTree = rootRouteImport
