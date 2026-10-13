@@ -18,6 +18,11 @@ function safeReturnTo(value: string | undefined) {
   if (!value || !value.startsWith("/") || value.startsWith("//")) {
     return "/dashboard";
   }
+  // A return URL must leave this page; old redirect loops can leave it pointing
+  // back to sign-in with nested returnTo parameters.
+  if (value.split(/[?#]/)[0].replace(/\/+$/, "") === "/sign-in") {
+    return "/dashboard";
+  }
   return value;
 }
 
@@ -168,7 +173,7 @@ function SignInPage() {
             </div>
             {(error || !auth.isConfigured) && (
               <div className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
-                {error ?? "Sign-in is not configured. Set VITE_CONVEX_URL first."}
+                {error ?? "Sign-in is not configured. Set VITE_CONVEX_URL or CONVEX_URL on the frontend server."}
               </div>
             )}
             <Button type="submit" className="w-full" disabled={submitting || !auth.isConfigured}>

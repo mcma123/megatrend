@@ -7,17 +7,18 @@ type ConvexContextValue = {
   convexClient: ConvexReactClient | null;
 };
 
-const convexUrl = import.meta.env.VITE_CONVEX_URL?.trim() ?? "";
-const isConvexConfigured = Boolean(convexUrl);
-
 const ConvexClientContext = createContext<ConvexContextValue>({
   convexClient: null,
 });
 
-export function CyphersoftAppProviders({ children }: { children: ReactNode }) {
-  const [convexClient] = useState(() =>
-    isConvexConfigured ? new ConvexReactClient(convexUrl) : null,
-  );
+export function CyphersoftAppProviders({
+  children,
+  convexUrl,
+}: {
+  children: ReactNode;
+  convexUrl: string;
+}) {
+  const [convexClient] = useState(() => (convexUrl ? new ConvexReactClient(convexUrl) : null));
 
   const contextValue = useMemo(
     () => ({

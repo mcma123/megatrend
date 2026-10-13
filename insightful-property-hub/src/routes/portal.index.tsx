@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Globe, LogIn, Building2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
@@ -45,14 +45,19 @@ function PortalLogin() {
   };
 
   const navigate = useNavigate();
+  const isPortalEntry = useRouterState({
+    select: (state) =>
+      state.location.href === state.resolvedLocation?.href &&
+      state.location.pathname.replace(/\/+$/, "") === "/portal",
+  });
   const portals = auth.profile?.portals ?? [];
 
   // A signed-in client with exactly one portal goes straight to it.
   useEffect(() => {
-    if (auth.profile && !auth.profile.isStaff && auth.profile.portals.length === 1) {
-      void navigate({ to: "/portal/$clientSlug", params: { clientSlug: auth.profile.portals[0].slug } });
+    if (isPortalEntry && auth.profile && !auth.profile.isStaff && auth.profile.portals.length === 1) {
+      void navigate({ to: "/portal/$clientSlug", params: { clientSlug: auth.profile.portals[0].slug }, replace: true });
     }
-  }, [auth.profile, navigate]);
+  }, [auth.profile, isPortalEntry, navigate]);
 
   return (
     <div className="min-h-screen bg-background">

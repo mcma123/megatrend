@@ -220,7 +220,7 @@ export function ConvexAuthSessionProvider({ children }: { children: ReactNode })
   return <AuthSessionContext.Provider value={value}>{children}</AuthSessionContext.Provider>;
 }
 
-/** Fallback context when VITE_CONVEX_URL is not set: everyone is anonymous. */
+/** Fallback context when the public Convex URL is not configured. */
 export function UnconfiguredAuthSessionProvider({ children }: { children: ReactNode }) {
   const login = useLoginRedirect();
   const value = useMemo<AuthContextValue>(
@@ -234,7 +234,7 @@ export function UnconfiguredAuthSessionProvider({ children }: { children: ReactN
       error: null,
       login,
       signInWithPassword: async () => {
-        throw new Error("Sign-in is not configured. Set VITE_CONVEX_URL first.");
+        throw new Error("Sign-in is not configured. Set VITE_CONVEX_URL or CONVEX_URL on the frontend server.");
       },
       logout: async ({ returnTo = "/portal" } = {}) => {
         window.location.assign(returnTo);

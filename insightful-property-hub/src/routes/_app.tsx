@@ -34,13 +34,18 @@ function AppLayout() {
 function StaffGate({ children }: { children: ReactNode }) {
   const auth = useCyphersoftAuth();
   const navigate = useNavigate();
-  const href = useRouterState({ select: (state) => state.location.href });
+  // The old layout remains mounted during navigation. Never use the pending
+  // destination as a new returnTo or it can redirect repeatedly to sign-in.
+  const href = useRouterState({
+    select: (state) =>
+      state.location.href === state.resolvedLocation?.href ? state.location.href : null,
+  });
   const profile = auth.profile;
 
   useEffect(() => {
-    if (auth.isLoading) return;
+    if (auth.isLoading || !href || href.split("?")[0] === "/sign-in") return;
     if (!auth.isAuthenticated) {
-      void navigate({ to: "/sign-in", search: { returnTo: href } });
+      void navigate({ to: "/sign-in", search: { returnTo: href }, replace: true });
       return;
     }
     if (profile && !profile.isStaff && profile.portals.length > 0) {

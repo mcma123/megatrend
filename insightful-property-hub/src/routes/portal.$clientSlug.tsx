@@ -72,6 +72,9 @@ function ClientPortalShell() {
   const { clientSlug } = Route.useParams();
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (router) => router.location.pathname });
+  const isNavigationSettled = useRouterState({
+    select: (state) => state.location.href === state.resolvedLocation?.href,
+  });
   const auth = useCyphersoftAuth();
   const context = useQuery(
     api.portal.getPortalContext,
@@ -81,13 +84,13 @@ function ClientPortalShell() {
   const properties = useQuery(api.properties.list, client ? { tenantId: client.tenantId } : "skip");
 
   useEffect(() => {
-    if (auth.isLoading) {
+    if (auth.isLoading || !isNavigationSettled || pathname === "/portal") {
       return;
     }
     if (!auth.isAuthenticated) {
-      void navigate({ to: "/portal" });
+      void navigate({ to: "/portal", replace: true });
     }
-  }, [auth.isAuthenticated, auth.isLoading, navigate]);
+  }, [auth.isAuthenticated, auth.isLoading, isNavigationSettled, navigate, pathname]);
 
   if (!auth.isAuthenticated || context === undefined || !auth.profile) {
     return <PortalMessage title="Loading your portal…" />;

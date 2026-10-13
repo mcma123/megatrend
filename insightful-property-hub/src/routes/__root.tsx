@@ -10,6 +10,7 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { ThemeProvider } from "@/lib/theme";
 import { CyphersoftAppProviders } from "@/lib/convex-client";
+import { getPublicConfig } from "@/lib/public-config";
 
 function NotFoundComponent() {
   return (
@@ -58,6 +59,7 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
 }
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
+  beforeLoad: () => getPublicConfig(),
   head: () => ({
     meta: [
       { charSet: "utf-8" },
@@ -92,9 +94,9 @@ function RootShell({ children }: { children: ReactNode }) {
 }
 
 function RootComponent() {
-  const { queryClient } = Route.useRouteContext();
+  const { queryClient, convexUrl } = Route.useRouteContext();
   return (
-    <CyphersoftAppProviders>
+    <CyphersoftAppProviders key={convexUrl} convexUrl={convexUrl}>
       <QueryClientProvider client={queryClient}>
         <ThemeProvider>
           <Outlet />

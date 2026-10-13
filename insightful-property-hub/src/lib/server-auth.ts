@@ -6,9 +6,9 @@ import { api } from "../../../convex/_generated/api";
 
 function convexUrl() {
   return (
-    process.env.VITE_CONVEX_URL ??
-    process.env.CONVEX_URL ??
-    (import.meta.env.VITE_CONVEX_URL as string | undefined) ??
+    process.env.VITE_CONVEX_URL?.trim() ||
+    process.env.CONVEX_URL?.trim() ||
+    (import.meta.env.VITE_CONVEX_URL as string | undefined)?.trim() ||
     null
   );
 }

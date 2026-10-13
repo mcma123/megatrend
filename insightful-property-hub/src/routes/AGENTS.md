@@ -19,6 +19,7 @@
 
 - Keep API routes, app-shell routes, portal routes, and document-detail routes understandable from filenames alone.
 - Preserve TanStack Start naming conventions for dynamic, optional, and layout segments.
+- Auth redirects in mounted layouts must wait until `location.href` equals `resolvedLocation.href`; pending destinations must never become a new sign-in `returnTo`. Sign-in return URLs must leave `/sign-in`, including links left by older nested redirects.
 - `/documents/$id` shows each processing stage, staff recovery controls, and reconciliation for held jobs. `/portal/$clientSlug/documents` shows safe stage guidance and search/coverage warnings even when extraction or publication succeeded. Consume the backend's `stageSummary`, `processingHeld`, and `canRetryProcessing`; do not expose staff errors or permit retries while remote work is unresolved.
 
 # Verification
