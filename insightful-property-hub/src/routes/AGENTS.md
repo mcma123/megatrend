@@ -13,6 +13,7 @@
 - Do not hand-edit generated route-tree artifacts outside the route files that produce them.
 - `api.chat.ts` is the server-side proxy that maps `requestContext.selectedAgent` from the assistant UI to the correct Mastra chat endpoint. Keep that routing table synchronized with the registered Mastra chat routes.
 - `api.insights.draft.ts` is the staff-only proxy to the Mastra `insight-drafter-agent`; it must keep reading facts from Convex with the caller's token (never trust facts sent by the browser).
+- `api.sourcing.research.ts` is the Convex-to-Mastra server bridge for property research using the existing Web Research Agent. Require the shared server-only `MASTRA_SOURCING_SERVICE_TOKEN` before forwarding to `/sourcing/research` on `MASTRA_API_URL` (or the local Mastra server). Keep credentials and upstream errors out of responses.
 - `/sourcing` reads `api.sourcing.*` and real Convex clients. Generate saves a rental brief and starts background research; filter changes never relabel existing results. Saved packs display their submitted type, each candidate's actual type, source links, AI suitability assessment, and unverified requirements. Logistics includes warehouses/distribution facilities only with listing evidence of logistics use. History is tenant-scoped and staff-only; publication, shortlist and PDF controls remain absent until implemented.
 
 # Work Guidance

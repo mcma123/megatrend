@@ -36,6 +36,7 @@ import { Route as PortalClientSlugTeamRouteImport } from './routes/portal.$clien
 import { Route as PortalClientSlugInsightsRouteImport } from './routes/portal.$clientSlug.insights'
 import { Route as PortalClientSlugDocumentsRouteImport } from './routes/portal.$clientSlug.documents'
 import { Route as PortalClientSlugActionsRouteImport } from './routes/portal.$clientSlug.actions'
+import { Route as ApiSourcingResearchRouteImport } from './routes/api.sourcing.research'
 import { Route as ApiScannerActionRouteImport } from './routes/api.scanner.$action'
 import { Route as ApiInsightsDraftRouteImport } from './routes/api.insights.draft'
 import { Route as AppPropertiesIdRouteImport } from './routes/_app.properties.$id'
@@ -183,6 +184,11 @@ const PortalClientSlugActionsRoute = PortalClientSlugActionsRouteImport.update({
   path: '/actions',
   getParentRoute: () => PortalClientSlugRoute,
 } as any)
+const ApiSourcingResearchRoute = ApiSourcingResearchRouteImport.update({
+  id: '/api/sourcing/research',
+  path: '/api/sourcing/research',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiScannerActionRoute = ApiScannerActionRouteImport.update({
   id: '/api/scanner/$action',
   path: '/api/scanner/$action',
@@ -266,6 +272,7 @@ export interface FileRoutesByFullPath {
   '/properties/$id': typeof AppPropertiesIdRoute
   '/api/insights/draft': typeof ApiInsightsDraftRoute
   '/api/scanner/$action': typeof ApiScannerActionRoute
+  '/api/sourcing/research': typeof ApiSourcingResearchRoute
   '/portal/$clientSlug/actions': typeof PortalClientSlugActionsRoute
   '/portal/$clientSlug/documents': typeof PortalClientSlugDocumentsRouteWithChildren
   '/portal/$clientSlug/insights': typeof PortalClientSlugInsightsRoute
@@ -303,6 +310,7 @@ export interface FileRoutesByTo {
   '/properties/$id': typeof AppPropertiesIdRoute
   '/api/insights/draft': typeof ApiInsightsDraftRoute
   '/api/scanner/$action': typeof ApiScannerActionRoute
+  '/api/sourcing/research': typeof ApiSourcingResearchRoute
   '/portal/$clientSlug/actions': typeof PortalClientSlugActionsRoute
   '/portal/$clientSlug/documents': typeof PortalClientSlugDocumentsRouteWithChildren
   '/portal/$clientSlug/insights': typeof PortalClientSlugInsightsRoute
@@ -343,6 +351,7 @@ export interface FileRoutesById {
   '/_app/properties/$id': typeof AppPropertiesIdRoute
   '/api/insights/draft': typeof ApiInsightsDraftRoute
   '/api/scanner/$action': typeof ApiScannerActionRoute
+  '/api/sourcing/research': typeof ApiSourcingResearchRoute
   '/portal/$clientSlug/actions': typeof PortalClientSlugActionsRoute
   '/portal/$clientSlug/documents': typeof PortalClientSlugDocumentsRouteWithChildren
   '/portal/$clientSlug/insights': typeof PortalClientSlugInsightsRoute
@@ -383,6 +392,7 @@ export interface FileRouteTypes {
     | '/properties/$id'
     | '/api/insights/draft'
     | '/api/scanner/$action'
+    | '/api/sourcing/research'
     | '/portal/$clientSlug/actions'
     | '/portal/$clientSlug/documents'
     | '/portal/$clientSlug/insights'
@@ -420,6 +430,7 @@ export interface FileRouteTypes {
     | '/properties/$id'
     | '/api/insights/draft'
     | '/api/scanner/$action'
+    | '/api/sourcing/research'
     | '/portal/$clientSlug/actions'
     | '/portal/$clientSlug/documents'
     | '/portal/$clientSlug/insights'
@@ -459,6 +470,7 @@ export interface FileRouteTypes {
     | '/_app/properties/$id'
     | '/api/insights/draft'
     | '/api/scanner/$action'
+    | '/api/sourcing/research'
     | '/portal/$clientSlug/actions'
     | '/portal/$clientSlug/documents'
     | '/portal/$clientSlug/insights'
@@ -480,6 +492,7 @@ export interface RootRouteChildren {
   PortalIndexRoute: typeof PortalIndexRoute
   ApiInsightsDraftRoute: typeof ApiInsightsDraftRoute
   ApiScannerActionRoute: typeof ApiScannerActionRoute
+  ApiSourcingResearchRoute: typeof ApiSourcingResearchRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -672,6 +685,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/portal/$clientSlug/actions'
       preLoaderRoute: typeof PortalClientSlugActionsRouteImport
       parentRoute: typeof PortalClientSlugRoute
+    }
+    '/api/sourcing/research': {
+      id: '/api/sourcing/research'
+      path: '/api/sourcing/research'
+      fullPath: '/api/sourcing/research'
+      preLoaderRoute: typeof ApiSourcingResearchRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/scanner/$action': {
       id: '/api/scanner/$action'
@@ -905,6 +925,7 @@ const rootRouteChildren: RootRouteChildren = {
   PortalIndexRoute: PortalIndexRoute,
   ApiInsightsDraftRoute: ApiInsightsDraftRoute,
   ApiScannerActionRoute: ApiScannerActionRoute,
+  ApiSourcingResearchRoute: ApiSourcingResearchRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

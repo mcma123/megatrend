@@ -193,14 +193,14 @@ Implementation verification (2026-10-12): full `npm test -- --reporter=dot --tes
 DOX closeout: Convex, frontend source/routes and Mastra contracts are updated, including the new Mastra routes child index. Root and frontend app-level `AGENTS.md` remain unchanged because project ownership, tooling and deployment policy are unchanged.
 
 Production rollout remains separate:
-- [ ] Configure `MASTRA_SOURCING_URL` on Convex with the externally reachable `/sourcing/research` endpoint; configure the same `MASTRA_SOURCING_SERVICE_TOKEN` on Convex and Mastra. Keep model and Windmill MCP configuration on Mastra.
+- [x] Configure `MASTRA_SOURCING_URL` on Convex with the externally reachable research endpoint; configure the same `MASTRA_SOURCING_SERVICE_TOKEN` on Convex and Mastra. Production uses `https://mega.cyphersoftai.com/api/sourcing/research`, a protected portal bridge to the existing Web Research Agent. Keep model and Windmill MCP configuration on Mastra.
 - [x] Deploy additive Convex schema/functions to `focused-malamute-656` (2026-10-12; schema validation and enabled TypeScript checks passed; no indexes deleted).
 - [ ] Deploy the frontend/Mastra builds through Dokploy.
 - [ ] Run live searches for Office, Logistics, Warehouse and Retail; verify listing source pages, correct type labels, saved history after reload, missing-fact guidance and failure handling. Live provider/browser verification has not been performed.
 
 **Done when:** a brief generates real listings that staff can shortlist and publish to the client.
 
-Release status (2026-10-12): production Convex deployment succeeded. The compatible document-processing script and flow were pushed to Windmill after a scoped dry run (`--extra-includes 'f/docling/convert_document_to_markdown.*,f/docling/process_document_for_app__flow/**'`, skipping folders, variables and resources); document summary/recovery checks passed 10/3 tests. Dokploy access, sourcing service configuration and live four-type verification remain pending. Convex `SITE_URL` identifies the portal as `https://megatrend.mmfshub.co.za`; this alone does not verify a frontend deployment. Generated Python caches and local credentials are excluded from the GitHub release.
+Release status: production Convex deployment succeeded on 2026-10-12. The compatible document-processing script and flow were pushed to Windmill after a scoped dry run (`--extra-includes 'f/docling/convert_document_to_markdown.*,f/docling/process_document_for_app__flow/**'`, skipping folders, variables and resources); document summary/recovery checks passed 10/3 tests. Dokploy access and the portal at `https://mega.cyphersoftai.com` were verified on 2026-10-13. Sourcing endpoint/token configuration is saved; the protected portal bridge passed its build, 18 sourcing tests, and local authentication/forwarding checks. Bridge deployment and live four-type verification remain pending. Generated Python caches and local credentials are excluded from the GitHub release.
 
 ## Phase 10: Hardening & clean-up
 - [ ] Delete `src/lib/mock-data.ts` (no remaining imports) — `src/lib/portal-auth.ts` already removed in Phase 0
