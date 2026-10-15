@@ -3,7 +3,7 @@
 Two floating buttons sit at the bottom right of the app (they can be dragged up or down):
 
 - **Mic (everyone, staff and client portal):** dictates into the last text field you tapped.
-- **Sparkle (staff only):** opens the voice assistant. It navigates and fills forms from a spoken request. It never saves: you review the form and press Save yourself.
+- **Sparkle (staff only):** opens the voice assistant. It navigates, opens records, switches tabs and filters, searches and fills forms right away. Anything that changes data (saving a form, starting a renewal, approving fields, generating sourcing options...) appears as a **Confirm** card in the panel and runs only when you tap it. Destructive actions (delete, archive, reject, remove, revoke) are never available by voice.
 
 ## Architecture
 
@@ -23,7 +23,8 @@ executeVoiceActions: navigate -> wait for form -> fill -> highlight
 | Floating dock and assistant panel | `src/components/voice/` |
 | Form registry and `useVoiceForm` | `src/lib/voice/form-registry.ts` |
 | Voice field schemas and openable forms | `src/lib/voice/forms.ts` |
-| Action executor | `src/lib/voice/assistant-actions.ts` |
+| Page command catalog and live registry (`useVoiceCommands`) | `src/lib/voice/commands.ts`, `src/lib/voice/command-registry.ts` |
+| Action executor and confirmations | `src/lib/voice/assistant-actions.ts` |
 | Transcription and quota (server only) | `src/lib/server/voice.ts`, `src/routes/api.transcribe.ts` |
 | Assistant proxy (staff only) | `src/routes/api.assistant.ts` |
 | Usage limits (counts only, no content) | `convex/voice.ts` (`voiceUsage` table) |
@@ -32,7 +33,7 @@ executeVoiceActions: navigate -> wait for form -> fill -> highlight
 Rules the design enforces:
 
 - **Keys stay on the server.** OpenRouter is called from the portal server and Mastra, never from the browser.
-- **The agent only records client actions.** These are `navigate`, `fill_form` and `ask_user`. There is no save, delete, pay or send action.
+- **The agent only records client actions.** These are `navigate`, `fill_form`, `run_command`, `submit_form` and `ask_user`. Data changes run in the browser through the page's own handlers and mutations (so normal permission checks apply), only after a Confirm tap, and only on the page they were prepared for. There is no delete, archive, reject, pay or send action.
 - **Values are validated twice.** Mastra checks them against the form's field schema (field exists, type, allowed options), and the browser checks them again before filling.
 - **Nothing sensitive is logged.** Audio and transcripts are never logged or stored. The server logs only status, size, format and timing.
 
@@ -63,20 +64,58 @@ useVoiceForm({
 
 3. Optional: to let the assistant open the form from anywhere, add it to `openableVoiceForms()` with a route. Then make that route open the dialog on `?new=1` (`validateSearch: validateNewFormSearch` from `src/lib/voice/new-form-search.ts`). `/properties`, `/leases` and `/tasks` show the pattern.
 
-**Connected forms:**
+**Connected forms** (Save/Generate always needs Confirm):
 
-| Form | Opens from anywhere via `?new=1` |
-|---|---|
-| `property.create` | yes |
-| `property.edit` | no (`/properties/$id`) |
-| `lease.create` | yes |
-| `lease.edit` | no |
-| `action.create` | yes (`/tasks`) |
-| `action.edit` | no |
-
-**Candidates for later:** the client form, the insight editor, the sourcing brief, and the portal action request (the assistant is staff-only today).
+| Form | Opens from anywhere | Confirmed save |
+|---|---|---|
+| `property.create` / `property.edit` | `/properties?new=1` / Edit on the property | yes |
+| `lease.create` / `lease.edit` | `/leases?new=1` / Edit on the lease | yes |
+| `action.create` / `action.edit` | `/tasks?new=1` | yes |
+| `client.create` / `client.edit` | `/clients?new=1` (platform admins) / Edit on the client | yes |
+| `document.upload` | `/documents?new=1` | no: a person picks the files |
+| `sourcing.brief` | `/sourcing` | yes (Generate options pack) |
 
 The Property form is for commercial property and has no bedrooms or price fields. Facts without a matching field go into Notes as `Label: value` lines (for example `Bedrooms: 3`, `Price: USD 150000`), and follow-ups rewrite only that line.
+
+## Page commands and records
+
+Each request also sends:
+
+- **`commandCatalog`** (`src/lib/voice/commands.ts`): every command the assistant knows, with its page, effect (`view` runs now, `change` needs Confirm) and parameters.
+- **`pageCommands`**: the commands the current page has registered right now, with live choices (e.g. the document's pending fields, the client's leases).
+- **`records`**: clients, properties, leases and documents (up to 300 each) so the agent can `find_records` and `open_record`, e.g. "open the DHL Sandton lease and start the renewal".
+
+| Page | Commands |
+|---|---|
+| `/clients` | `clients.search` |
+| `/clients/$id` | `client.tab`, `client.openEdit`, `client.openAddProperty`, `client.openAddLease`, `client.openUpload`, `client.openPortal` |
+| `/properties`, `/properties/$id` | `properties.search`, `property.openEdit`, `property.openAddLease` |
+| `/leases` | `leases.filter` |
+| `/leases/$id` | `lease.openEdit`, `lease.draftInsight`; confirm: `lease.startRenewal`, `lease.addClause` |
+| `/documents` | `documents.tab`, `documents.search` |
+| `/documents/$id` | confirm: `document.reprocess`, `document.approveHighConfidence`, `document.approveField`, `document.correctField`, `document.completeReview`, `document.linkProperty`, `document.applyToLease`, `document.retryStage`, `document.acknowledgeIncomplete` |
+| `/sourcing` | `sourcing.openBrief`; confirm: Generate (submit of `sourcing.brief`) |
+
+### Adding a command
+
+1. Add its definition to `COMMAND_CATALOG` (`src/lib/voice/commands.ts`). Never add destructive commands.
+2. Register a handler on the page, enabled only when the matching button is usable. Throw to report an error; return a short message on success:
+
+```tsx
+import { useVoiceCommands } from "@/lib/voice/command-registry";
+
+useVoiceCommands("leases.detail", {
+  "lease.startRenewal": {
+    run: async () => {
+      await renew(); // the same function the button uses
+      return "Renewal started.";
+    },
+    enabled: lease?.canEdit === true && lease.status === "active",
+  },
+});
+```
+
+Call the hook before any early return in the component. For selects known only on the page, pass live `params` (see `field-review-table.tsx`).
 
 ## Environment variables
 
@@ -95,7 +134,7 @@ In the combined Docker container, set `MASTRA_VOICE_SERVICE_TOKEN` once in Dokpl
 
 ## Testing
 
-- **Automated tests:** `npm test` covers the Convex quota tests (`convex/voice.test.ts`) and the form-value validation (`src/mastra/application/voice-assistant/form-values.test.ts`).
+- **Automated tests:** `npm test` covers the Convex quota tests (`convex/voice.test.ts`), form-value validation (`form-values.test.ts`) and the session rules for records, commands and confirmed submits (`voice-session.test.ts`, both in `src/mastra/application/voice-assistant/`).
 - **Agent only:** run Mastra with a token (`MASTRA_VOICE_SERVICE_TOKEN=dev npm run dev:mastra`). Then POST a request shaped like `VoiceAssistantRequest` to `http://localhost:4111/voice/assist` with `Authorization: Bearer dev`.
 - **Full app:** `npm run dev`, signed in as staff. This needs the `convex/voice.ts` functions deployed to the Convex deployment the app uses. Then:
   1. Dictate into a property name inside the New property dialog, a task description, and the sourcing notes.

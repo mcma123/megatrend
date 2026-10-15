@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { errorMessage } from "@/lib/portfolio";
 import { cn } from "@/lib/utils";
+import { useVoiceCommands } from "@/lib/voice/command-registry";
 import { api } from "../../../../convex/_generated/api";
 import type { Doc, Id } from "../../../../convex/_generated/dataModel";
 
@@ -51,6 +52,67 @@ export function FieldReviewTable({
     (field) => field.state === "detected" || field.state === "low_confidence_review",
   );
   const highConfidencePending = fields.filter((field) => field.state === "detected").length;
+
+  const voiceEnabled = canReview && reviewOpen;
+  const fieldChoice = {
+    name: "field",
+    label: "Field",
+    type: "select" as const,
+    required: true,
+    options: pending.map((field) => ({
+      value: field._id,
+      label: `${field.label}: ${field.value}`.slice(0, 200),
+    })),
+  };
+  const asError = (error: unknown) => new Error(errorMessage(error));
+  const labelOf = (fieldId: unknown) =>
+    pending.find((field) => field._id === fieldId)?.label ?? "Field";
+  useVoiceCommands("documents.detail", {
+    "document.approveHighConfidence": {
+      run: async () => {
+        await approveHighConfidence({ documentId }).catch((error) => {
+          throw asError(error);
+        });
+        return "High-confidence fields approved.";
+      },
+      enabled: voiceEnabled && highConfidencePending > 0,
+    },
+    "document.approveField": {
+      run: async ({ field }) => {
+        await approveField({ fieldId: String(field) as Id<"extractedFields"> }).catch((error) => {
+          throw asError(error);
+        });
+        return `${labelOf(field)} approved.`;
+      },
+      params: [fieldChoice],
+      enabled: voiceEnabled && pending.length > 0,
+    },
+    "document.correctField": {
+      run: async ({ field, value }) => {
+        await approveField({
+          fieldId: String(field) as Id<"extractedFields">,
+          value: String(value),
+        }).catch((error) => {
+          throw asError(error);
+        });
+        return `${labelOf(field)} corrected and approved.`;
+      },
+      params: [
+        fieldChoice,
+        { name: "value", label: "Corrected value", type: "text", required: true },
+      ],
+      enabled: voiceEnabled && pending.length > 0,
+    },
+    "document.completeReview": {
+      run: async () => {
+        await completeReview({ documentId }).catch((error) => {
+          throw asError(error);
+        });
+        return "Review complete.";
+      },
+      enabled: voiceEnabled && pending.length === 0,
+    },
+  });
 
   const run = async (task: () => Promise<unknown>, success?: string) => {
     try {

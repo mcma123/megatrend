@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type RefObject } from "react";
 import type { VoiceField, VoiceFieldValue, VoiceForm } from "./types";
 
 // Client-side registry of forms the voice assistant may fill. Forms register while mounted/open
@@ -7,6 +7,8 @@ import type { VoiceField, VoiceFieldValue, VoiceForm } from "./types";
 type RegisteredForm = VoiceForm & {
   getValues: () => Record<string, VoiceFieldValue | null>;
   setValues: (values: Record<string, VoiceFieldValue>) => void;
+  /** Press the form's own submit button (runs native validation and its onSubmit). */
+  submit?: () => boolean;
 };
 
 const forms = new Map<string, RegisteredForm>();
@@ -53,6 +55,10 @@ export function sanitizeValues(fields: VoiceField[], values: Record<string, Voic
     const field = fields.find((candidate) => candidate.name === name);
     if (!field) continue;
     if (field.type === "number" && (typeof value !== "number" || !Number.isFinite(value))) continue;
+    if (field.type === "number" && typeof value === "number") {
+      if (field.min !== undefined && value < field.min) continue;
+      if (field.max !== undefined && value > field.max) continue;
+    }
     if (field.type === "boolean" && typeof value !== "boolean") continue;
     if (field.type === "select" && !field.options?.some((option) => option.value === value))
       continue;
@@ -77,7 +83,10 @@ export function toFormStrings(values: Record<string, VoiceFieldValue>) {
  *
  *   useVoiceForm({ formId: "property.create", title: "New property", fields, values,
  *     setValues: (patch) => setValues((current) => ({ ...current, ...toFormStrings(patch) })),
- *     enabled: open });
+ *     enabled: open, formRef });
+ *
+ * Pass `formRef` (the `<form>` element) to let the assistant offer a confirmed Save; omit it for
+ * forms that need manual steps (e.g. picking files).
  */
 export function useVoiceForm({
   formId,
@@ -86,6 +95,7 @@ export function useVoiceForm({
   values,
   setValues,
   enabled = true,
+  formRef,
 }: {
   formId: string;
   title: string;
@@ -93,6 +103,7 @@ export function useVoiceForm({
   values: Record<string, unknown>;
   setValues: (values: Record<string, VoiceFieldValue>) => void;
   enabled?: boolean;
+  formRef?: RefObject<HTMLFormElement | null>;
 }) {
   const latest = useRef({ title, fields, values, setValues });
   latest.current = { title, fields, values, setValues };
@@ -122,6 +133,15 @@ export function useVoiceForm({
         );
       },
       setValues: (patch) => latest.current.setValues(patch),
+      submittable: Boolean(formRef),
+      submit: formRef
+        ? () => {
+            const form = formRef.current;
+            if (!form) return false;
+            form.requestSubmit();
+            return true;
+          }
+        : undefined,
     };
     forms.delete(formId);
     forms.set(formId, entry);

@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -105,7 +105,9 @@ export function PropertyFormDialog({
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) =>
     setValues((current) => ({ ...current, [key]: value }));
 
+  const formRef = useRef<HTMLFormElement>(null);
   useVoiceForm({
+    formRef,
     formId: isEdit ? "property.edit" : "property.create",
     title: isEdit ? `Edit ${property?.name ?? "property"}` : "New property",
     enabled: open,
@@ -175,7 +177,7 @@ export function PropertyFormDialog({
             Property details shown to staff and in the client portal.
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={submit} className="space-y-4">
+        <form ref={formRef} onSubmit={submit} className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
             {!isEdit && !tenantId ? (
               <Field label="Client" htmlFor="property-client" className="sm:col-span-2">

@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { EmptyState, LoadingState } from "@/components/portfolio/form-fields";
 import { PropertyFormDialog } from "@/components/portfolio/property-form-dialog";
 import { PROPERTY_STATUS_LABELS, PROPERTY_TYPE_LABELS, formatZAR } from "@/lib/portfolio";
+import { useVoiceCommands } from "@/lib/voice/command-registry";
 import { validateNewFormSearch } from "@/lib/voice/new-form-search";
 import { api } from "../../../convex/_generated/api";
 
@@ -33,6 +34,14 @@ function PropertiesPage() {
   const setCreateOpen = (open: boolean) =>
     void navigate({ to: "/properties", search: open ? { new: "1" } : {}, replace: !open });
   const [q, setQ] = useState("");
+  useVoiceCommands("properties.list", {
+    "properties.search": {
+      run: ({ query: text }) => {
+        setQ(String(text));
+        return `Showing properties matching "${String(text)}".`;
+      },
+    },
+  });
   const query = q.trim().toLowerCase();
   const filtered = (properties ?? []).filter(
     (p) =>

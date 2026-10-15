@@ -41,6 +41,29 @@ describe("validateFormValues", () => {
     });
   });
 
+  test("accepts a unique partial option label but not an ambiguous one", () => {
+    const review = {
+      formId: "document.approveField",
+      title: "Approve field",
+      fields: [
+        {
+          name: "field",
+          label: "Field",
+          type: "select" as const,
+          options: [
+            { value: "f1", label: "Monthly rental: R 845 000" },
+            { value: "f2", label: "Lease end date: 2027-01-31" },
+            { value: "f3", label: "Lease start date: 2022-02-01" },
+          ],
+        },
+      ],
+    };
+    expect(validateFormValues(review, [{ field: "field", value: "monthly rental" }]).accepted).toEqual({
+      field: "f1",
+    });
+    expect(validateFormValues(review, [{ field: "field", value: "lease" }]).rejected).toHaveLength(1);
+  });
+
   test("rejects unknown fields, bad types and options outside the list", () => {
     const { accepted, rejected } = validateFormValues(form, [
       { field: "bedrooms", value: "3" },

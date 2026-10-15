@@ -17,8 +17,8 @@
 - `/sourcing` reads `api.sourcing.*` and real Convex clients. Generate saves a rental brief and starts background research; filter changes never relabel existing results. Saved packs display their submitted type, each candidate's actual type, source links, AI suitability assessment, and unverified requirements. Logistics includes warehouses/distribution facilities only with listing evidence of logistics use. History is tenant-scoped and staff-only; publication, shortlist and PDF controls remain absent until implemented.
 
 - `api.transcribe.ts`: multipart audio to OpenRouter `/audio/transcriptions` (`OPENROUTER_TRANSCRIPTION_MODEL`). Staff, or client users of the portal in `X-Cyphersoft-Portal`; enforces `VOICE_MAX_AUDIO_BYTES` and `api.voice.consume` before calling OpenRouter. Never log audio or transcripts.
-- `api.assistant.ts`: staff-only proxy to Mastra `POST /voice/assist` with server-only `MASTRA_VOICE_SERVICE_TOKEN`, after `api.voice.consume`. Returns `{reply, actions}` for the browser to execute.
-- `/properties`, `/leases` and `/tasks` accept `?new=1` (`lib/voice/new-form-search.ts`) to open their create dialog; the voice assistant navigates there. Closing the dialog clears the param; save handlers close before navigating.
+- `api.assistant.ts`: staff-only proxy to Mastra `POST /voice/assist` with server-only `MASTRA_VOICE_SERVICE_TOKEN`, after `api.voice.consume`. Body cap 512 KB (forms, commands and up to 300 records per type). Returns `{reply, actions}` for the browser to execute.
+- `/properties`, `/leases`, `/tasks`, `/clients` (platform admins) and `/documents` (upload) accept `?new=1` (`lib/voice/new-form-search.ts`) to open their create dialog; the voice assistant navigates there. Closing the dialog clears the param; save handlers close before navigating. Render only one controlled dialog per page (empty states use a plain button that sets the param).
 
 # Work Guidance
 

@@ -17,6 +17,7 @@ import {
   formatDate,
   formatZAR,
 } from "@/lib/portfolio";
+import { useVoiceCommands } from "@/lib/voice/command-registry";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 
@@ -31,6 +32,13 @@ function PropertyDetail() {
   const property = useQuery(api.properties.get, { propertyId: id as Id<"properties"> });
   const archiveProperty = useMutation(api.properties.archive);
   const [archiving, setArchiving] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [addLeaseOpen, setAddLeaseOpen] = useState(false);
+  const canEdit = property?.canEdit === true;
+  useVoiceCommands("properties.detail", {
+    "property.openEdit": { run: () => setEditOpen(true), enabled: canEdit },
+    "property.openAddLease": { run: () => setAddLeaseOpen(true), enabled: canEdit },
+  });
 
   if (property === undefined) {
     return <LoadingState label="Loading property…" />;
@@ -89,6 +97,8 @@ function PropertyDetail() {
             <>
               <PropertyFormDialog
                 property={property}
+                open={editOpen}
+                onOpenChange={setEditOpen}
                 trigger={
                   <Button variant="outline">
                     <Pencil className="h-4 w-4" /> Edit
@@ -166,6 +176,8 @@ function PropertyDetail() {
           {property.canEdit ? (
             <LeaseFormDialog
               propertyId={property._id}
+              open={addLeaseOpen}
+              onOpenChange={setAddLeaseOpen}
               trigger={
                 <Button size="sm">
                   <Plus className="h-4 w-4" /> Add lease

@@ -15,7 +15,10 @@ function coerce(field: VoiceField, raw: string): { value?: VoiceFieldValue; reas
       // Allow a leading currency code/symbol ("USD 150,000", "R45000"); anything else must be numeric.
       const cleaned = text.replace(/[\s,]/g, "").replace(/^(?:[A-Za-z]{1,3}|[$€£R])(?=[\d.-])/, "");
       const number = /^-?\d+(?:\.\d+)?$/.test(cleaned) ? Number(cleaned) : Number.NaN;
-      return Number.isFinite(number) ? { value: number } : { reason: "not a number" };
+      if (!Number.isFinite(number)) return { reason: "not a number" };
+      if (field.min !== undefined && number < field.min) return { reason: `must be at least ${field.min}` };
+      if (field.max !== undefined && number > field.max) return { reason: `must be at most ${field.max}` };
+      return { value: number };
     }
     case "date":
       return /^\d{4}-\d{2}-\d{2}$/.test(text) && !Number.isNaN(Date.parse(text))
@@ -27,13 +30,25 @@ function coerce(field: VoiceField, raw: string): { value?: VoiceFieldValue; reas
       return { reason: "must be true or false" };
     case "select": {
       const options = field.options ?? [];
+      const lower = text.toLowerCase();
+      // A spoken label may be partial ("monthly rental" for "Monthly rental: R 845 000"); accept it
+      // only when exactly one option matches.
+      const partial = lower
+        ? options.filter((option) => option.label.toLowerCase().includes(lower))
+        : [];
       const match =
         options.find((option) => option.value === text) ??
-        options.find((option) => option.value.toLowerCase() === text.toLowerCase()) ??
-        options.find((option) => option.label.toLowerCase() === text.toLowerCase());
+        options.find((option) => option.value.toLowerCase() === lower) ??
+        options.find((option) => option.label.toLowerCase() === lower) ??
+        (partial.length === 1 ? partial[0] : undefined);
       return match
         ? { value: match.value }
-        : { reason: `must be one of: ${options.map((option) => option.value).join(", ")}` };
+        : {
+            reason: `must be one of (value = label): ${options
+              .map((option) => `${option.value} = ${option.label}`)
+              .join("; ")
+              .slice(0, 1500)}`,
+          };
     }
   }
 }

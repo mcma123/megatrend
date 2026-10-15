@@ -23,6 +23,7 @@ import {
   renewalStepDate,
   termMonths,
 } from "@/lib/portfolio";
+import { useVoiceCommands } from "@/lib/voice/command-registry";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 
@@ -39,6 +40,58 @@ function LeaseDetail() {
   const updateLease = useMutation(api.leases.update);
   const archiveLease = useMutation(api.leases.archive);
   const [busy, setBusy] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const addClauseMutation = useMutation(api.leases.addClause);
+
+  /** Moves the lease to renewal in progress; throws on failure. */
+  const renew = async () => {
+    if (!lease) throw new Error("Lease is not loaded yet.");
+    await updateLease({
+      leaseId: lease._id,
+      startDate: lease.startDate,
+      endDate: lease.endDate,
+      monthlyRental: lease.monthlyRental,
+      escalationPercent: lease.escalationPercent,
+      noticePeriodMonths: lease.noticePeriodMonths,
+      breakClause: lease.breakClause,
+      renewalOption: lease.renewalOption,
+      accountManagerName: lease.accountManagerName,
+      status: "renewal_in_progress",
+    });
+  };
+
+  const canEdit = lease?.canEdit === true;
+  useVoiceCommands("leases.detail", {
+    "lease.openEdit": { run: () => setEditOpen(true), enabled: canEdit },
+    "lease.startRenewal": {
+      run: async () => {
+        try {
+          await renew();
+        } catch (renewError) {
+          throw new Error(errorMessage(renewError));
+        }
+        toast.success("Renewal started");
+        return "Renewal started.";
+      },
+      enabled: canEdit && lease?.status === "active",
+    },
+    "lease.addClause": {
+      run: async ({ title, detail }) => {
+        if (!lease) throw new Error("Lease is not loaded yet.");
+        try {
+          await addClauseMutation({
+            leaseId: lease._id,
+            title: String(title),
+            detail: String(detail),
+          });
+        } catch (addError) {
+          throw new Error(errorMessage(addError));
+        }
+        return `Clause "${String(title)}" added.`;
+      },
+      enabled: canEdit,
+    },
+  });
 
   if (lease === undefined) {
     return <LoadingState label="Loading lease…" />;
@@ -64,18 +117,7 @@ function LeaseDetail() {
   const startRenewal = async () => {
     setBusy(true);
     try {
-      await updateLease({
-        leaseId: lease._id,
-        startDate: lease.startDate,
-        endDate: lease.endDate,
-        monthlyRental: lease.monthlyRental,
-        escalationPercent: lease.escalationPercent,
-        noticePeriodMonths: lease.noticePeriodMonths,
-        breakClause: lease.breakClause,
-        renewalOption: lease.renewalOption,
-        accountManagerName: lease.accountManagerName,
-        status: "renewal_in_progress",
-      });
+      await renew();
       toast.success("Renewal started");
     } catch (renewError) {
       toast.error(errorMessage(renewError));
@@ -118,11 +160,16 @@ function LeaseDetail() {
                   <RefreshCcw className="h-4 w-4" /> Start renewal
                 </Button>
               ) : null}
-              <DraftInsightButton source={{ leaseId: lease._id }}>
+              <DraftInsightButton
+                source={{ leaseId: lease._id }}
+                voiceCommand={{ page: "leases.detail", id: "lease.draftInsight" }}
+              >
                 <Sparkles className="h-4 w-4" /> Draft insight with AI
               </DraftInsightButton>
               <LeaseFormDialog
                 lease={lease}
+                open={editOpen}
+                onOpenChange={setEditOpen}
                 trigger={
                   <Button variant="outline">
                     <Pencil className="h-4 w-4" /> Edit

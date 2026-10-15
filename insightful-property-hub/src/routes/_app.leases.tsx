@@ -16,6 +16,7 @@ import {
   isLiveLease,
   monthsUntil,
 } from "@/lib/portfolio";
+import { useVoiceCommands } from "@/lib/voice/command-registry";
 import { validateNewFormSearch } from "@/lib/voice/new-form-search";
 import { api } from "../../../convex/_generated/api";
 
@@ -36,6 +37,14 @@ function LeasesPage() {
   const leases = useQuery(api.leases.list, {});
   const navigate = useNavigate();
   const [filter, setFilter] = useState<LeaseFilter>("all");
+  useVoiceCommands("leases.list", {
+    "leases.filter": {
+      run: ({ filter: next }) => {
+        setFilter(String(next) as LeaseFilter);
+        return `Showing ${String(next)} leases.`;
+      },
+    },
+  });
   const filtered = (leases ?? []).filter((l) =>
     filter === "all"
       ? true

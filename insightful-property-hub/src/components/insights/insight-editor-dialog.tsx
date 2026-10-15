@@ -22,6 +22,8 @@ import {
   type InsightCategory,
   type Priority,
 } from "@/lib/workflow";
+import { useVoiceCommands } from "@/lib/voice/command-registry";
+import type { VoicePageKey } from "@/lib/voice/types";
 import { api } from "../../../../convex/_generated/api";
 import type { Id } from "../../../../convex/_generated/dataModel";
 
@@ -335,14 +337,38 @@ export function DraftInsightButton({
   source,
   children,
   variant = "outline",
+  voiceCommand,
 }: {
   source: { documentId?: Id<"documents">; leaseId?: Id<"leases"> };
   children: ReactNode;
   variant?: "outline" | "default";
+  /** Also expose this button as a voice assistant command on the given page. */
+  voiceCommand?: { page: VoicePageKey; id: string };
 }) {
   const draftInsight = useDraftInsight();
   const [busy, setBusy] = useState(false);
   const [draft, setDraft] = useState<InsightDraftValues | null>(null);
+  useVoiceCommands(
+    voiceCommand?.page ?? "leases.detail",
+    voiceCommand
+      ? {
+          [voiceCommand.id]: {
+            run: async () => {
+              setBusy(true);
+              try {
+                const result = await draftInsight(source);
+                if (!result) throw new Error("No draft was produced.");
+                setDraft(result);
+                return "Draft opened for review. Nothing is published until you save it.";
+              } finally {
+                setBusy(false);
+              }
+            },
+            enabled: !busy,
+          },
+        }
+      : {},
+  );
   return (
     <>
       <Button

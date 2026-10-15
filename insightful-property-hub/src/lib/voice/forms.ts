@@ -1,4 +1,11 @@
-import { LEASE_STATUS_LABELS, PROPERTY_STATUS_LABELS, PROPERTY_TYPE_LABELS } from "@/lib/portfolio";
+import { DOCUMENT_TYPE_LABELS } from "@/lib/documents";
+import {
+  CLIENT_TYPE_LABELS,
+  LEASE_STATUS_LABELS,
+  PROPERTY_STATUS_LABELS,
+  PROPERTY_TYPE_LABELS,
+  RELATIONSHIP_STATUS_LABELS,
+} from "@/lib/portfolio";
 import { PRIORITY_LABELS } from "@/lib/workflow";
 import type { OpenableVoiceForm, VoiceField } from "./types";
 
@@ -16,6 +23,8 @@ export type VoiceFormOptions = {
   clients?: Option[];
   /** Property choices (property id -> "Name · Client") when the form lets staff pick a property. */
   properties?: Option[];
+  /** Active clients only (sourcing briefs require an active client). */
+  activeClients?: Option[];
 };
 
 export function propertyVoiceFields({ clients }: VoiceFormOptions = {}): VoiceField[] {
@@ -177,6 +186,154 @@ export function actionVoiceFields({ clients }: VoiceFormOptions = {}): VoiceFiel
   ];
 }
 
+export function clientVoiceFields({ isEdit = false }: { isEdit?: boolean } = {}): VoiceField[] {
+  return [
+    { name: "name", label: "Client name", type: "text", required: true, inputId: "client-name" },
+    ...(isEdit
+      ? []
+      : [
+          {
+            name: "slug",
+            label: "Portal address (slug)",
+            type: "text",
+            description:
+              "Lowercase letters, numbers and dashes. Filled automatically from the name.",
+            inputId: "client-slug",
+          } as const,
+        ]),
+    {
+      name: "contactName",
+      label: "Primary contact name",
+      type: "text",
+      required: true,
+      inputId: "client-contact",
+    },
+    {
+      name: "contactEmail",
+      label: "Primary contact email",
+      type: "text",
+      required: true,
+      inputId: "client-email",
+    },
+    { name: "industry", label: "Industry", type: "text", inputId: "client-industry" },
+    {
+      name: "clientType",
+      label: "Client type",
+      type: "select",
+      options: options(CLIENT_TYPE_LABELS),
+      inputId: "client-type",
+    },
+    {
+      name: "relationshipStatus",
+      label: "Relationship status",
+      type: "select",
+      options: options(RELATIONSHIP_STATUS_LABELS),
+      inputId: "client-status",
+    },
+    {
+      name: "accountManagerName",
+      label: "Account manager",
+      type: "text",
+      inputId: "client-manager",
+    },
+    { name: "clientSince", label: "Client since", type: "date", inputId: "client-since" },
+    ...(isEdit
+      ? []
+      : [
+          {
+            name: "inviteContactAsAdmin",
+            label: "Invite the contact as client admin",
+            type: "boolean",
+            inputId: "client-invite",
+          } as const,
+        ]),
+  ];
+}
+
+export function documentUploadVoiceFields({
+  clients,
+  properties,
+}: VoiceFormOptions = {}): VoiceField[] {
+  return [
+    ...(clients
+      ? [
+          {
+            name: "tenantId",
+            label: "Client",
+            type: "select",
+            options: clients,
+            required: true,
+            inputId: "upload-client",
+          } as const,
+        ]
+      : []),
+    ...(properties
+      ? [
+          {
+            name: "propertyId",
+            label: "Property (optional)",
+            type: "select",
+            options: properties,
+            inputId: "upload-property",
+          } as const,
+        ]
+      : []),
+    {
+      name: "declaredType",
+      label: "Document type",
+      type: "select",
+      options: options(DOCUMENT_TYPE_LABELS),
+      description: "Leave empty to auto-detect.",
+      inputId: "upload-type",
+    },
+  ];
+}
+
+export const SOURCING_TYPES = ["office", "logistics", "warehouse", "retail"] as const;
+
+export function sourcingVoiceFields({ clients }: VoiceFormOptions = {}): VoiceField[] {
+  return [
+    ...(clients
+      ? [
+          {
+            name: "tenantId",
+            label: "Client",
+            type: "select",
+            options: clients,
+            required: true,
+            inputId: "sourcing-client",
+          } as const,
+        ]
+      : []),
+    {
+      name: "propertyType",
+      label: "Property type",
+      type: "select",
+      required: true,
+      options: SOURCING_TYPES.map((value) => ({ value, label: PROPERTY_TYPE_LABELS[value] })),
+      inputId: "sourcing-type",
+    },
+    {
+      name: "sizeSqm",
+      label: "Size (m²)",
+      type: "number",
+      required: true,
+      min: 500,
+      max: 25000,
+      description: "500 to 25,000 square metres, rounded to 500.",
+      inputId: "sourcing-size-field",
+    },
+    {
+      name: "location",
+      label: "Location",
+      type: "text",
+      required: true,
+      inputId: "sourcing-location",
+    },
+    { name: "notes", label: "Requirements / notes", type: "textarea", inputId: "sourcing-notes" },
+  ];
+}
+
 /** Forms the assistant can open by navigating (each route opens its create dialog for `?new=1`). */
 export function openableVoiceForms(choices: VoiceFormOptions): OpenableVoiceForm[] {
   return [
@@ -186,6 +343,7 @@ export function openableVoiceForms(choices: VoiceFormOptions): OpenableVoiceForm
       route: "/properties",
       search: { new: "1" },
       fields: propertyVoiceFields({ clients: choices.clients }),
+      submittable: true,
     },
     {
       formId: "lease.create",
@@ -193,6 +351,7 @@ export function openableVoiceForms(choices: VoiceFormOptions): OpenableVoiceForm
       route: "/leases",
       search: { new: "1" },
       fields: leaseVoiceFields({ properties: choices.properties }),
+      submittable: true,
     },
     {
       formId: "action.create",
@@ -200,6 +359,32 @@ export function openableVoiceForms(choices: VoiceFormOptions): OpenableVoiceForm
       route: "/tasks",
       search: { new: "1" },
       fields: actionVoiceFields({ clients: choices.clients }),
+      submittable: true,
+    },
+    {
+      formId: "client.create",
+      title: "New client",
+      route: "/clients",
+      search: { new: "1" },
+      fields: clientVoiceFields(),
+      submittable: true,
+    },
+    {
+      formId: "document.upload",
+      title: "Upload documents",
+      route: "/documents",
+      search: { new: "1" },
+      fields: documentUploadVoiceFields({
+        clients: choices.clients,
+        properties: choices.properties,
+      }),
+    },
+    {
+      formId: "sourcing.brief",
+      title: "Property sourcing brief",
+      route: "/sourcing",
+      fields: sourcingVoiceFields({ clients: choices.activeClients ?? choices.clients }),
+      submittable: true,
     },
   ];
 }

@@ -12,7 +12,8 @@ const MASTRA_API_URL =
     ? process.env.MASTRA_CHAT_URL.replace(/\/chat\/?$/, "")
     : "http://localhost:4111");
 
-const MAX_BODY_BYTES = 256 * 1024;
+// Requests carry form schemas, page commands and up to 300 rows per record type.
+const MAX_BODY_BYTES = 512 * 1024;
 
 export const Route = createFileRoute("/api/assistant")({
   server: {

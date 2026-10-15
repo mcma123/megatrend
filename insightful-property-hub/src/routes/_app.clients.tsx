@@ -10,9 +10,12 @@ import { ClientFormDialog } from "@/components/portfolio/client-form-dialog";
 import { EmptyState, LoadingState } from "@/components/portfolio/form-fields";
 import { useCyphersoftAuth } from "@/lib/auth-session";
 import { CLIENT_TYPE_LABELS, RELATIONSHIP_STATUS_LABELS, formatZAR } from "@/lib/portfolio";
+import { useVoiceCommands } from "@/lib/voice/command-registry";
+import { validateNewFormSearch } from "@/lib/voice/new-form-search";
 import { api } from "../../../convex/_generated/api";
 
 export const Route = createFileRoute("/_app/clients")({
+  validateSearch: validateNewFormSearch,
   head: () => ({
     meta: [
       { title: "Clients · Cyphersoft OS" },
@@ -28,10 +31,24 @@ function ClientsPage() {
   const auth = useCyphersoftAuth();
   const navigate = useNavigate();
   const canCreate = auth.profile?.isPlatformAdmin === true;
+  const search = Route.useSearch();
+  const setCreateOpen = (open: boolean) =>
+    void navigate({ to: "/clients", search: open ? { new: "1" } : {}, replace: !open });
+
+  useVoiceCommands("clients.list", {
+    "clients.search": {
+      run: ({ query }) => {
+        setQ(String(query));
+        return `Showing clients matching "${String(query)}".`;
+      },
+    },
+  });
   const filtered = (clients ?? []).filter((c) => c.name.toLowerCase().includes(q.toLowerCase()));
 
   const newClientButton = canCreate ? (
     <ClientFormDialog
+      open={search.new === "1"}
+      onOpenChange={setCreateOpen}
       trigger={
         <Button>
           <Plus className="h-4 w-4" /> New client

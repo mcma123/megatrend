@@ -1,4 +1,5 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useMemo, useState } from "react";
 import { useQuery } from "convex/react";
 import { ArrowLeft, Building2, Mail, Pencil, Plus, Upload, User } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
@@ -21,6 +22,7 @@ import {
   monthsUntil,
 } from "@/lib/portfolio";
 import { ACTION_STATUS_LABELS } from "@/lib/workflow";
+import { useVoiceCommands } from "@/lib/voice/command-registry";
 import { api } from "../../../convex/_generated/api";
 
 export const Route = createFileRoute("/_app/clients/$id")({
@@ -41,6 +43,71 @@ function ClientDetail() {
   const leases = useQuery(api.leases.list, client ? { tenantId: client.tenantId } : "skip");
   const documents = useQuery(api.documents.list, client ? { tenantId: client.tenantId } : "skip");
   const actions = useQuery(api.actions.list, client ? { tenantId: client.tenantId } : "skip");
+  const navigate = useNavigate();
+  const [tab, setTab] = useState("portfolio");
+  const [editOpen, setEditOpen] = useState(false);
+  const [addPropertyOpen, setAddPropertyOpen] = useState(false);
+  const [addLeaseOpen, setAddLeaseOpen] = useState(false);
+  const [uploadOpen, setUploadOpen] = useState(false);
+  // Stable so the edit dialog doesn't reset while Convex re-renders this page.
+  const editInitial = useMemo(
+    () =>
+      client
+        ? {
+            tenantId: client.tenantId,
+            name: client.name,
+            slug: client.slug,
+            contactName: client.contactName ?? "",
+            contactEmail: client.contactEmail ?? "",
+            industry: client.industry ?? "",
+            clientType: client.clientType ?? ("" as const),
+            relationshipStatus: client.relationshipStatus ?? ("active" as const),
+            accountManagerName: client.accountManagerName ?? "",
+            clientSince: client.clientSince ?? "",
+          }
+        : undefined,
+    [client],
+  );
+  const canEdit = client?.canEdit === true;
+
+  useVoiceCommands("clients.detail", {
+    "client.tab": {
+      run: ({ tab: next }) => {
+        setTab(String(next));
+        return `Showing ${String(next)}.`;
+      },
+      enabled: Boolean(client),
+    },
+    "client.openEdit": { run: () => setEditOpen(true), enabled: canEdit },
+    "client.openAddProperty": {
+      run: () => {
+        setTab("portfolio");
+        setAddPropertyOpen(true);
+      },
+      enabled: canEdit,
+    },
+    "client.openAddLease": {
+      run: () => {
+        setTab("leases");
+        setAddLeaseOpen(true);
+      },
+      enabled: canEdit && Boolean(properties?.length),
+    },
+    "client.openUpload": {
+      run: () => {
+        setTab("documents");
+        setUploadOpen(true);
+      },
+      enabled: Boolean(client),
+    },
+    "client.openPortal": {
+      run: () => {
+        if (client)
+          void navigate({ to: "/portal/$clientSlug", params: { clientSlug: client.slug } });
+      },
+      enabled: Boolean(client),
+    },
+  });
 
   if (client === undefined) {
     return <LoadingState label="Loading client…" />;
@@ -89,23 +156,14 @@ function ClientDetail() {
           <>
             {client.canEdit ? (
               <ClientFormDialog
+                open={editOpen}
+                onOpenChange={setEditOpen}
                 trigger={
                   <Button variant="outline">
                     <Pencil className="h-4 w-4" /> Edit
                   </Button>
                 }
-                initial={{
-                  tenantId: client.tenantId,
-                  name: client.name,
-                  slug: client.slug,
-                  contactName: client.contactName ?? "",
-                  contactEmail: client.contactEmail ?? "",
-                  industry: client.industry ?? "",
-                  clientType: client.clientType ?? "",
-                  relationshipStatus: client.relationshipStatus ?? "active",
-                  accountManagerName: client.accountManagerName ?? "",
-                  clientSince: client.clientSince ?? "",
-                }}
+                initial={editInitial}
               />
             ) : null}
             <Button asChild variant="outline">
@@ -188,7 +246,7 @@ function ClientDetail() {
             </div>
           </Card>
 
-          <Tabs defaultValue="portfolio">
+          <Tabs value={tab} onValueChange={setTab}>
             <TabsList>
               <TabsTrigger value="portfolio">Portfolio</TabsTrigger>
               <TabsTrigger value="leases">Leases</TabsTrigger>
@@ -200,6 +258,8 @@ function ClientDetail() {
                 {client.canEdit ? (
                   <div className="mb-3 flex justify-end">
                     <PropertyFormDialog
+                      open={addPropertyOpen}
+                      onOpenChange={setAddPropertyOpen}
                       tenantId={client.tenantId}
                       trigger={
                         <Button size="sm">
@@ -267,6 +327,8 @@ function ClientDetail() {
                 {client.canEdit && properties && properties.length > 0 ? (
                   <div className="mb-3 flex justify-end">
                     <LeaseFormDialog
+                      open={addLeaseOpen}
+                      onOpenChange={setAddLeaseOpen}
                       tenantId={client.tenantId}
                       trigger={
                         <Button size="sm">
@@ -320,6 +382,8 @@ function ClientDetail() {
               <Card className="surface-elevated p-4">
                 <div className="mb-3 flex justify-end">
                   <DocumentUploadDialog
+                    open={uploadOpen}
+                    onOpenChange={setUploadOpen}
                     tenantId={client.tenantId}
                     trigger={
                       <Button size="sm">

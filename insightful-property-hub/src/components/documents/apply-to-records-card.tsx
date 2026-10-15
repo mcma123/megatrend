@@ -8,6 +8,7 @@ import { DraftInsightButton } from "@/components/insights/insight-editor-dialog"
 import { NativeSelect } from "@/components/portfolio/form-fields";
 import type { DocumentType } from "@/lib/documents";
 import { describeLeaseStatus, errorMessage, formatDate, formatZAR } from "@/lib/portfolio";
+import { useVoiceCommands } from "@/lib/voice/command-registry";
 import { api } from "../../../../convex/_generated/api";
 import type { Id } from "../../../../convex/_generated/dataModel";
 
@@ -34,6 +35,65 @@ export function ApplyToRecordsCard({
   const isLeaseDocument = documentType === "lease" || documentType === "addendum";
   const leases = property?.leases ?? [];
   const leaseChoice = selectedLease ?? leases[0]?._id ?? "new";
+
+  useVoiceCommands("documents.detail", {
+    "document.linkProperty": {
+      run: async ({ property: next }) => {
+        try {
+          await updateDetails({
+            documentId,
+            propertyId: String(next) as Id<"properties">,
+            documentType,
+          });
+        } catch (linkError) {
+          throw new Error(errorMessage(linkError));
+        }
+        setSelectedLease(null);
+        return "Linked to property.";
+      },
+      params: [
+        {
+          name: "property",
+          label: "Property",
+          type: "select",
+          required: true,
+          options: (properties ?? []).map((item) => ({ value: item._id, label: item.name })),
+        },
+      ],
+      enabled: Boolean(properties?.length),
+    },
+    "document.applyToLease": {
+      run: async ({ lease }) => {
+        try {
+          const result = await applyToLease({
+            documentId,
+            leaseId: lease === "new" ? undefined : (String(lease) as Id<"leases">),
+          });
+          return result.created
+            ? "Lease created from the approved values."
+            : "Lease updated with the approved values.";
+        } catch (applyError) {
+          throw new Error(errorMessage(applyError));
+        }
+      },
+      params: [
+        {
+          name: "lease",
+          label: "Lease",
+          type: "select",
+          required: true,
+          options: [
+            ...leases.map((item) => ({
+              value: item._id,
+              label: `${formatDate(item.startDate)} to ${formatDate(item.endDate)} · ${describeLeaseStatus(item)}`,
+            })),
+            { value: "new", label: "Create a new lease from this document" },
+          ],
+        },
+      ],
+      enabled: isLeaseDocument && Boolean(propertyId) && hasApprovedFields && !busy,
+    },
+  });
 
   const linkProperty = async (nextPropertyId: string) => {
     try {

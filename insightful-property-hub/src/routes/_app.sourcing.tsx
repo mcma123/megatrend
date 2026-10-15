@@ -12,6 +12,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { errorMessage, formatZAR, formatNumber, PROPERTY_TYPE_LABELS } from "@/lib/portfolio";
+import { useVoiceCommands } from "@/lib/voice/command-registry";
+import { useVoiceForm } from "@/lib/voice/form-registry";
+import { SOURCING_TYPES, sourcingVoiceFields } from "@/lib/voice/forms";
 
 export const Route = createFileRoute("/_app/sourcing")({
   head: () => ({
@@ -26,7 +29,7 @@ export const Route = createFileRoute("/_app/sourcing")({
   component: SourcingPage,
 });
 
-const propTypes = ["office", "logistics", "warehouse", "retail"] as const;
+const propTypes = SOURCING_TYPES;
 const locations = [
   "Sandton / Linbro",
   "Centurion",
@@ -70,6 +73,67 @@ function SourcingPage() {
       pack.sizeSqm !== size[0] ||
       pack.location !== location.trim() ||
       pack.notes !== notes.trim());
+
+  const canGenerate =
+    !submitting &&
+    !(searching && !stale) &&
+    Boolean(history?.canCreate) &&
+    Boolean(location.trim());
+  const formRef = useRef<HTMLFormElement>(null);
+
+  useVoiceForm({
+    formId: "sourcing.brief",
+    title: "Property sourcing brief",
+    enabled: Boolean(history?.canCreate),
+    formRef,
+    fields: sourcingVoiceFields({
+      clients: (activeClients ?? []).map((item) => ({ value: item.tenantId, label: item.name })),
+    }),
+    values: { tenantId: tenantId ?? "", propertyType: type, sizeSqm: size[0], location, notes },
+    setValues: (patch) => {
+      if (typeof patch.tenantId === "string") {
+        setClientId(patch.tenantId as Id<"tenants">);
+        setBriefId(null);
+        setError(null);
+      }
+      if (
+        typeof patch.propertyType === "string" &&
+        (propTypes as readonly string[]).includes(patch.propertyType)
+      ) {
+        setType(patch.propertyType as (typeof propTypes)[number]);
+      }
+      if (typeof patch.sizeSqm === "number") {
+        const rounded = Math.round(patch.sizeSqm / 500) * 500;
+        setSize([Math.min(25000, Math.max(500, rounded))]);
+      }
+      if (typeof patch.location === "string") setLocation(patch.location);
+      if (typeof patch.notes === "string") setNotes(patch.notes);
+    },
+  });
+
+  useVoiceCommands("sourcing", {
+    "sourcing.openBrief": {
+      run: ({ brief }) => {
+        const match = recent?.find((item) => item._id === brief);
+        if (!match) throw new Error("That brief is no longer listed.");
+        openBrief(match);
+        return "Showing the saved brief.";
+      },
+      params: [
+        {
+          name: "brief",
+          label: "Brief",
+          type: "select",
+          required: true,
+          options: (recent ?? []).map((item) => ({
+            value: item._id,
+            label: `${PROPERTY_TYPE_LABELS[item.propertyType]} · ${item.location} · ${timeLabel(item.createdAt)}`,
+          })),
+        },
+      ],
+      enabled: Boolean(recent?.length) && !submitting,
+    },
+  });
 
   async function generate() {
     if (!tenantId || submittingRef.current) return;
@@ -123,10 +187,12 @@ function SourcingPage() {
             <h2 className="font-display text-xl">New rental brief</h2>
           </div>
           <form
+            ref={formRef}
             className="space-y-5"
             onSubmit={(event) => {
               event.preventDefault();
-              void generate();
+              // Same rule as the Generate button (also guards voice-confirmed submits).
+              if (canGenerate) void generate();
             }}
           >
             <div>
@@ -152,7 +218,7 @@ function SourcingPage() {
                 ))}
               </select>
             </div>
-            <fieldset disabled={submitting}>
+            <fieldset id="sourcing-type" disabled={submitting}>
               <legend className="text-sm font-medium">Property type</legend>
               <div className="mt-1.5 grid grid-cols-2 gap-2 sm:grid-cols-4">
                 {propTypes.map((value) => (
@@ -176,6 +242,7 @@ function SourcingPage() {
             <div>
               <Label id="sourcing-size">Target size: {formatNumber(size[0])} sqm</Label>
               <Slider
+                id="sourcing-size-field"
                 aria-labelledby="sourcing-size"
                 value={size}
                 min={500}
@@ -234,13 +301,7 @@ function SourcingPage() {
             {history && !history.canCreate && (
               <p className="text-sm text-muted-foreground">Your role can view saved searches.</p>
             )}
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={
-                submitting || (searching && !stale) || !history?.canCreate || !location.trim()
-              }
-            >
+            <Button type="submit" className="w-full" disabled={!canGenerate}>
               {submitting || (searching && !stale) ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (

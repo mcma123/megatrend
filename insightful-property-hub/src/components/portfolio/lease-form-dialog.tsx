@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -101,7 +101,9 @@ export function LeaseFormDialog({
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) =>
     setValues((current) => ({ ...current, [key]: value }));
 
+  const formRef = useRef<HTMLFormElement>(null);
   useVoiceForm({
+    formRef,
     formId: isEdit ? "lease.edit" : "lease.create",
     title: isEdit ? "Edit lease" : "New lease",
     enabled: open,
@@ -173,7 +175,7 @@ export function LeaseFormDialog({
             Commercial terms; renewal dates are calculated from the end date.
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={submit} className="space-y-4">
+        <form ref={formRef} onSubmit={submit} className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
             {!isEdit && !propertyId ? (
               <Field label="Property" htmlFor="lease-property" className="sm:col-span-2">

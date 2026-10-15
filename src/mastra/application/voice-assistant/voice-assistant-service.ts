@@ -8,7 +8,21 @@ import type {
 } from "../../ports/voice-assistant";
 import { VOICE_SESSION_KEY, VoiceSession } from "./voice-session";
 
-const ACTION_ORDER: Record<VoiceAction["type"], number> = { navigate: 0, fill_form: 1, ask_user: 2 };
+// Navigate, then fill, then view commands, then actions awaiting confirmation, then questions.
+function actionRank(action: VoiceAction) {
+  switch (action.type) {
+    case "navigate":
+      return 0;
+    case "fill_form":
+      return 1;
+    case "run_command":
+      return action.effect === "view" ? 2 : 3;
+    case "submit_form":
+      return 3;
+    case "ask_user":
+      return 4;
+  }
+}
 
 /**
  * Run one voice-assistant turn. The agent's tools record client actions in a per-request session;
@@ -38,11 +52,11 @@ export async function runVoiceAssistant(
 
   const result = await agent.generate(messages, {
     requestContext,
-    maxSteps: 6,
+    maxSteps: 8,
     abortSignal,
   });
 
-  const actions = [...session.actions].sort((a, b) => ACTION_ORDER[a.type] - ACTION_ORDER[b.type]);
+  const actions = [...session.actions].sort((a, b) => actionRank(a) - actionRank(b));
   const reply =
     result.text?.trim() ||
     (actions.length > 0 ? "Done. Please review before saving." : "Sorry, I couldn't work out what to do.");

@@ -14,7 +14,7 @@
 - `okf-agent.ts` is the document-questioning agent for OKF bundles stored behind the Windmill-backed knowledge gateway. Keep its tool access focused on bundle discovery, retrieval, and grounded summarization rather than raw provider plumbing.
 - `insight-drafter-agent.ts` has no tools: it turns a list of approved facts into one JSON insight draft (title, body, recommendedAction, category, priority). It is called through Mastra's REST `POST /api/agents/insight-drafter-agent/generate` by the web app's staff-only `/api/insights/draft` route; keep the JSON contract stable. Drafts are never published without staff review.
 
-- `voice-assistant-agent.ts` (`VOICE_ASSISTANT_MODEL`, falls back to `OPENROUTER_MODEL`) uses only `voiceAssistantTools`. Its instructions forbid saving/submitting, inventing values, and destructive actions; unmatched spoken facts go into a notes field as `Label: value` lines. It is not registered as a `/chat` agent.
+- `voice-assistant-agent.ts` (`VOICE_ASSISTANT_MODEL`, falls back to `OPENROUTER_MODEL`) uses only `voiceAssistantTools`. It finds/opens records, runs page commands and fills forms; data-changing commands and `submit_form` are prepared for the user's Confirm tap, and it must never claim they already happened. Its instructions forbid inventing values/ids and destructive actions; unmatched spoken facts go into a notes field as `Label: value` lines. It is not registered as a `/chat` agent.
 
 # Work Guidance
 

@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -88,7 +88,9 @@ export function ActionFormDialog({
     setValues((current) => ({ ...current, [key]: value }));
 
   // Staff tasks are voice-fillable. Client fields (property, document, assignee) stay manual.
+  const formRef = useRef<HTMLFormElement>(null);
   useVoiceForm({
+    formRef,
     formId: isEdit ? "action.edit" : "action.create",
     title: isEdit ? "Edit task" : "New task",
     enabled: open && isStaff,
@@ -165,7 +167,7 @@ export function ActionFormDialog({
               : "Ask your Cyphersoft team for a quote, a change or help. You'll be notified when they reply."}
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={submit} className="space-y-4">
+        <form ref={formRef} onSubmit={submit} className="space-y-4">
           {isStaff && !initial.tenantId ? (
             <Field label="Client" htmlFor="action-client">
               <NativeSelect

@@ -21,6 +21,8 @@ import {
 } from "@/lib/documents";
 import { useDocumentUpload } from "@/lib/use-document-upload";
 import { cn } from "@/lib/utils";
+import { useVoiceForm } from "@/lib/voice/form-registry";
+import { documentUploadVoiceFields } from "@/lib/voice/forms";
 import { api } from "../../../../convex/_generated/api";
 import type { Id } from "../../../../convex/_generated/dataModel";
 
@@ -33,7 +35,8 @@ type QueueItem = {
 
 /**
  * Single or bulk upload. Pass `tenantId` to fix the client (portal, client page);
- * staff without it pick the client in the dialog.
+ * staff without it pick the client in the dialog. Pass `open`/`onOpenChange` to control it.
+ * The voice assistant can pre-fill client, property and type; a person always picks the files.
  */
 export function DocumentUploadDialog({
   trigger,
@@ -42,8 +45,12 @@ export function DocumentUploadDialog({
   defaultType,
   title = "Upload documents",
   onUploaded,
+  open: controlledOpen,
+  onOpenChange,
 }: {
-  trigger: ReactNode;
+  trigger?: ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
   tenantId?: Id<"tenants">;
   propertyId?: Id<"properties">;
   defaultType?: DocumentType;
@@ -51,7 +58,12 @@ export function DocumentUploadDialog({
   /** Called with each successfully created document (e.g. to attach it to an action). */
   onUploaded?: (documentId: Id<"documents">, filename: string) => void;
 }) {
-  const [open, setOpen] = useState(false);
+  const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
+  const open = controlledOpen ?? uncontrolledOpen;
+  const setOpen = (next: boolean) => {
+    setUncontrolledOpen(next);
+    onOpenChange?.(next);
+  };
   const [selectedTenant, setSelectedTenant] = useState<string>(tenantId ?? "");
   const [selectedProperty, setSelectedProperty] = useState<string>(propertyId ?? "");
   const [declaredType, setDeclaredType] = useState<DocumentType | "">(defaultType ?? "");
@@ -76,6 +88,30 @@ export function DocumentUploadDialog({
       setDeclaredType(defaultType ?? "");
     }
   }, [open, tenantId, propertyId, defaultType]);
+
+  useVoiceForm({
+    formId: "document.upload",
+    title,
+    enabled: open,
+    fields: documentUploadVoiceFields({
+      clients: tenantId
+        ? undefined
+        : (clients ?? []).map((client) => ({ value: client.tenantId, label: client.name })),
+      properties: propertyId
+        ? undefined
+        : (properties ?? []).map((property) => ({ value: property._id, label: property.name })),
+    }),
+    values: { tenantId: selectedTenant, propertyId: selectedProperty, declaredType },
+    setValues: (patch) => {
+      if (typeof patch.tenantId === "string") {
+        setSelectedTenant(patch.tenantId);
+        setSelectedProperty("");
+      }
+      if (typeof patch.propertyId === "string") setSelectedProperty(patch.propertyId);
+      if (typeof patch.declaredType === "string")
+        setDeclaredType(patch.declaredType as DocumentType);
+    },
+  });
 
   const addFiles = (files: FileList | File[]) => {
     const next = Array.from(files).map((file) => ({
@@ -137,7 +173,7 @@ export function DocumentUploadDialog({
 
   return (
     <Dialog open={open} onOpenChange={(next) => !running && setOpen(next)}>
-      <DialogTrigger asChild>{trigger}</DialogTrigger>
+      {trigger ? <DialogTrigger asChild>{trigger}</DialogTrigger> : null}
       <DialogContent className="max-h-[90svh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>

@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery } from "convex/react";
 import { AlertTriangle, FileText, Search, Upload } from "lucide-react";
@@ -11,9 +11,12 @@ import { DocumentStatusBadge } from "@/components/documents/document-status-badg
 import { DocumentUploadDialog } from "@/components/documents/document-upload-dialog";
 import { EmptyState, LoadingState } from "@/components/portfolio/form-fields";
 import { DOCUMENT_TYPE_LABELS, formatTimestamp, isProcessing } from "@/lib/documents";
+import { useVoiceCommands } from "@/lib/voice/command-registry";
+import { validateNewFormSearch } from "@/lib/voice/new-form-search";
 import { api } from "../../../convex/_generated/api";
 
 export const Route = createFileRoute("/_app/documents")({
+  validateSearch: validateNewFormSearch,
   head: () => ({
     meta: [
       { title: "Document intelligence · Cyphersoft OS" },
@@ -33,6 +36,25 @@ function DocumentsPage() {
   const [tab, setTab] = useState<DocumentTab>("all");
   const [q, setQ] = useState("");
   const query = q.trim().toLowerCase();
+  const navigate = useNavigate();
+  const search = Route.useSearch();
+  const setUploadOpen = (open: boolean) =>
+    void navigate({ to: "/documents", search: open ? { new: "1" } : {}, replace: !open });
+
+  useVoiceCommands("documents.list", {
+    "documents.tab": {
+      run: ({ tab: next }) => {
+        setTab(String(next) as DocumentTab);
+        return `Showing ${String(next)} documents.`;
+      },
+    },
+    "documents.search": {
+      run: ({ query: text }) => {
+        setQ(String(text));
+        return `Showing documents matching "${String(text)}".`;
+      },
+    },
+  });
 
   const counts = {
     processing: (documents ?? []).filter((d) => isProcessing(d.status)).length,
@@ -58,6 +80,8 @@ function DocumentsPage() {
 
   const uploadButton = (
     <DocumentUploadDialog
+      open={search.new === "1"}
+      onOpenChange={setUploadOpen}
       trigger={
         <Button>
           <Upload className="h-4 w-4" /> Upload documents
@@ -108,7 +132,11 @@ function DocumentsPage() {
           <EmptyState
             title="No documents yet"
             description="Upload a lease, invoice or statement to get started."
-            action={uploadButton}
+            action={
+              <Button onClick={() => setUploadOpen(true)}>
+                <Upload className="h-4 w-4" /> Upload documents
+              </Button>
+            }
           />
         ) : filtered.length === 0 ? (
           <EmptyState title="No documents match this view" />

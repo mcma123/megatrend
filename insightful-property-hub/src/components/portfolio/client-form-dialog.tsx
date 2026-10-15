@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { useMutation } from "convex/react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,8 @@ import {
   type ClientType,
   type RelationshipStatus,
 } from "@/lib/portfolio";
+import { useVoiceForm } from "@/lib/voice/form-registry";
+import { clientVoiceFields } from "@/lib/voice/forms";
 import { api } from "../../../../convex/_generated/api";
 import type { Id } from "../../../../convex/_generated/dataModel";
 
@@ -58,20 +60,33 @@ function toSlug(value: string) {
     .slice(0, 48);
 }
 
-/** Create a client workspace (platform admin) or edit an existing client's profile. */
+/**
+ * Create a client workspace (platform admin) or edit an existing client's profile. Pass `open` and
+ * `onOpenChange` to control the dialog (e.g. from `?new=1` or a voice command). Voice-fillable.
+ */
 export function ClientFormDialog({
   trigger,
   initial,
   onSaved,
+  open: controlledOpen,
+  onOpenChange,
 }: {
-  trigger: ReactNode;
+  trigger?: ReactNode;
   initial?: ClientFormValues;
   onSaved?: (result: { slug: string }) => void;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }) {
   const isEdit = Boolean(initial?.tenantId);
   const createClient = useMutation(api.clients.create);
   const updateClient = useMutation(api.clients.update);
-  const [open, setOpen] = useState(false);
+  const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
+  const open = controlledOpen ?? uncontrolledOpen;
+  const setOpen = (next: boolean) => {
+    setUncontrolledOpen(next);
+    onOpenChange?.(next);
+  };
+  const formRef = useRef<HTMLFormElement>(null);
   const [values, setValues] = useState<ClientFormValues>(initial ?? EMPTY);
   const [slugTouched, setSlugTouched] = useState(false);
   const [invite, setInvite] = useState(true);
@@ -95,6 +110,29 @@ export function ClientFormDialog({
       return next;
     });
 
+  useVoiceForm({
+    formId: isEdit ? "client.edit" : "client.create",
+    title: isEdit ? `Edit ${initial?.name ?? "client"}` : "New client",
+    enabled: open,
+    formRef,
+    fields: clientVoiceFields({ isEdit }),
+    values: { ...values, inviteContactAsAdmin: invite },
+    setValues: (patch) => {
+      const { inviteContactAsAdmin, ...rest } = patch;
+      if (typeof inviteContactAsAdmin === "boolean") setInvite(inviteContactAsAdmin);
+      if (typeof rest.slug === "string") setSlugTouched(true);
+      setValues((current) => {
+        const next = { ...current } as Record<string, unknown>;
+        for (const [key, value] of Object.entries(rest)) next[key] = String(value);
+        // Same rule as typing: a new name regenerates the slug unless it was edited.
+        if (typeof rest.name === "string" && rest.slug === undefined && !isEdit && !slugTouched) {
+          next.slug = toSlug(rest.name);
+        }
+        return next as ClientFormValues;
+      });
+    },
+  });
+
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     setSaving(true);
@@ -116,6 +154,8 @@ export function ClientFormDialog({
           ...profile,
         });
         toast.success("Client updated");
+        // Close before onSaved so a navigating onSaved wins over a route-controlled close.
+        setOpen(false);
         onSaved?.({ slug: values.slug });
       } else {
         const result = await createClient({
@@ -131,9 +171,9 @@ export function ClientFormDialog({
             ? `Client created. ${result.invitedEmail} can now create their account at /sign-in.`
             : "Client created",
         );
+        setOpen(false);
         onSaved?.({ slug: result.slug });
       }
-      setOpen(false);
     } catch (saveError) {
       setError(errorMessage(saveError));
     } finally {
@@ -143,7 +183,7 @@ export function ClientFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>{trigger}</DialogTrigger>
+      {trigger ? <DialogTrigger asChild>{trigger}</DialogTrigger> : null}
       <DialogContent className="max-h-[90svh] overflow-y-auto sm:max-w-xl">
         <DialogHeader>
           <DialogTitle>{isEdit ? "Edit client" : "New client"}</DialogTitle>
@@ -153,7 +193,7 @@ export function ClientFormDialog({
               : "Creates the client workspace and its private portal."}
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={submit} className="space-y-4">
+        <form ref={formRef} onSubmit={submit} className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Client name" htmlFor="client-name" className="sm:col-span-2">
               <Input

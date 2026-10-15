@@ -20,6 +20,7 @@ import {
 } from "@/lib/documents";
 import { errorMessage } from "@/lib/portfolio";
 import { cn } from "@/lib/utils";
+import { useVoiceCommands } from "@/lib/voice/command-registry";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 
@@ -47,6 +48,81 @@ function DocumentDetail() {
   const [busy, setBusy] = useState(false);
   const [coverageReason, setCoverageReason] = useState("");
   useEffect(() => setCoverageReason(""), [document?.activeAttemptId, document?.windmillJobId]);
+
+  const isStaffManager = Boolean(document?.isStaff && document.canManage);
+  const retryableStages = (document?.stageSummary ?? []).filter((stage) => stage.canRetry);
+  useVoiceCommands("documents.detail", {
+    "document.reprocess": {
+      run: async () => {
+        if (!document) throw new Error("Document is not loaded yet.");
+        try {
+          await reprocess({ documentId: document._id });
+        } catch (error) {
+          throw new Error(errorMessage(error));
+        }
+        toast.success("Processing restarted");
+        return "Processing restarted.";
+      },
+      enabled:
+        Boolean(document?.canManage) &&
+        !(document && (isProcessing(document.status) || document.processingActive)),
+    },
+    "document.retryStage": {
+      run: async ({ stage }) => {
+        if (!document) throw new Error("Document is not loaded yet.");
+        try {
+          await retryStage({
+            documentId: document._id,
+            attemptId: document.activeAttemptId,
+            stage: String(stage) as "parse" | "knowledge" | "extract",
+          });
+        } catch (error) {
+          throw new Error(errorMessage(error));
+        }
+        return "Stage retry started.";
+      },
+      params: [
+        {
+          name: "stage",
+          label: "Stage",
+          type: "select",
+          required: true,
+          options: retryableStages.map((stage) => ({
+            value: stage.name,
+            label:
+              stage.name === "parse"
+                ? "Document reading"
+                : stage.name === "knowledge"
+                  ? "Document search"
+                  : "Field extraction",
+          })),
+        },
+      ],
+      enabled: isStaffManager && retryableStages.length > 0,
+    },
+    "document.acknowledgeIncomplete": {
+      run: async ({ reason }) => {
+        if (!document) throw new Error("Document is not loaded yet.");
+        const text = String(reason).trim();
+        if (text.length < 10)
+          throw new Error("Describe what you checked (at least 10 characters).");
+        try {
+          await acknowledgeIncomplete({
+            documentId: document._id,
+            attemptId: document.activeAttemptId,
+            reason: text.slice(0, 500),
+          });
+        } catch (error) {
+          throw new Error(errorMessage(error));
+        }
+        return "Source coverage decision recorded.";
+      },
+      enabled:
+        isStaffManager &&
+        Boolean(document?.processingIncomplete) &&
+        !document?.incompleteAcknowledgedAt,
+    },
+  });
 
   if (document === undefined) {
     return <LoadingState label="Loading document…" />;
