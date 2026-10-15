@@ -9,9 +9,11 @@ import { Input } from "@/components/ui/input";
 import { EmptyState, LoadingState } from "@/components/portfolio/form-fields";
 import { PropertyFormDialog } from "@/components/portfolio/property-form-dialog";
 import { PROPERTY_STATUS_LABELS, PROPERTY_TYPE_LABELS, formatZAR } from "@/lib/portfolio";
+import { validateNewFormSearch } from "@/lib/voice/new-form-search";
 import { api } from "../../../convex/_generated/api";
 
 export const Route = createFileRoute("/_app/properties")({
+  validateSearch: validateNewFormSearch,
   head: () => ({
     meta: [
       { title: "Properties · Cyphersoft OS" },
@@ -27,6 +29,9 @@ export const Route = createFileRoute("/_app/properties")({
 function PropertiesPage() {
   const properties = useQuery(api.properties.list, {});
   const navigate = useNavigate();
+  const search = Route.useSearch();
+  const setCreateOpen = (open: boolean) =>
+    void navigate({ to: "/properties", search: open ? { new: "1" } : {}, replace: !open });
   const [q, setQ] = useState("");
   const query = q.trim().toLowerCase();
   const filtered = (properties ?? []).filter(
@@ -37,15 +42,24 @@ function PropertiesPage() {
       ),
   );
 
+  const onSaved = (propertyId: string) =>
+    void navigate({ to: "/properties/$id", params: { id: propertyId } });
   const addButton = (
     <PropertyFormDialog
+      open={search.new === "1"}
+      onOpenChange={setCreateOpen}
       trigger={
         <Button>
           <Plus className="h-4 w-4" /> New property
         </Button>
       }
-      onSaved={(propertyId) => void navigate({ to: "/properties/$id", params: { id: propertyId } })}
+      onSaved={onSaved}
     />
+  );
+  const emptyAddButton = (
+    <Button onClick={() => setCreateOpen(true)}>
+      <Plus className="h-4 w-4" /> New property
+    </Button>
   );
 
   return (
@@ -73,7 +87,7 @@ function PropertiesPage() {
             <EmptyState
               title="No properties yet"
               description="Add a property for one of your clients."
-              action={addButton}
+              action={emptyAddButton}
             />
           ) : (
             <table className="w-full text-sm">

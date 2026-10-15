@@ -14,6 +14,8 @@
 - `okf-tools.ts` is the tool surface for the OKF knowledge flow. It should expose explicit bundle-listing, bundle-search, and bundle-file retrieval actions backed by the OKF knowledge service rather than direct MinIO or Windmill calls.
 - `windmill_searxng_image_search` (in `windmill-tools.ts`) reuses `searchAlternate` with `categories: "images"` and trims output to `{ success, query, resultCount, results: [{ title, imageUrl, thumbnailUrl, pageUrl, source }], error }`. The assistant UI renders this exact shape as an image gallery, so keep it stable.
 
+- `voice-assistant-tools.ts` (`get_current_form_state`, `navigate_to_module`, `fill_form`, `ask_user`) read the per-request `VoiceSession` from the request context and only record client actions. `fill_form` takes `{field, value}` pairs validated against the registered form schema; there is intentionally no save/delete tool.
+
 # Work Guidance
 
 - Keep tool schemas and descriptions explicit, then delegate execution to the smallest relevant application service.

@@ -12,6 +12,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { VoiceDock } from "@/components/voice/voice-dock";
 import { useCyphersoftAuth } from "@/lib/auth-session";
 
 export const Route = createFileRoute("/_app")({
@@ -101,7 +102,7 @@ function GateMessage({
 }
 
 function AppFrame() {
-  const { expanded } = useAdminAssistant();
+  const { expanded, open } = useAdminAssistant();
 
   return (
     <div className="flex min-h-screen w-full bg-background">
@@ -117,6 +118,7 @@ function AppFrame() {
             </div>
           ) : null}
           <AdminAssistantSheet />
+          <VoiceDock assistant className={open && !expanded ? "md:right-[460px] xl:right-[500px]" : undefined} />
         </div>
       </div>
     </div>

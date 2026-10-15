@@ -14,6 +14,8 @@
 - Keep agent-facing actions explicit and named by use case or capability.
 - `okf-knowledge/okf-knowledge-service.ts` is the orchestration layer for OKF bundle discovery and retrieval. It should stay responsible for shaping grounded agent-facing responses while delegating all Windmill and MinIO specifics to the OKF knowledge gateway.
 
+- `voice-assistant/` runs one assistant turn (`voice-assistant-service.ts`) with a `VoiceSession` that holds the request's forms and collects actions; `form-values.ts` validates proposed values (field exists, type, select options, YYYY-MM-DD dates) and is unit-tested. Navigation is limited to `VOICE_MODULES` routes.
+
 # Work Guidance
 
 - Put orchestration here when more than one adapter or boundary is involved.

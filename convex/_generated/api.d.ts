@@ -44,6 +44,7 @@ import type * as sourcing from "../sourcing.js";
 import type * as tenancy from "../tenancy.js";
 import type * as users from "../users.js";
 import type * as validators from "../validators.js";
+import type * as voice from "../voice.js";
 
 import type {
   ApiFromModules,
@@ -88,6 +89,7 @@ declare const fullApi: ApiFromModules<{
   tenancy: typeof tenancy;
   users: typeof users;
   validators: typeof validators;
+  voice: typeof voice;
 }>;
 
 /**

@@ -148,7 +148,7 @@ Root-owned without a child AGENTS.md:
 - Root execution plans: `backend functionality.md` and `docling_file.md`; maintain phase completion and verification evidence with the corresponding implementation work.
 - `f/`: Windmill scripts, flows, folder metadata, and deployed automation assets.
 - `scripts/`: Runtime wrapper scripts such as `mastra-openrouter.mjs`.
-- Root manifests and workspace config: `package.json`, `wmill.yaml`, `tsconfig*.json`, `vitest.config.ts` (Convex tests, `npm test`), lockfiles, env files, `.wmill-config/`.
+- Root manifests and workspace config: `package.json`, `wmill.yaml`, `tsconfig*.json`, `vitest.config.ts` (Convex and pure Mastra application tests, `npm test`), lockfiles, env files, `.wmill-config/`.
 - Tooling metadata and caches: `.agents/`, `.claude/`, `.mastra/`, `.mastra-temp/`, `.pnpm-store/`, `node_modules/`, and other generated runtime outputs.
 
 

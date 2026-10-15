@@ -19,6 +19,8 @@ import {
   parseOptionalNumber,
   type LeaseStatus,
 } from "@/lib/portfolio";
+import { toFormStrings, useVoiceForm } from "@/lib/voice/form-registry";
+import { leaseVoiceFields } from "@/lib/voice/forms";
 import { api } from "../../../../convex/_generated/api";
 import type { Doc, Id } from "../../../../convex/_generated/dataModel";
 
@@ -50,13 +52,18 @@ function toFormState(lease?: Doc<"leases">, propertyId?: string): FormState {
   };
 }
 
-/** Create a lease (optionally for a fixed property) or edit an existing one. */
+/**
+ * Create a lease (optionally for a fixed property) or edit an existing one. Pass `open` and
+ * `onOpenChange` to control the dialog (e.g. from a `?new=1` search param). Voice-fillable.
+ */
 export function LeaseFormDialog({
   trigger,
   lease,
   propertyId,
   tenantId,
   onSaved,
+  open: controlledOpen,
+  onOpenChange,
 }: {
   trigger: ReactNode;
   lease?: Doc<"leases">;
@@ -64,9 +71,16 @@ export function LeaseFormDialog({
   /** Limits the property picker to one client. */
   tenantId?: Id<"tenants">;
   onSaved?: (leaseId: Id<"leases">) => void;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }) {
   const isEdit = Boolean(lease);
-  const [open, setOpen] = useState(false);
+  const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
+  const open = controlledOpen ?? uncontrolledOpen;
+  const setOpen = (next: boolean) => {
+    setUncontrolledOpen(next);
+    onOpenChange?.(next);
+  };
   const properties = useQuery(
     api.properties.list,
     open && !isEdit && !propertyId ? (tenantId ? { tenantId } : {}) : "skip",
@@ -86,6 +100,23 @@ export function LeaseFormDialog({
 
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) =>
     setValues((current) => ({ ...current, [key]: value }));
+
+  useVoiceForm({
+    formId: isEdit ? "lease.edit" : "lease.create",
+    title: isEdit ? "Edit lease" : "New lease",
+    enabled: open,
+    fields: leaseVoiceFields({
+      properties:
+        !isEdit && !propertyId
+          ? (properties ?? []).map((item) => ({
+              value: item._id,
+              label: `${item.name} · ${item.client.name}`,
+            }))
+          : undefined,
+    }),
+    values,
+    setValues: (patch) => setValues((current) => ({ ...current, ...toFormStrings(patch) })),
+  });
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
@@ -110,6 +141,8 @@ export function LeaseFormDialog({
       if (lease) {
         await updateLease({ leaseId: lease._id, ...fields });
         toast.success("Lease updated");
+        // Close before onSaved so a navigating onSaved wins over a route-controlled close.
+        setOpen(false);
         onSaved?.(lease._id);
       } else {
         if (!values.propertyId) {
@@ -120,9 +153,9 @@ export function LeaseFormDialog({
           ...fields,
         });
         toast.success("Lease added");
+        setOpen(false);
         onSaved?.(result.leaseId);
       }
-      setOpen(false);
     } catch (saveError) {
       setError(errorMessage(saveError));
     } finally {

@@ -594,4 +594,15 @@ export default defineSchema({
   })
     .index("by_tenantId", ["tenantId"])
     .index("by_tenantId_and_status", ["tenantId", "status"]),
+
+  // Voice transcription/assistant usage counters (one row per user per UTC day).
+  // Counts only: audio and transcripts are never stored.
+  voiceUsage: defineTable({
+    userId: v.id("users"),
+    day: v.string(),
+    dayCount: v.number(),
+    minuteBucket: v.number(),
+    minuteCount: v.number(),
+    updatedAt: v.number(),
+  }).index("by_userId_and_day", ["userId", "day"]),
 });

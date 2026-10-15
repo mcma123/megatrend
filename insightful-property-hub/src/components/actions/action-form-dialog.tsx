@@ -22,6 +22,8 @@ import {
   type ActionStatus,
   type Priority,
 } from "@/lib/workflow";
+import { toFormStrings, useVoiceForm } from "@/lib/voice/form-registry";
+import { actionVoiceFields } from "@/lib/voice/forms";
 import { api } from "../../../../convex/_generated/api";
 import type { Id } from "../../../../convex/_generated/dataModel";
 
@@ -84,6 +86,24 @@ export function ActionFormDialog({
 
   const set = <K extends keyof ActionFormValues>(key: K, value: ActionFormValues[K]) =>
     setValues((current) => ({ ...current, [key]: value }));
+
+  // Staff tasks are voice-fillable. Client fields (property, document, assignee) stay manual.
+  useVoiceForm({
+    formId: isEdit ? "action.edit" : "action.create",
+    title: isEdit ? "Edit task" : "New task",
+    enabled: open && isStaff,
+    fields: actionVoiceFields({
+      clients: initial.tenantId
+        ? undefined
+        : (clients ?? []).map((client) => ({ value: client.tenantId, label: client.name })),
+    }),
+    values,
+    setValues: (patch) =>
+      setValues((current) => ({
+        ...current,
+        ...(toFormStrings(patch) as Partial<ActionFormValues>),
+      })),
+  });
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();

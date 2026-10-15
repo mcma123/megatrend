@@ -217,3 +217,19 @@
   background: color-mix(in oklab, var(--color-primary) 8%, transparent);
 }
 
+
+/* Fields just filled by the voice assistant (lib/voice/assistant-actions.ts). */
+@keyframes voice-filled-fade {
+  from {
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-primary) 55%, transparent);
+    background-color: color-mix(in oklab, var(--color-primary) 10%, transparent);
+  }
+  to {
+    box-shadow: 0 0 0 3px transparent;
+    background-color: transparent;
+  }
+}
+
+.voice-filled {
+  animation: voice-filled-fade 2.5s ease-out;
+}

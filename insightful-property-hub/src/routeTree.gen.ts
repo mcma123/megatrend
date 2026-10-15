@@ -15,8 +15,10 @@ import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PortalIndexRouteImport } from './routes/portal.index'
 import { Route as PortalClientSlugRouteImport } from './routes/portal.$clientSlug'
+import { Route as ApiTranscribeRouteImport } from './routes/api.transcribe'
 import { Route as ApiModelsRouteImport } from './routes/api.models'
 import { Route as ApiChatRouteImport } from './routes/api.chat'
+import { Route as ApiAssistantRouteImport } from './routes/api.assistant'
 import { Route as AppTasksRouteImport } from './routes/_app.tasks'
 import { Route as AppSourcingRouteImport } from './routes/_app.sourcing'
 import { Route as AppSearchRouteImport } from './routes/_app.search'
@@ -77,6 +79,11 @@ const PortalClientSlugRoute = PortalClientSlugRouteImport.update({
   path: '/portal/$clientSlug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiTranscribeRoute = ApiTranscribeRouteImport.update({
+  id: '/api/transcribe',
+  path: '/api/transcribe',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiModelsRoute = ApiModelsRouteImport.update({
   id: '/api/models',
   path: '/api/models',
@@ -85,6 +92,11 @@ const ApiModelsRoute = ApiModelsRouteImport.update({
 const ApiChatRoute = ApiChatRouteImport.update({
   id: '/api/chat',
   path: '/api/chat',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAssistantRoute = ApiAssistantRouteImport.update({
+  id: '/api/assistant',
+  path: '/api/assistant',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppTasksRoute = AppTasksRouteImport.update({
@@ -261,8 +273,10 @@ export interface FileRoutesByFullPath {
   '/search': typeof AppSearchRoute
   '/sourcing': typeof AppSourcingRoute
   '/tasks': typeof AppTasksRoute
+  '/api/assistant': typeof ApiAssistantRoute
   '/api/chat': typeof ApiChatRoute
   '/api/models': typeof ApiModelsRoute
+  '/api/transcribe': typeof ApiTranscribeRoute
   '/portal/$clientSlug': typeof PortalClientSlugRouteWithChildren
   '/portal/': typeof PortalIndexRoute
   '/automations/$id': typeof AppAutomationsIdRoute
@@ -300,8 +314,10 @@ export interface FileRoutesByTo {
   '/search': typeof AppSearchRoute
   '/sourcing': typeof AppSourcingRoute
   '/tasks': typeof AppTasksRoute
+  '/api/assistant': typeof ApiAssistantRoute
   '/api/chat': typeof ApiChatRoute
   '/api/models': typeof ApiModelsRoute
+  '/api/transcribe': typeof ApiTranscribeRoute
   '/portal': typeof PortalIndexRoute
   '/automations/$id': typeof AppAutomationsIdRoute
   '/clients/$id': typeof AppClientsIdRoute
@@ -340,8 +356,10 @@ export interface FileRoutesById {
   '/_app/search': typeof AppSearchRoute
   '/_app/sourcing': typeof AppSourcingRoute
   '/_app/tasks': typeof AppTasksRoute
+  '/api/assistant': typeof ApiAssistantRoute
   '/api/chat': typeof ApiChatRoute
   '/api/models': typeof ApiModelsRoute
+  '/api/transcribe': typeof ApiTranscribeRoute
   '/portal/$clientSlug': typeof PortalClientSlugRouteWithChildren
   '/portal/': typeof PortalIndexRoute
   '/_app/automations/$id': typeof AppAutomationsIdRoute
@@ -381,8 +399,10 @@ export interface FileRouteTypes {
     | '/search'
     | '/sourcing'
     | '/tasks'
+    | '/api/assistant'
     | '/api/chat'
     | '/api/models'
+    | '/api/transcribe'
     | '/portal/$clientSlug'
     | '/portal/'
     | '/automations/$id'
@@ -420,8 +440,10 @@ export interface FileRouteTypes {
     | '/search'
     | '/sourcing'
     | '/tasks'
+    | '/api/assistant'
     | '/api/chat'
     | '/api/models'
+    | '/api/transcribe'
     | '/portal'
     | '/automations/$id'
     | '/clients/$id'
@@ -459,8 +481,10 @@ export interface FileRouteTypes {
     | '/_app/search'
     | '/_app/sourcing'
     | '/_app/tasks'
+    | '/api/assistant'
     | '/api/chat'
     | '/api/models'
+    | '/api/transcribe'
     | '/portal/$clientSlug'
     | '/portal/'
     | '/_app/automations/$id'
@@ -486,8 +510,10 @@ export interface RootRouteChildren {
   AppRoute: typeof AppRouteWithChildren
   SignInRoute: typeof SignInRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  ApiAssistantRoute: typeof ApiAssistantRoute
   ApiChatRoute: typeof ApiChatRoute
   ApiModelsRoute: typeof ApiModelsRoute
+  ApiTranscribeRoute: typeof ApiTranscribeRoute
   PortalClientSlugRoute: typeof PortalClientSlugRouteWithChildren
   PortalIndexRoute: typeof PortalIndexRoute
   ApiInsightsDraftRoute: typeof ApiInsightsDraftRoute
@@ -539,6 +565,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PortalClientSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/transcribe': {
+      id: '/api/transcribe'
+      path: '/api/transcribe'
+      fullPath: '/api/transcribe'
+      preLoaderRoute: typeof ApiTranscribeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/models': {
       id: '/api/models'
       path: '/api/models'
@@ -551,6 +584,13 @@ declare module '@tanstack/react-router' {
       path: '/api/chat'
       fullPath: '/api/chat'
       preLoaderRoute: typeof ApiChatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/assistant': {
+      id: '/api/assistant'
+      path: '/api/assistant'
+      fullPath: '/api/assistant'
+      preLoaderRoute: typeof ApiAssistantRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_app/tasks': {
@@ -919,8 +959,10 @@ const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
   SignInRoute: SignInRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
+  ApiAssistantRoute: ApiAssistantRoute,
   ApiChatRoute: ApiChatRoute,
   ApiModelsRoute: ApiModelsRoute,
+  ApiTranscribeRoute: ApiTranscribeRoute,
   PortalClientSlugRoute: PortalClientSlugRouteWithChildren,
   PortalIndexRoute: PortalIndexRoute,
   ApiInsightsDraftRoute: ApiInsightsDraftRoute,

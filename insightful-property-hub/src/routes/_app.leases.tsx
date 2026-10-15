@@ -16,9 +16,11 @@ import {
   isLiveLease,
   monthsUntil,
 } from "@/lib/portfolio";
+import { validateNewFormSearch } from "@/lib/voice/new-form-search";
 import { api } from "../../../convex/_generated/api";
 
 export const Route = createFileRoute("/_app/leases")({
+  validateSearch: validateNewFormSearch,
   head: () => ({
     meta: [
       { title: "Leases · Cyphersoft OS" },
@@ -45,8 +47,13 @@ function LeasesPage() {
           describeLeaseStatus(l) === "Expiring soon",
   );
 
+  const search = Route.useSearch();
+  const setCreateOpen = (open: boolean) =>
+    void navigate({ to: "/leases", search: open ? { new: "1" } : {}, replace: !open });
   const addButton = (
     <LeaseFormDialog
+      open={search.new === "1"}
+      onOpenChange={setCreateOpen}
       trigger={
         <Button>
           <Plus className="h-4 w-4" /> New lease
@@ -54,6 +61,11 @@ function LeasesPage() {
       }
       onSaved={(leaseId) => void navigate({ to: "/leases/$id", params: { id: leaseId } })}
     />
+  );
+  const emptyAddButton = (
+    <Button onClick={() => setCreateOpen(true)}>
+      <Plus className="h-4 w-4" /> New lease
+    </Button>
   );
 
   return (
@@ -78,7 +90,7 @@ function LeasesPage() {
           <EmptyState
             title="No leases yet"
             description="Add a lease to one of your clients' properties."
-            action={addButton}
+            action={emptyAddButton}
           />
         ) : filtered.length === 0 ? (
           <EmptyState title="No leases match this view" />

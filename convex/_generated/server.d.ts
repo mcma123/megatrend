@@ -31,6 +31,8 @@ type Env = {
   readonly CONVEX_CLOUD_URL: string;
   readonly CONVEX_SITE_URL: string;
   readonly PLATFORM_ADMIN_EMAILS: string | undefined;
+  readonly VOICE_DAILY_CAP: string | undefined;
+  readonly VOICE_RATE_LIMIT_PER_MINUTE: string | undefined;
   readonly WINDMILL_BASE_URL: string | undefined;
   readonly WINDMILL_PROCESSING_TOKEN: string | undefined;
   readonly WINDMILL_WORKSPACE: string | undefined;

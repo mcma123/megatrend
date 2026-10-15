@@ -22,6 +22,8 @@ import {
   type PropertyStatus,
   type PropertyType,
 } from "@/lib/portfolio";
+import { toFormStrings, useVoiceForm } from "@/lib/voice/form-registry";
+import { propertyVoiceFields } from "@/lib/voice/forms";
 import { api } from "../../../../convex/_generated/api";
 import type { Doc, Id } from "../../../../convex/_generated/dataModel";
 
@@ -59,21 +61,34 @@ function toFormState(property?: Doc<"properties">, tenantId?: string): FormState
   };
 }
 
-/** Create a property (optionally for a fixed client) or edit an existing one. */
+/**
+ * Create a property (optionally for a fixed client) or edit an existing one. Pass `open` and
+ * `onOpenChange` to control the dialog (e.g. from a `?new=1` search param). Voice-fillable.
+ */
 export function PropertyFormDialog({
   trigger,
   property,
   tenantId,
   onSaved,
+  open: controlledOpen,
+  onOpenChange,
 }: {
   trigger: ReactNode;
   property?: Doc<"properties">;
   tenantId?: Id<"tenants">;
   onSaved?: (propertyId: Id<"properties">) => void;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }) {
   const isEdit = Boolean(property);
-  const [open, setOpen] = useState(false);
-  const clients = useQuery(api.clients.list, open && !isEdit && !tenantId ? {} : "skip");
+  const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
+  const open = controlledOpen ?? uncontrolledOpen;
+  const setOpen = (next: boolean) => {
+    setUncontrolledOpen(next);
+    onOpenChange?.(next);
+  };
+  const showClientPicker = !isEdit && !tenantId;
+  const clients = useQuery(api.clients.list, open && showClientPicker ? {} : "skip");
   const createProperty = useMutation(api.properties.create);
   const updateProperty = useMutation(api.properties.update);
   const [values, setValues] = useState<FormState>(toFormState(property, tenantId));
@@ -89,6 +104,19 @@ export function PropertyFormDialog({
 
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) =>
     setValues((current) => ({ ...current, [key]: value }));
+
+  useVoiceForm({
+    formId: isEdit ? "property.edit" : "property.create",
+    title: isEdit ? `Edit ${property?.name ?? "property"}` : "New property",
+    enabled: open,
+    fields: propertyVoiceFields({
+      clients: showClientPicker
+        ? (clients ?? []).map((client) => ({ value: client.tenantId, label: client.name }))
+        : undefined,
+    }),
+    values,
+    setValues: (patch) => setValues((current) => ({ ...current, ...toFormStrings(patch) })),
+  });
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
@@ -115,6 +143,8 @@ export function PropertyFormDialog({
       if (property) {
         await updateProperty({ propertyId: property._id, ...fields });
         toast.success("Property updated");
+        // Close before onSaved so a navigating onSaved wins over a route-controlled close.
+        setOpen(false);
         onSaved?.(property._id);
       } else {
         if (!values.tenantId) {
@@ -125,9 +155,9 @@ export function PropertyFormDialog({
           ...fields,
         });
         toast.success("Property added");
+        setOpen(false);
         onSaved?.(result.propertyId);
       }
-      setOpen(false);
     } catch (saveError) {
       setError(errorMessage(saveError));
     } finally {

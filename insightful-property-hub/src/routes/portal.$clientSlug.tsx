@@ -23,6 +23,7 @@ import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { NotificationBell } from "@/components/notifications/notification-bell";
 import { useCyphersoftAuth } from "@/lib/auth-session";
+import { VoiceDock } from "@/components/voice/voice-dock";
 import { PortalContextProvider, type PortalClient } from "@/lib/portal-context";
 import { api } from "../../../convex/_generated/api";
 import {
@@ -290,6 +291,7 @@ function ClientPortalFrame({
         <main className="flex-1 overflow-x-hidden px-4 py-6 md:px-8 md:py-10">
           <Outlet />
         </main>
+        <VoiceDock />
       </div>
     </div>
   );

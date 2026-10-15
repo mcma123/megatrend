@@ -26,4 +26,4 @@
 # Child DOX Index
 
 - `src/` -> `insightful-property-hub/src/AGENTS.md`: Application source, shared components, route files, hooks, and local utilities.
-- `public/` and top-level config files remain owned by this doc.
+- `public/`, `docs/` (feature guides such as `docs/voice.md`) and top-level config files remain owned by this doc.

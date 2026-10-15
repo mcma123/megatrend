@@ -13,6 +13,8 @@
 - Avoid importing framework, MCP, or CLI-specific runtime types here unless no narrower contract exists.
 - `okf-knowledge-gateway.ts` defines the application-facing contract for querying OKF bundles. Keep it centered on knowledge operations such as listing bundles, searching content, and fetching bundle files instead of leaking Windmill MCP or MinIO object-storage details.
 
+- `voice-assistant.ts` is the `/voice/assist` request/response contract and `VoiceAction` union. The browser mirror is `insightful-property-hub/src/lib/voice/types.ts`; change both together.
+
 # Work Guidance
 
 - Prefer narrow capability-oriented interfaces over broad provider-shaped abstractions.

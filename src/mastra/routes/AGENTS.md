@@ -12,6 +12,8 @@
 - Require the server-only `MASTRA_SOURCING_SERVICE_TOKEN` bearer token before validating inputs or invoking agents. Missing configuration returns 503; invalid authentication returns 401; invalid brief returns 400; research failure returns a sanitized 502.
 - Use the registered `webResearchAgent` and the application sourcing service. Abort research after four minutes or a client disconnect. Never expose provider errors or secrets.
 
+- `POST /voice/assist` follows the same rules with `MASTRA_VOICE_SERVICE_TOKEN` (503 unconfigured, 401, 400 invalid request, sanitized 502), validates `ports/voice-assistant.ts`, and aborts after 55 seconds or client disconnect.
+
 # Work Guidance
 
 - Keep route handlers thin; research and source validation belong in the application service.

@@ -10,5 +10,8 @@ export default defineApp({
     WINDMILL_BASE_URL: v.optional(v.string()),
     WINDMILL_WORKSPACE: v.optional(v.string()),
     WINDMILL_PROCESSING_TOKEN: v.optional(v.string()),
+    // Voice dictation/assistant limits per user (defaults 10 per minute, 200 per day).
+    VOICE_RATE_LIMIT_PER_MINUTE: v.optional(v.string()),
+    VOICE_DAILY_CAP: v.optional(v.string()),
   },
 });

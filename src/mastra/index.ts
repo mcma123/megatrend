@@ -4,15 +4,18 @@ import { Mastra } from "@mastra/core/mastra";
 import { facebookMarketplaceAgent } from "./agents/facebook-marketplace-agent";
 import { insightDrafterAgent } from "./agents/insight-drafter-agent";
 import { okfAgent } from "./agents/okf-agent";
+import { voiceAssistantAgent } from "./agents/voice-assistant-agent";
 import { webResearchAgent } from "./agents/web-research-agent";
 import { windmillMcpServerProxies } from "./tools/windmill-tools";
 import { propertySourcingRoute } from "./routes/property-sourcing";
+import { voiceAssistantRoute } from "./routes/voice-assistant";
 
 export const mastra = new Mastra({
   agents: {
     facebookMarketplaceAgent,
     insightDrafterAgent,
     okfAgent,
+    voiceAssistantAgent,
     webResearchAgent,
   },
   mcpServers: {
@@ -21,6 +24,7 @@ export const mastra = new Mastra({
   server: {
     apiRoutes: [
       propertySourcingRoute,
+      voiceAssistantRoute,
       chatRoute({
         path: "/chat",
         agent: "web-research-agent",
