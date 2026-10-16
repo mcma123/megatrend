@@ -73,6 +73,8 @@ export default defineSchema({
     unverifiedRequirements: v.array(v.string()),
     matchScore: v.number(),
     matchExplanation: v.string(),
+    // Photo from the listing page itself (absent on candidates saved before photos existed).
+    imageUrl: v.optional(v.union(v.string(), v.null())),
   }).index("by_briefId", ["briefId"]),
 
   // Convex Auth users table, extended with app-level profile fields.

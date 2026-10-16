@@ -1,8 +1,10 @@
 import type { Agent } from "@mastra/core/agent";
 import {
   canonicalListingUrl,
+  clampStructuredResult,
+  listingImageFromScrape,
   normalizeCandidates,
-  sourcingResultSchema,
+  structuringResultSchema,
   type SourcingInput,
 } from "../../../../convex/lib/sourcing";
 
@@ -41,6 +43,8 @@ export function collectSourcingEvidence(evidence: ResearchEvidence) {
   if (!searched)
     throw new Error("No successful property search tool execution");
   const sourceUrls = new Set<string>();
+  /** Listing photos keyed by canonical listing URL (from the same scrapes that verify the URL). */
+  const imagesByUrl = new Map<string, string>();
   for (const item of successfulResults) {
     if (item.payload.toolName !== "windmill_firecrawl_scrape") continue;
     const page = item.payload.result as { markdown?: unknown };
@@ -51,7 +55,11 @@ export function collectSourcingEvidence(evidence: ResearchEvidence) {
     const args = call?.payload.args as { url?: unknown } | undefined;
     if (typeof args?.url === "string") {
       const url = canonicalListingUrl(args.url);
-      if (url) sourceUrls.add(url);
+      if (url) {
+        sourceUrls.add(url);
+        const image = listingImageFromScrape(item.payload.result, args.url);
+        if (image && !imagesByUrl.has(url)) imagesByUrl.set(url, image);
+      }
     }
   }
   const sources = successfulResults.map((item) => ({
@@ -63,6 +71,7 @@ export function collectSourcingEvidence(evidence: ResearchEvidence) {
   }));
   return {
     sourceUrls,
+    imagesByUrl,
     sources,
     partial: successfulResults.length < evidence.results.length,
   };
@@ -157,18 +166,21 @@ sizeSqm, rentalPerSqm and monthlyRental must be null unless stated in the source
 List all notes requirements not evidenced by the listing in unverifiedRequirements. Score suitability from 0 to 100 as an AI assessment and explain the score and size differences in matchExplanation. Unknown size or requirements must reduce confidence.
 Use warnings for limited coverage or uncertainty. Return an empty candidates array when no verified match exists. Do not label snippets or search failures as verified listings.`,
       structuredOutput: {
-        schema: sourcingResultSchema,
+        schema: structuringResultSchema,
         errorStrategy: "strict",
         jsonPromptInjection: "auto",
       },
     },
   );
-  const result = sourcingResultSchema.parse(structured.object);
+  const result = clampStructuredResult(structuringResultSchema.parse(structured.object));
   const candidates = normalizeCandidates(
     input.propertyType,
     result.candidates,
     evidence.sourceUrls,
-  );
+  ).map((candidate) => ({
+    ...candidate,
+    imageUrl: evidence.imagesByUrl.get(canonicalListingUrl(candidate.sourceUrl) ?? "") ?? null,
+  }));
   const warnings = [...result.warnings];
   if (bounded.shortened)
     warnings.unshift(

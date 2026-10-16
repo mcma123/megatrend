@@ -5,6 +5,8 @@ import { api, internal } from "./_generated/api";
 import schema from "./schema";
 import {
   canonicalListingUrl,
+  clampStructuredResult,
+  listingImageFromScrape,
   normalizeCandidates,
   sourcingResultSchema,
   type SourcingCandidate,
@@ -541,6 +543,104 @@ describe("source-backed property research", () => {
         ],
       }).sourceUrls.size,
     ).toBe(0);
+  });
+
+  test("listing photo comes from the scraped page: share image first, then a content photo", () => {
+    const page = "https://listings.test/to-let/centurion-warehouse";
+    expect(
+      listingImageFromScrape(
+        { metadata: { ogImage: "https://cdn.test/photos/front.jpg" }, markdown: "![](https://cdn.test/other.jpg)" },
+        page,
+      ),
+    ).toBe("https://cdn.test/photos/front.jpg");
+    expect(
+      listingImageFromScrape({ metadata: { "og:image": ["/img/hero.jpg", "/img/2.jpg"] } }, page),
+    ).toBe("https://listings.test/img/hero.jpg");
+    expect(
+      listingImageFromScrape(
+        {
+          metadata: { ogImage: "https://cdn.test/site-logo.png" },
+          markdown: [
+            "![Company logo](https://cdn.test/brand.png)",
+            "![](data:image/png;base64,AAAA)",
+            "![](https://cdn.test/icon.svg)",
+            "![Loading bay](photos/bay.jpg)",
+          ].join("\n"),
+        },
+        page,
+      ),
+    ).toBe("https://listings.test/to-let/photos/bay.jpg");
+    expect(listingImageFromScrape({ metadata: { ogImage: "javascript:alert(1)" } }, page)).toBeNull();
+    expect(listingImageFromScrape({ metadata: { ogImage: "https://user:pw@cdn.test/a.jpg" } }, page)).toBeNull();
+    expect(listingImageFromScrape({ markdown: "No pictures here." }, page)).toBeNull();
+    expect(listingImageFromScrape(null, page)).toBeNull();
+  });
+
+  test("over-long AI lists are trimmed to the stored limits instead of failing the search", () => {
+    const loose = {
+      candidates: [
+        {
+          ...candidate,
+          features: Array.from({ length: 20 }, (_, index) => `Feature ${index}`),
+          unverifiedRequirements: Array.from({ length: 15 }, (_, index) => `Requirement ${index}`),
+          matchExplanation: "x".repeat(3000),
+        },
+      ],
+      warnings: Array.from({ length: 9 }, (_, index) => `Warning ${index}`),
+    };
+    const clamped = clampStructuredResult(loose);
+    expect(clamped.candidates[0].features).toHaveLength(12);
+    expect(clamped.candidates[0].unverifiedRequirements).toHaveLength(12);
+    expect(clamped.candidates[0].matchExplanation.length).toBeLessThanOrEqual(1500);
+    expect(clamped.warnings).toHaveLength(6);
+    expect(sourcingResultSchema.safeParse(clamped).success).toBe(true);
+  });
+
+  test("research attaches each listing's own photo by canonical URL and never trusts the LLM for it", async () => {
+    const generate = vi
+      .fn()
+      .mockResolvedValueOnce({
+        steps: [
+          {
+            toolCalls: [
+              { payload: { toolCallId: "search", toolName: "windmill_firecrawl_search", args: { query: "q" } } },
+              {
+                payload: {
+                  toolCallId: "scrape",
+                  toolName: "windmill_firecrawl_scrape",
+                  args: { url: `${candidate.sourceUrl}?utm_source=x` },
+                },
+              },
+            ],
+            toolResults: [
+              { payload: { toolCallId: "search", toolName: "windmill_firecrawl_search", result: { success: true } } },
+              {
+                payload: {
+                  toolCallId: "scrape",
+                  toolName: "windmill_firecrawl_scrape",
+                  result: {
+                    markdown: "Warehouse to let. Ideal for logistics distribution.",
+                    metadata: { ogImage: "https://cdn.test/listing.jpg" },
+                  },
+                },
+              },
+            ],
+          },
+        ],
+      })
+      .mockResolvedValueOnce({
+        object: {
+          candidates: [{ ...candidate, imageUrl: "https://invented.test/fake.jpg" }],
+          warnings: [],
+        },
+      });
+    const result = await researchProperties(
+      { generate } as unknown as Agent,
+      input,
+      new AbortController().signal,
+    );
+    expect(result.candidates).toHaveLength(1);
+    expect(result.candidates[0].imageUrl).toBe("https://cdn.test/listing.jpg");
   });
 
   test("oversized research evidence is shortened instead of failing the search", () => {

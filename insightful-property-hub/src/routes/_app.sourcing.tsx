@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useRef, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
-import { ExternalLink, Globe, Loader2, Sparkles } from "lucide-react";
+import { Building2, ExternalLink, Globe, Loader2, Sparkles } from "lucide-react";
 import { api } from "../../../convex/_generated/api";
 import type { Doc, Id } from "../../../convex/_generated/dataModel";
 import { PageHeader } from "@/components/page-header";
@@ -45,6 +45,51 @@ const STATUS_LABELS = {
   failed: "Failed",
 };
 const timeLabel = (value: number) => new Date(value).toLocaleString("en-ZA");
+
+/** The listing's own photo (from its page); a neutral placeholder when none loads. */
+function ListingPhoto({
+  imageUrl,
+  sourceUrl,
+  name,
+}: {
+  imageUrl: string | null;
+  sourceUrl: string;
+  name: string;
+}) {
+  const [failed, setFailed] = useState(false);
+  const showPhoto = Boolean(imageUrl) && !failed;
+  return (
+    <figure className="mb-3">
+      <a
+        href={sourceUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="block overflow-hidden rounded-md border border-border bg-muted"
+      >
+        {showPhoto ? (
+          <img
+            src={imageUrl ?? undefined}
+            alt={name}
+            loading="lazy"
+            referrerPolicy="no-referrer"
+            onError={() => setFailed(true)}
+            className="aspect-[16/9] w-full object-cover transition-transform hover:scale-[1.02]"
+          />
+        ) : (
+          <div className="flex aspect-[16/9] w-full flex-col items-center justify-center gap-1.5 text-muted-foreground">
+            <Building2 className="h-7 w-7" aria-hidden />
+            <span className="text-xs">No photo on the listing</span>
+          </div>
+        )}
+      </a>
+      {showPhoto ? (
+        <figcaption className="mt-1 text-[10px] text-muted-foreground">
+          Photo from the listing
+        </figcaption>
+      ) : null}
+    </figure>
+  );
+}
 
 function SourcingPage() {
   const clients = useQuery(api.clients.list, {});
@@ -414,6 +459,11 @@ function SourcingPage() {
                         key={candidate._id}
                         className="rounded-lg border border-border bg-card p-4"
                       >
+                        <ListingPhoto
+                          imageUrl={candidate.imageUrl ?? null}
+                          sourceUrl={candidate.sourceUrl}
+                          name={candidate.name}
+                        />
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
                             <span className="text-xs text-muted-foreground">#{index + 1}</span>
