@@ -9,7 +9,7 @@
 # Local Contracts
 
 - Application services coordinate work, but should not contain provider-specific transport details.
-- `web-research/property-sourcing-service.ts` invokes the supplied Web Research Agent for live discovery and then validated structuring. Candidates must match the selected type and cite a successfully scraped page with readable content; Logistics allows warehouses/distribution facilities with explicit use evidence. Keep the shared contract in `convex/lib/sourcing.ts` synchronized with the endpoint and Convex processor. Search-tool failure is an error; partial research is surfaced as warnings.
+- `web-research/property-sourcing-service.ts` invokes the supplied Web Research Agent for live discovery and then validated structuring. Candidates must match the selected type and cite a successfully scraped page with readable content; Logistics allows warehouses/distribution facilities with explicit use evidence. Keep the shared contract in `convex/lib/sourcing.ts` synchronized with the endpoint and Convex processor. Search-tool failure is an error; partial research is surfaced as warnings. Oversized evidence never fails the search: `boundSourcingEvidence` shortens long pages (24k chars per page, tightening to 3k, then dropping trailing sources) to a 200k-character budget and adds a "pages were shortened" warning.
 - Depend on interfaces from `../ports/`, not directly on CLI, MCP, or other concrete runtimes.
 - Keep agent-facing actions explicit and named by use case or capability.
 - `okf-knowledge/okf-knowledge-service.ts` is the orchestration layer for OKF bundle discovery and retrieval. It should stay responsible for shaping grounded agent-facing responses while delegating all Windmill and MinIO specifics to the OKF knowledge gateway.

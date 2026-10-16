@@ -68,6 +68,55 @@ export function collectSourcingEvidence(evidence: ResearchEvidence) {
   };
 }
 
+const EVIDENCE_BUDGET = 200_000;
+const PAGE_LIMITS = [24_000, 12_000, 6_000, 3_000];
+const SEARCH_RESULT_LIMIT = 12_000;
+
+type EvidenceSource = { tool: string; input: unknown; result: unknown };
+
+function shortenSource(source: EvidenceSource, pageLimit: number) {
+  const result = source.result as Record<string, unknown> | null;
+  if (result && typeof result === "object" && typeof result.markdown === "string") {
+    if (result.markdown.length <= pageLimit) return { source, shortened: false };
+    return {
+      source: {
+        ...source,
+        result: { ...result, markdown: result.markdown.slice(0, pageLimit), markdownTruncated: true },
+      },
+      shortened: true,
+    };
+  }
+  const text = JSON.stringify(source.result) ?? "";
+  if (text.length <= SEARCH_RESULT_LIMIT) return { source, shortened: false };
+  return {
+    source: { ...source, result: { truncated: true, preview: text.slice(0, SEARCH_RESULT_LIMIT) } },
+    shortened: true,
+  };
+}
+
+/**
+ * Keep the structuring prompt within budget. Long pages are shortened (from the end, keeping the
+ * listing header and key facts), progressively more if needed; as a last resort the trailing
+ * sources are dropped. Callers surface `shortened` as a warning so nothing is cut silently.
+ */
+export function boundSourcingEvidence(sources: EvidenceSource[], budget = EVIDENCE_BUDGET) {
+  for (const pageLimit of PAGE_LIMITS) {
+    const shortenedSources = sources.map((source) => shortenSource(source, pageLimit));
+    const text = JSON.stringify(shortenedSources.map((item) => item.source));
+    if (text.length <= budget) {
+      return { text, shortened: shortenedSources.some((item) => item.shortened) };
+    }
+  }
+  const kept: EvidenceSource[] = [];
+  const smallest = PAGE_LIMITS[PAGE_LIMITS.length - 1];
+  for (const source of sources) {
+    const next = [...kept, shortenSource(source, smallest).source];
+    if (JSON.stringify(next).length > budget) break;
+    kept.push(next[next.length - 1]);
+  }
+  return { text: JSON.stringify(kept), shortened: true };
+}
+
 export async function researchProperties(
   agent: Agent,
   input: SourcingInput,
@@ -92,10 +141,9 @@ Research with the tools now; image search is unnecessary.`;
     calls: research.steps.flatMap((step) => step.toolCalls),
     results: research.steps.flatMap((step) => step.toolResults),
   });
-  // Bound evidence sent to the structuring pass without silently truncating source facts.
-  const sourceText = JSON.stringify(evidence.sources);
-  if (sourceText.length > 200_000)
-    throw new Error("Property research evidence exceeds the supported size");
+  // Bound evidence sent to the structuring pass; shortening is reported as a warning below.
+  const bounded = boundSourcingEvidence(evidence.sources);
+  const sourceText = bounded.text;
   const structured = await agent.generate(
     `Brief: ${brief}\nVerified scraped URLs: ${JSON.stringify([...evidence.sourceUrls])}\nTool evidence: ${sourceText}`,
     {
@@ -122,6 +170,10 @@ Use warnings for limited coverage or uncertainty. Return an empty candidates arr
     evidence.sourceUrls,
   );
   const warnings = [...result.warnings];
+  if (bounded.shortened)
+    warnings.unshift(
+      "Some long listing pages were shortened before extraction; check the source links for full details.",
+    );
   if (evidence.partial)
     warnings.unshift(
       "Some research tools failed; search coverage may be incomplete.",

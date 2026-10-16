@@ -32,7 +32,12 @@ export const propertySourcingRoute = registerApiRoute("/sourcing/research", {
       const agent = context.get("mastra").getAgent("webResearchAgent");
       const result = await researchProperties(agent, input.data, abortSignal);
       return context.json(result);
-    } catch {
+    } catch (failure) {
+      // Server log only (no listing content or secrets); the response stays sanitized.
+      console.error(
+        "[sourcing] research failed:",
+        failure instanceof Error ? failure.message.slice(0, 300) : "unknown error",
+      );
       return context.json(
         { error: "Property research failed or timed out. Try again." },
         502,

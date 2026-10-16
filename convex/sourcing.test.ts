@@ -10,6 +10,7 @@ import {
   type SourcingCandidate,
 } from "./lib/sourcing";
 import {
+  boundSourcingEvidence,
   collectSourcingEvidence,
   researchProperties,
 } from "../src/mastra/application/web-research/property-sourcing-service";
@@ -540,6 +541,28 @@ describe("source-backed property research", () => {
         ],
       }).sourceUrls.size,
     ).toBe(0);
+  });
+
+  test("oversized research evidence is shortened instead of failing the search", () => {
+    const longPage = "Warehouse to let in Centurion. ".repeat(20_000);
+    const sources = Array.from({ length: 12 }, (_, index) => ({
+      tool: "windmill_firecrawl_scrape",
+      input: { url: `https://listing.test/${index}` },
+      result: { success: true, markdown: longPage },
+    }));
+    const bounded = boundSourcingEvidence(sources);
+    expect(bounded.shortened).toBe(true);
+    expect(bounded.text.length).toBeLessThanOrEqual(200_000);
+    const kept = JSON.parse(bounded.text) as { result: { markdown: string; markdownTruncated?: boolean } }[];
+    expect(kept.length).toBeGreaterThan(0);
+    expect(kept[0].result.markdown.startsWith("Warehouse to let in Centurion.")).toBe(true);
+    expect(kept[0].result.markdownTruncated).toBe(true);
+
+    const small = boundSourcingEvidence([sources[0]].map((source) => ({
+      ...source,
+      result: { success: true, markdown: "Short page" },
+    })));
+    expect(small.shortened).toBe(false);
   });
 
   test("agent searches with all filters, structures evidence, and drops invented sources", async () => {
