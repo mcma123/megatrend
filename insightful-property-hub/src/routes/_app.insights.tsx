@@ -1,3 +1,4 @@
+import { DocumentLink } from "@/components/documents/document-link";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { useMutation, useQuery } from "convex/react";
@@ -142,14 +143,13 @@ function InsightsPage() {
               ) : null}
               <div className="mt-3 space-y-1 text-xs text-muted-foreground">
                 {insight.documents.map((document) => (
-                  <Link
+                  <DocumentLink
                     key={document.documentId}
-                    to="/documents/$id"
-                    params={{ id: document.documentId }}
+                    documentId={document.documentId}
                     className="flex items-center gap-1 hover:text-primary"
                   >
                     <FileText className="h-3 w-3" /> {document.filename}
-                  </Link>
+                  </DocumentLink>
                 ))}
                 {insight.documents.length === 0 && !insight.leaseId ? (
                   <p className="text-warning">No evidence linked yet</p>

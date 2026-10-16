@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useQuery } from "convex/react";
 import { Plus } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
+import { DocumentLink } from "@/components/documents/document-link";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -127,6 +128,18 @@ function LeasesPage() {
                     >
                       {l.property?.name ?? "Property"}
                     </Link>
+                    <div className="mt-1 text-xs text-muted-foreground">
+                      {l.sourceDocumentId ? (
+                        <DocumentLink
+                          documentId={l.sourceDocumentId}
+                          className="text-left hover:text-primary"
+                        >
+                          View source document
+                        </DocumentLink>
+                      ) : (
+                        "No document attached"
+                      )}
+                    </div>
                   </td>
                   <td className="py-3 pr-3 text-muted-foreground">{l.client.name}</td>
                   <td className="py-3 pr-3 font-mono text-xs">

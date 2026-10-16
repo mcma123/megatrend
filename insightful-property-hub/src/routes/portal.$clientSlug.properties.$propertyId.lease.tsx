@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { EmptyState, LoadingState } from "@/components/portfolio/form-fields";
 import { DocumentList } from "@/components/documents/document-list";
+import { DocumentLink } from "@/components/documents/document-link";
 import { useOpenDocument } from "@/lib/use-document-upload";
 import { usePortalClient } from "@/lib/portal-context";
 import {
@@ -99,8 +100,13 @@ function LeaseDetailPage() {
         <div className="mb-4 inline-flex items-center gap-2 rounded-md border border-success/40 bg-success/5 px-3 py-2 text-xs">
           <ShieldCheck className="h-4 w-4 text-success" />
           Human-approved: these terms were verified by Cyphersoft from{" "}
-          {(propertyDocuments ?? []).find((document) => document._id === lease.sourceDocumentId)
-            ?.filename ?? "your lease document"}
+          <DocumentLink
+            documentId={lease.sourceDocumentId}
+            className="text-left underline hover:text-primary"
+          >
+            {(propertyDocuments ?? []).find((document) => document._id === lease.sourceDocumentId)
+              ?.filename ?? "your lease document"}
+          </DocumentLink>
           {lease.approvedAt ? ` on ${new Date(lease.approvedAt).toLocaleDateString("en-ZA")}` : ""}.
         </div>
       ) : null}

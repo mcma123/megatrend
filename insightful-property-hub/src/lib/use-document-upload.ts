@@ -1,6 +1,6 @@
 import { useCallback } from "react";
-import { useConvex, useMutation } from "convex/react";
-import { toast } from "sonner";
+import { useMutation } from "convex/react";
+import { useDocumentViewer } from "@/lib/document-viewer-context";
 import { errorMessage } from "@/lib/portfolio";
 import { precheckFile, type DocumentType } from "@/lib/documents";
 import { api } from "../../../convex/_generated/api";
@@ -89,27 +89,7 @@ export function useDocumentUpload() {
   return { upload, replace };
 }
 
-/** Opens a document's original file in a new tab using a freshly signed URL. */
+/** Opens the shared in-app viewer without leaving the current module. */
 export function useOpenDocument() {
-  const convex = useConvex();
-  return useCallback(
-    async (documentId: Id<"documents">) => {
-      // Open the tab synchronously so pop-up blockers allow it, then point it at the file.
-      const tab = window.open("", "_blank");
-      try {
-        const url = await convex.query(api.documents.getFileUrl, { documentId });
-        if (!url) throw new Error("This file is no longer available");
-        if (tab) {
-          tab.opener = null;
-          tab.location.href = url;
-        } else {
-          window.location.assign(url);
-        }
-      } catch (openError) {
-        tab?.close();
-        toast.error(errorMessage(openError, "Could not open the file"));
-      }
-    },
-    [convex],
-  );
+  return useDocumentViewer();
 }

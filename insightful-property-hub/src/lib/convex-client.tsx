@@ -2,6 +2,7 @@ import { createContext, useContext, useMemo, useState, type ReactNode } from "re
 import { ConvexReactClient } from "convex/react";
 import { ConvexAuthProvider } from "@convex-dev/auth/react";
 import { ConvexAuthSessionProvider, UnconfiguredAuthSessionProvider } from "@/lib/auth-session";
+import { DocumentViewerProvider } from "@/components/documents/document-viewer";
 
 type ConvexContextValue = {
   convexClient: ConvexReactClient | null;
@@ -38,7 +39,9 @@ export function CyphersoftAppProviders({
   return (
     <ConvexClientContext.Provider value={contextValue}>
       <ConvexAuthProvider client={convexClient}>
-        <ConvexAuthSessionProvider>{children}</ConvexAuthSessionProvider>
+        <ConvexAuthSessionProvider>
+          <DocumentViewerProvider>{children}</DocumentViewerProvider>
+        </ConvexAuthSessionProvider>
       </ConvexAuthProvider>
     </ConvexClientContext.Provider>
   );

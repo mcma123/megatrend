@@ -11,6 +11,7 @@
 - Follow the file-based routing rules documented in `README.md`.
 - `__root.tsx` is the app shell and must continue to wrap descendant routes correctly.
 - Do not hand-edit generated route-tree artifacts outside the route files that produce them.
+- Document filenames/source-file actions open `DocumentLink` or `useOpenDocument` in the shared overlay across staff and client modules. Keep explicit details/review navigation separate. Lease source-file buttons use `sourceDocumentId`; show "No document attached" for leases without one. Never substitute a raw storage URL or new-tab action for normal document viewing.
 - `api.chat.ts` is the server-side proxy that maps `requestContext.selectedAgent` from the assistant UI to the correct Mastra chat endpoint. Keep that routing table synchronized with the registered Mastra chat routes.
 - `api.insights.draft.ts` is the staff-only proxy to the Mastra `insight-drafter-agent`; it must keep reading facts from Convex with the caller's token (never trust facts sent by the browser).
 - `api.sourcing.research.ts` is the Convex-to-Mastra server bridge for property research using the existing Web Research Agent. Require the shared server-only `MASTRA_SOURCING_SERVICE_TOKEN` before forwarding to `/sourcing/research` on `MASTRA_API_URL` (or the local Mastra server). Keep credentials and upstream errors out of responses.

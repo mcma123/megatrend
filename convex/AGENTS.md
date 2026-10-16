@@ -41,6 +41,10 @@
 
 # Work Guidance
 
+- File previews are independent of OCR/review: `documentPreviews.ts` owns a file-only authorized view, read-authorized conversion requests, and the `documentPreviews` table. `documents.previewId` selects the current preview; cache identity is original storage ID + renderer version. Public callers never choose URLs, job IDs, output storage IDs or converter settings. Existing replaced originals retain the same access as `documents.getFileUrl`; deleted documents are unavailable.
+- Preview conversion uses the separate `WINDMILL_PREVIEW_TOKEN` (run `f/docling/render_document_preview` + jobs read), with the existing Windmill base URL/workspace. Atomically claim before scheduling/submission; reserve the job ID and polling before the network call. Five-minute expiry requires explicit retry; late results cannot publish and their generated files are deleted. Poll late jobs for up to one hour to collect outputs. Do not modify extraction attempts, review decisions, or publication status when viewing files.
+- `documentPreviews.checkConnection` is an internal operator smoke test taking `{filename, inputBase64}` for a synthetic Office/TIFF fixture. It exercises the production token, storage and Windmill renderer without application records, returning job/PDF metadata and deleting source/output files. Never pass customer content or invoke it from public UI. A timed-out test's job ID requires operator inspection for a late output.
+
 - Document attempts (`processing.ts`, `processingAttempts`): `claim` atomically sets `documents.activeAttemptId` before submission. Reserve a Windmill UUID (`job_id` query parameter), attach it and schedule polling atomically. Only the current nonterminal attempt can attach jobs or update progress/results/failures; deleted/replaced documents reject updates. Repeated completion is a no-op.
 - Stage outcomes: `documents.processingStages` stores parse/knowledge/extract status, timestamps, bounded sanitized errors, retry classification, artifact references, and reuse provenance. Windmill continues to the summary after stage failures; explicit parse/extraction failure without usable fields becomes `processing_failed`. Partial parsing/truncation with usable fields requires acknowledged review. Knowledge failure disables document search but does not invalidate extraction or staff publication; show that failure independently.
 - Targeted recovery (`processing.retryStage`): staff writers claim atomically against the displayed extraction attempt; callers never supply artifact keys. Parse retries reread the original and rerun dependent work. Extraction retries validate and reuse the saved parsed JSON and preserve the knowledge outcome, replacing only current extraction ownership and decisions. Knowledge retries use `activeRecoveryAttemptId` with `sourceAttemptId` tied to the unchanged extraction pointer; they preserve fields, publication, source-coverage acknowledgement, and processing/review timestamps. Both pointers block overlapping processing and are checked on every callback. Retain historical attempts and reused artifact ownership.
@@ -61,6 +65,7 @@
 # Verification
 
 - Run `npm test` (vitest + convex-test, `convex/**/*.test.ts`, in-memory backend) when Convex functions or access rules change.
+- Preview lifecycle and isolation checks are in `documentPreviews.test.ts`; offline renderer checks run with `python scripts/test-document-preview.py`.
 - Run `CONVEX_DEPLOYMENT=prod:focused-malamute-656 npx convex codegen` to regenerate types and typecheck before deploying.
 
 # Child DOX Index

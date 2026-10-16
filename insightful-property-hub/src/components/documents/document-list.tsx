@@ -1,5 +1,6 @@
+import { DocumentLink } from "@/components/documents/document-link";
 import { Link } from "@tanstack/react-router";
-import { ExternalLink, FileText } from "lucide-react";
+import { FileText } from "lucide-react";
 import { DocumentStatusBadge } from "@/components/documents/document-status-badge";
 import {
   DOCUMENT_TYPE_LABELS,
@@ -8,6 +9,7 @@ import {
   type DocumentType,
 } from "@/lib/documents";
 import type { Id } from "../../../../convex/_generated/dataModel";
+import { useDocumentViewer } from "@/lib/document-viewer-context";
 
 export type DocumentListItem = {
   _id: Id<"documents">;
@@ -20,8 +22,7 @@ export type DocumentListItem = {
 };
 
 /**
- * Compact document list. Staff rows link to the document page; client rows open the file
- * (through `onOpen`, which fetches a fresh signed URL).
+ * Compact document list. Filenames open the shared viewer for staff and clients.
  */
 export function DocumentList({
   documents,
@@ -34,6 +35,7 @@ export function DocumentList({
   onOpen?: (documentId: Id<"documents">) => void;
   limit?: number;
 }) {
+  const openDocument = useDocumentViewer();
   const shown = limit ? documents.slice(0, limit) : documents;
   return (
     <ul className="divide-y divide-border">
@@ -43,23 +45,21 @@ export function DocumentList({
           <li key={document._id} className="flex items-center justify-between gap-3 py-2.5 text-sm">
             <div className="min-w-0">
               {audience === "staff" ? (
-                <Link
-                  to="/documents/$id"
-                  params={{ id: document._id }}
+                <DocumentLink
+                  documentId={document._id}
                   className="inline-flex max-w-full items-center gap-2 font-medium hover:text-primary"
                 >
                   <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
                   <span className="truncate">{document.filename}</span>
-                </Link>
+                </DocumentLink>
               ) : (
                 <button
                   type="button"
-                  onClick={() => onOpen?.(document._id)}
+                  onClick={() => (onOpen ?? openDocument)(document._id)}
                   className="inline-flex max-w-full items-center gap-2 text-left font-medium hover:text-primary"
                 >
                   <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
                   <span className="truncate">{document.filename}</span>
-                  <ExternalLink className="h-3 w-3 shrink-0 text-muted-foreground" />
                 </button>
               )}
               <div className="pl-6 text-xs text-muted-foreground">
@@ -72,7 +72,18 @@ export function DocumentList({
                   .join(" · ")}
               </div>
             </div>
-            <DocumentStatusBadge status={document.status} audience={audience} />
+            <div className="flex items-center gap-3">
+              {audience === "staff" ? (
+                <Link
+                  to="/documents/$id"
+                  params={{ id: document._id }}
+                  className="text-xs text-muted-foreground hover:text-primary"
+                >
+                  Details / review
+                </Link>
+              ) : null}
+              <DocumentStatusBadge status={document.status} audience={audience} />
+            </div>
           </li>
         );
       })}

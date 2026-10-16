@@ -1,4 +1,5 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { DocumentLink } from "@/components/documents/document-link";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery } from "convex/react";
 import { AlertTriangle, FileText, Search, Upload } from "lucide-react";
@@ -156,14 +157,13 @@ function DocumentsPage() {
               {filtered.map((d) => (
                 <tr key={d._id} className="border-b border-border/50 hover:bg-accent/30">
                   <td className="py-3 pr-3">
-                    <Link
-                      to="/documents/$id"
-                      params={{ id: d._id }}
+                    <DocumentLink
+                      documentId={d._id}
                       className="inline-flex items-center gap-2 font-medium hover:text-primary"
                     >
                       <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
                       <span className="max-w-[18rem] truncate">{d.filename}</span>
-                    </Link>
+                    </DocumentLink>
                     {d.property ? (
                       <div className="pl-6 text-xs text-muted-foreground">{d.property.name}</div>
                     ) : null}

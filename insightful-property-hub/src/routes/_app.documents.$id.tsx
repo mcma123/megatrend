@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { toast } from "sonner";
-import { AlertTriangle, ArrowLeft, ExternalLink, RefreshCcw, Trash2 } from "lucide-react";
+import { AlertTriangle, ArrowLeft, Eye, RefreshCcw, Trash2 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,7 @@ import { cn } from "@/lib/utils";
 import { useVoiceCommands } from "@/lib/voice/command-registry";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
+import { useOpenDocument } from "@/lib/use-document-upload";
 
 export const Route = createFileRoute("/_app/documents/$id")({
   head: () => ({ meta: [{ title: "Document · Cyphersoft OS" }] }),
@@ -39,6 +40,7 @@ const PIPELINE = [
 function DocumentDetail() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
+  const openDocument = useOpenDocument();
   const document = useQuery(api.documents.get, { documentId: id as Id<"documents"> });
   const reprocess = useMutation(api.documents.reprocess);
   const remove = useMutation(api.documents.requestDeletion);
@@ -194,10 +196,8 @@ function DocumentDetail() {
         actions={
           <>
             {document.fileUrl ? (
-              <Button asChild variant="outline">
-                <a href={document.fileUrl} target="_blank" rel="noreferrer">
-                  <ExternalLink className="h-4 w-4" /> View original
-                </a>
+              <Button variant="outline" onClick={() => openDocument(document._id)}>
+                <Eye className="h-4 w-4" /> View original
               </Button>
             ) : null}
             {document.canManage ? (

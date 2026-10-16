@@ -253,6 +253,7 @@ export default defineSchema({
     contentType: v.string(),
     sizeBytes: v.number(),
     storageId: v.id("_storage"),
+    previewId: v.optional(v.id("documentPreviews")),
     source: documentSource,
     // Type chosen by the uploader; `documentType` is the classified type once processed.
     declaredType: v.optional(documentType),
@@ -308,6 +309,17 @@ export default defineSchema({
       searchField: "textPreview",
       filterFields: ["tenantId"],
     }),
+
+  documentPreviews: defineTable({
+    documentId: v.id("documents"),
+    sourceStorageId: v.id("_storage"),
+    rendererVersion: v.number(),
+    status: v.union(v.literal("preparing"), v.literal("ready"), v.literal("failed")),
+    createdAt: v.number(),
+    jobId: v.optional(v.string()),
+    storageId: v.optional(v.id("_storage")),
+    error: v.optional(v.string()),
+  }).index("by_documentId", ["documentId"]),
 
   processingAttempts: defineTable({
     tenantId: v.id("tenants"),

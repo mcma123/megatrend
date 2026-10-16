@@ -203,6 +203,16 @@ Production rollout remains separate:
 Release status: production Convex deployment succeeded on 2026-10-12. The compatible document-processing script and flow were pushed to Windmill after a scoped dry run (`--extra-includes 'f/docling/convert_document_to_markdown.*,f/docling/process_document_for_app__flow/**'`, skipping folders, variables and resources); document summary/recovery checks passed 10/3 tests. Dokploy access and the portal at `https://mega.cyphersoftai.com` were verified on 2026-10-13. Sourcing endpoint/token configuration is verified in Convex and Dokploy. The deployed portal bridge passed its build, 18 sourcing tests, local authentication/forwarding checks, and live 401/400 checks. Live Web Research Agent searches returned HTTP 200: Office/Sandton retained zero verified matches with warnings; Warehouse/Midrand returned three source-cited candidates without warnings. Four-type coverage and signed-in saved-history UI verification remain pending. Generated Python caches and local credentials are excluded from the GitHub release.
 
 ## Phase 10: Hardening & clean-up
+
+### In-app document viewing
+
+- [x] Shared staff/client overlay and file links across review, documents, invoices, leases and existing evidence/attachment links; separate staff details/review navigation.
+- [x] Native PDF/image/escaped-text rendering and independent private Office/TIFF preview lifecycle with tests and configuration guide (`insightful-property-hub/docs/document-viewer.md`).
+- [x] Activate private converter, scoped Windmill script/token and additive Convex schema/functions. Live synthetic DOCX/XLSX/PPTX/TIFF conversions produced PDFs and cleaned their temporary files on 2026-10-16; job IDs and infrastructure details are recorded in `insightful-property-hub/docs/document-viewer.md`. Frontend release follows the normal `main` auto-deploy path.
+- [ ] Verify authenticated production module-to-viewer journeys and real Office layout (including legacy DOC/XLS). This is separate from document extraction hardening in `docling_file.md`.
+
+### Remaining hardening
+
 - [ ] Delete `src/lib/mock-data.ts` (no remaining imports) — `src/lib/portal-auth.ts` already removed in Phase 0
 - [ ] Run export jobs (`exportJobs` processor) and retention policy
 - [ ] Error/empty/loading states on every page

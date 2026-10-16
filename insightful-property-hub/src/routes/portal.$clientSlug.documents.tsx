@@ -2,16 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useRef, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { toast } from "sonner";
-import {
-  ExternalLink,
-  FileScan,
-  FileText,
-  RefreshCcw,
-  Replace,
-  Search,
-  Trash2,
-  Upload,
-} from "lucide-react";
+import { Eye, FileScan, FileText, RefreshCcw, Replace, Search, Trash2, Upload } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -32,6 +23,7 @@ import {
 import { usePortal } from "@/lib/portal-context";
 import { errorMessage } from "@/lib/portfolio";
 import { useDocumentUpload, useOpenDocument } from "@/lib/use-document-upload";
+import { DocumentLink } from "@/components/documents/document-link";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 
@@ -309,10 +301,13 @@ function ClientDocumentsPage() {
                       className="border-b border-border/50 align-top hover:bg-accent/20"
                     >
                       <td className="py-3 pr-3">
-                        <div className="flex items-center gap-2 font-medium">
+                        <DocumentLink
+                          documentId={d._id}
+                          className="flex items-center gap-2 text-left font-medium hover:text-primary"
+                        >
                           <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
                           <span className="max-w-[16rem] truncate">{d.filename}</span>
-                        </div>
+                        </DocumentLink>
                         <div className="pl-6 text-xs text-muted-foreground">
                           {formatBytes(d.sizeBytes)}
                           {d.source === "scanner" ? " · scanned" : ""}
@@ -340,7 +335,7 @@ function ClientDocumentsPage() {
                             size="sm"
                             onClick={() => void openDocument(d._id)}
                           >
-                            <ExternalLink className="h-3.5 w-3.5" /> View
+                            <Eye className="h-3.5 w-3.5" /> View
                           </Button>
                           {canUpload && d.canRetryProcessing ? (
                             <Button variant="ghost" size="sm" onClick={() => void onRetry(d._id)}>

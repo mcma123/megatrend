@@ -1,3 +1,4 @@
+import { DocumentLink } from "@/components/documents/document-link";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
 import { AlertTriangle, FileText, Lightbulb } from "lucide-react";
@@ -38,14 +39,13 @@ function ReviewInbox() {
               >
                 <div className="min-w-0">
                   {item.kind === "document" ? (
-                    <Link
-                      to="/documents/$id"
-                      params={{ id: item.id }}
+                    <DocumentLink
+                      documentId={item.id}
                       className="inline-flex max-w-full items-center gap-2 font-medium hover:text-primary"
                     >
                       <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
                       <span className="truncate">{item.title}</span>
-                    </Link>
+                    </DocumentLink>
                   ) : (
                     <Link
                       to="/insights"
@@ -89,7 +89,16 @@ function ReviewInbox() {
                 </div>
                 <div className="flex items-center gap-3 pl-6 sm:pl-0">
                   {item.kind === "document" ? (
-                    <DocumentStatusBadge status={item.status as DocumentStatus} />
+                    <>
+                      <Link
+                        to="/documents/$id"
+                        params={{ id: item.id }}
+                        className="text-xs hover:text-primary"
+                      >
+                        Review details
+                      </Link>
+                      <DocumentStatusBadge status={item.status as DocumentStatus} />
+                    </>
                   ) : (
                     <span className="tag-pill">Under review</span>
                   )}

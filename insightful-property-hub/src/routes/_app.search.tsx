@@ -1,3 +1,4 @@
+import { DocumentLink } from "@/components/documents/document-link";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState, type FormEvent } from "react";
 import { useQuery } from "convex/react";
@@ -223,14 +224,13 @@ function SearchPage() {
                       className="flex items-start justify-between gap-3 py-2"
                     >
                       <div className="min-w-0">
-                        <Link
-                          to="/documents/$id"
-                          params={{ id: document.documentId }}
+                        <DocumentLink
+                          documentId={document.documentId}
                           className="inline-flex items-center gap-2 font-medium hover:text-primary"
                         >
                           <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />{" "}
                           {document.filename}
-                        </Link>
+                        </DocumentLink>
                         <div className="pl-6 text-xs text-muted-foreground">
                           {document.client.name}
                           {document.documentType

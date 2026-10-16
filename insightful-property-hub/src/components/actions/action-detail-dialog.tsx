@@ -1,3 +1,4 @@
+import { DocumentLink } from "@/components/documents/document-link";
 import { Link } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
 import { useMutation, useQuery } from "convex/react";
@@ -142,13 +143,12 @@ export function ActionDetailDialog({
             ) : null}
             {action.document ? (
               isStaff ? (
-                <Link
-                  to="/documents/$id"
-                  params={{ id: action.document.documentId }}
+                <DocumentLink
+                  documentId={action.document.documentId}
                   className="inline-flex items-center gap-1 text-sm hover:text-primary"
                 >
                   <FileText className="h-4 w-4" /> {action.document.filename}
-                </Link>
+                </DocumentLink>
               ) : (
                 <button
                   type="button"

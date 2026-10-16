@@ -1,4 +1,5 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { DocumentLink } from "@/components/documents/document-link";
+import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { toast } from "sonner";
@@ -131,13 +132,12 @@ function InvoicesPage() {
                       <div className="font-medium">{anomaly.supplier}</div>
                       <div className="max-w-sm text-xs text-muted-foreground">{anomaly.cause}</div>
                       {anomaly.document ? (
-                        <Link
-                          to="/documents/$id"
-                          params={{ id: anomaly.document.documentId }}
+                        <DocumentLink
+                          documentId={anomaly.document.documentId}
                           className="mt-1 inline-flex items-center gap-1 text-xs hover:text-primary"
                         >
                           <FileText className="h-3 w-3" /> {anomaly.document.filename}
-                        </Link>
+                        </DocumentLink>
                       ) : null}
                       {anomaly.note ? (
                         <div className="mt-1 text-xs italic text-muted-foreground">
@@ -235,13 +235,12 @@ function InvoicesPage() {
                 {invoices.map((invoice) => (
                   <tr key={invoice._id} className="border-b border-border/50">
                     <td className="py-3 pr-3">
-                      <Link
-                        to="/documents/$id"
-                        params={{ id: invoice.documentId }}
+                      <DocumentLink
+                        documentId={invoice.documentId}
                         className="font-medium hover:text-primary"
                       >
                         {invoice.supplier}
-                      </Link>
+                      </DocumentLink>
                       <div className="text-xs text-muted-foreground">
                         {invoice.kind === "utility_statement" ? "Utility statement" : "Invoice"}
                         {invoice.invoiceNumber ? ` · ${invoice.invoiceNumber}` : ""}

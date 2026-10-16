@@ -1,3 +1,4 @@
+import { DocumentLink } from "@/components/documents/document-link";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
 import {
@@ -261,13 +262,12 @@ function Dashboard() {
               {overview.latestDocuments.map((d) => (
                 <li key={d.documentId} className="flex items-center justify-between gap-3 text-sm">
                   <div className="min-w-0">
-                    <Link
-                      to="/documents/$id"
-                      params={{ id: d.documentId }}
+                    <DocumentLink
+                      documentId={d.documentId}
                       className="block truncate font-medium hover:text-primary"
                     >
                       {d.filename}
-                    </Link>
+                    </DocumentLink>
                     <div className="text-xs text-muted-foreground">
                       {d.client.name}
                       {d.documentType ? ` · ${DOCUMENT_TYPE_LABELS[d.documentType]}` : ""} ·{" "}

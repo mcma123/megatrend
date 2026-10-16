@@ -34,6 +34,7 @@ type Env = {
   readonly VOICE_DAILY_CAP: string | undefined;
   readonly VOICE_RATE_LIMIT_PER_MINUTE: string | undefined;
   readonly WINDMILL_BASE_URL: string | undefined;
+  readonly WINDMILL_PREVIEW_TOKEN: string | undefined;
   readonly WINDMILL_PROCESSING_TOKEN: string | undefined;
   readonly WINDMILL_WORKSPACE: string | undefined;
 };

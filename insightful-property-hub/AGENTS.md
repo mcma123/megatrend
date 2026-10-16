@@ -17,6 +17,7 @@
 - Keep app-level tooling, config, and generated-artifact expectations documented here.
 - Hosted auth requires `VITE_CONVEX_URL` or `CONVEX_URL` on the frontend server/container, independently of Convex dashboard variables. The portal supports runtime configuration; Docker build args are optional when the runtime URL is supplied. OpenRouter and Windmill credentials remain server-only.
 - Route, component, and source-level rules belong in the closer docs under `src/`.
+- `predev`, `prebuild`, and `prebuild:dev` run `scripts/copy-pdfjs-assets.mjs` to copy local PDF.js fonts, CMaps, ICC profiles and decoders into generated `public/pdfjs/` (gitignored and excluded from lint). Keep this hook when changing build commands. Viewer setup and rollout instructions live in `docs/document-viewer.md`.
 
 # Verification
 

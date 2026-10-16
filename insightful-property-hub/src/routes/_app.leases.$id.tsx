@@ -4,6 +4,7 @@ import { useMutation, useQuery } from "convex/react";
 import { toast } from "sonner";
 import { Archive, ArrowLeft, Pencil, RefreshCcw, Sparkles, Trash2 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
+import { DocumentLink } from "@/components/documents/document-link";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -183,6 +184,13 @@ function LeaseDetail() {
           ) : null
         }
       />
+      <div className="mb-4">
+        {lease.sourceDocumentId ? (
+          <DocumentLink documentId={lease.sourceDocumentId}>View source document</DocumentLink>
+        ) : (
+          <p className="text-sm text-muted-foreground">No document attached</p>
+        )}
+      </div>
       <div className="grid gap-3 md:grid-cols-4">
         {[
           { l: "Monthly", v: formatZAR(lease.monthlyRental) },
