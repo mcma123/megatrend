@@ -18,6 +18,8 @@
 
 # Work Guidance
 
+- `rich-output-instructions.ts` enables grounded cards/tables/charts/drafts only when the authenticated CopilotKit route sets `richOutput: "true"`. Do not change background sourcing or insight JSON contracts. Marketplace excludes the watch-creation tool in this read-only chat context; retain approval-based watches outside it.
+
 - Keep tool access explicit in each agent definition.
 - Prefer shared helper logic in adjacent modules over copying instructions or integration code across agents.
 - When adding another agent-facing document domain, model it after the `okf-agent` split: agent definition here, orchestration in `application/`, stable contract in `ports/`, and provider translation in `infrastructure/`.

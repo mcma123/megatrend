@@ -1,6 +1,7 @@
 import { Agent } from "@mastra/core/agent";
 
 import { windmillResearchTools } from "../tools/windmill-tools";
+import { richOutputInstructions } from "./rich-output-instructions";
 
 const DEFAULT_MODEL = process.env.OPENROUTER_MODEL || "openai/gpt-4.1-mini";
 const OPENROUTER_URL = process.env.OPENROUTER_BASE_URL || "https://openrouter.ai/api/v1";
@@ -51,9 +52,9 @@ export const webResearchAgent = new Agent({
   id: "web-research-agent",
   name: "Web Research Agent",
   instructions: ({ requestContext }) =>
-    (requestContext as RequestContextLike | undefined)?.get("includeImages") === "true"
+    ((requestContext as RequestContextLike | undefined)?.get("includeImages") === "true"
       ? `${BASE_INSTRUCTIONS}\n\n${IMAGES_ENABLED_INSTRUCTIONS}`
-      : BASE_INSTRUCTIONS,
+      : BASE_INSTRUCTIONS) + richOutputInstructions(requestContext),
   model: ({ requestContext }) =>
     resolveOpenRouterModel((requestContext as RequestContextLike | undefined)?.get("selectedModel")),
   tools: windmillResearchTools,

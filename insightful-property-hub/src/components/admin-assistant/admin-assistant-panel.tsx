@@ -1,15 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useChat } from "@ai-sdk/react";
-import { useAuthToken } from "@convex-dev/auth/react";
-import { DefaultChatTransport, type UIMessage, type UIMessagePart } from "ai";
+import { useAssistantChat } from "./use-assistant-chat";
+import { AssistantMessageView } from "./assistant-message";
+import { RichOutputContext } from "./assistant-runtime-context";
+import { CopilotChatConfigurationProvider } from "@copilotkit/react-core/v2/headless";
 import { useRouterState } from "@tanstack/react-router";
 import {
   ArrowUp,
   Bot,
-  BrainCircuit,
   Check,
   ChevronDown,
-  ExternalLink,
   Eye,
   EyeOff,
   Image as ImageIcon,
@@ -19,13 +18,11 @@ import {
   Minimize2,
   Sparkles,
   Square,
-  Wrench,
   X,
 } from "lucide-react";
 import { useAdminAssistant } from "@/components/admin-assistant/admin-assistant-context";
 import { getAdminAssistantPageContext } from "@/components/admin-assistant/page-context";
 import { Button } from "@/components/ui/button";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   Command,
   CommandEmpty,
@@ -45,8 +42,6 @@ const MODEL_STORAGE_KEY = "megatrend-assistant:selected-model";
 const AGENT_STORAGE_KEY = "megatrend-assistant:selected-agent";
 const SHOW_REASONING_STORAGE_KEY = "megatrend-assistant:show-reasoning";
 const SHOW_IMAGES_STORAGE_KEY = "megatrend-assistant:show-images";
-const IMAGE_SEARCH_TOOL_PART = "tool-windmill_searxng_image_search";
-const MAX_GALLERY_IMAGES = 12;
 
 type ModelOption = {
   id: string;
@@ -68,25 +63,6 @@ type AgentOption = {
 
 type ModelsResponse = {
   models?: ModelOption[];
-};
-
-type AssistantPart = UIMessagePart<
-  Record<string, never>,
-  Record<string, { input: unknown; output: unknown }>
->;
-type AssistantMessage = UIMessage<
-  unknown,
-  Record<string, never>,
-  Record<string, { input: unknown; output: unknown }>
->;
-type ToolLikePart = AssistantPart & {
-  type: "dynamic-tool" | `tool-${string}`;
-  state: string;
-  toolName?: string;
-  toolCallId: string;
-  input?: unknown;
-  output?: unknown;
-  errorText?: string;
 };
 
 const AGENT_OPTIONS: AgentOption[] = [
@@ -131,37 +107,6 @@ const AGENT_OPTIONS: AgentOption[] = [
   },
 ];
 
-function getUserMessageText(message: AssistantMessage) {
-  return message.parts
-    .map((part) => (part.type === "text" ? part.text : ""))
-    .join("\n")
-    .trim();
-}
-
-function isToolPart(part: AssistantPart): part is ToolLikePart {
-  return part.type === "dynamic-tool" || part.type.startsWith("tool-");
-}
-
-function getToolName(part: ToolLikePart) {
-  return part.type === "dynamic-tool" ? part.toolName : part.type.replace(/^tool-/, "");
-}
-
-function formatJson(value: unknown) {
-  if (value == null) {
-    return null;
-  }
-
-  if (typeof value === "string") {
-    return value;
-  }
-
-  try {
-    return JSON.stringify(value, null, 2);
-  } catch {
-    return String(value);
-  }
-}
-
 function formatContextLength(value: number | null) {
   if (!value) {
     return null;
@@ -173,249 +118,10 @@ function formatContextLength(value: number | null) {
   }).format(value);
 }
 
-function ReasoningCard({ part }: { part: Extract<AssistantPart, { type: "reasoning" }> }) {
-  const isStreaming = part.state === "streaming";
-
-  return (
-    <Collapsible defaultOpen={isStreaming}>
-      <div className="rounded-2xl border border-border/80 bg-muted/40 p-3 shadow-sm">
-        <CollapsibleTrigger className="flex w-full items-center justify-between gap-3 text-left">
-          <div className="inline-flex items-center gap-2 text-sm font-medium text-foreground">
-            <BrainCircuit className="h-4 w-4 text-primary" />
-            Reasoning
-          </div>
-          <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform data-[state=open]:rotate-180" />
-        </CollapsibleTrigger>
-        <CollapsibleContent className="pt-3">
-          <p className="whitespace-pre-wrap text-sm leading-6 text-foreground">{part.text}</p>
-        </CollapsibleContent>
-      </div>
-    </Collapsible>
-  );
-}
-
-function ToolCard({ part }: { part: ToolLikePart }) {
-  const toolName = getToolName(part);
-  const inputText = "input" in part ? formatJson(part.input) : null;
-  const outputText = "output" in part ? formatJson(part.output) : null;
-  const errorText = "errorText" in part ? part.errorText : null;
-  const statusLabel = part.state.replace(/-/g, " ");
-  const hasDetails = Boolean(inputText || outputText || errorText);
-
-  return (
-    <Collapsible defaultOpen={part.state !== "output-available"}>
-      <div className="rounded-2xl border border-border/80 bg-background p-3 shadow-sm">
-        <CollapsibleTrigger className="flex w-full items-center justify-between gap-3 text-left">
-          <div className="flex min-w-0 items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
-              <Wrench className="h-4 w-4" />
-            </div>
-            <div className="min-w-0">
-              <p className="truncate text-sm font-medium text-foreground">{toolName}</p>
-              <p className="text-xs uppercase tracking-[0.12em] text-muted-foreground">
-                {statusLabel}
-              </p>
-            </div>
-          </div>
-          {hasDetails ? (
-            <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform data-[state=open]:rotate-180" />
-          ) : null}
-        </CollapsibleTrigger>
-        {hasDetails ? (
-          <CollapsibleContent className="space-y-3 pt-3">
-            {inputText ? (
-              <div>
-                <p className="mb-1 text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-                  Input
-                </p>
-                <pre className="overflow-x-auto rounded-xl bg-muted/60 p-3 text-xs leading-5 text-foreground">
-                  {inputText}
-                </pre>
-              </div>
-            ) : null}
-            {outputText ? (
-              <div>
-                <p className="mb-1 text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-                  Output
-                </p>
-                <pre className="overflow-x-auto rounded-xl bg-muted/60 p-3 text-xs leading-5 text-foreground">
-                  {outputText}
-                </pre>
-              </div>
-            ) : null}
-            {errorText ? (
-              <div className="rounded-xl border border-destructive/20 bg-destructive/10 p-3 text-xs leading-5 text-destructive">
-                {errorText}
-              </div>
-            ) : null}
-          </CollapsibleContent>
-        ) : null}
-      </div>
-    </Collapsible>
-  );
-}
-
-type GalleryImage = {
-  title: string | null;
-  imageUrl: string;
-  thumbnailUrl: string | null;
-  pageUrl: string | null;
-  source: string | null;
-};
-
-function getGalleryImages(part: AssistantPart): GalleryImage[] {
-  if (part.type !== IMAGE_SEARCH_TOOL_PART || !("state" in part) || part.state !== "output-available") {
-    return [];
-  }
-
-  const output = "output" in part ? (part.output as { results?: unknown } | null) : null;
-  if (!output || !Array.isArray(output.results)) {
-    return [];
-  }
-
-  return output.results
-    .filter(
-      (item): item is GalleryImage =>
-        typeof item === "object" &&
-        item !== null &&
-        typeof (item as { imageUrl?: unknown }).imageUrl === "string",
-    )
-    .slice(0, MAX_GALLERY_IMAGES);
-}
-
-function GalleryTile({ image }: { image: GalleryImage }) {
-  const [failed, setFailed] = useState(false);
-  if (failed) {
-    return null;
-  }
-
-  const caption = image.title || image.source;
-
-  return (
-    <a
-      href={image.pageUrl ?? image.imageUrl}
-      target="_blank"
-      rel="noreferrer"
-      title={image.title ?? undefined}
-      className="group overflow-hidden rounded-2xl border border-border/80 bg-muted/40 shadow-sm"
-    >
-      <img
-        src={image.thumbnailUrl ?? image.imageUrl}
-        alt={image.title ?? "Search result image"}
-        loading="lazy"
-        referrerPolicy="no-referrer"
-        onError={() => setFailed(true)}
-        className="aspect-[4/3] w-full object-cover transition-transform duration-300 group-hover:scale-105"
-      />
-      {caption ? (
-        <div className="space-y-0.5 px-2.5 py-2">
-          {image.title ? (
-            <p className="line-clamp-1 text-xs font-medium text-foreground">{image.title}</p>
-          ) : null}
-          {image.source ? (
-            <p className="line-clamp-1 text-[11px] text-muted-foreground">{image.source}</p>
-          ) : null}
-        </div>
-      ) : null}
-    </a>
-  );
-}
-
-function ImageGallery({ images }: { images: GalleryImage[] }) {
-  return (
-    <div className="rounded-2xl border border-border/80 bg-card p-3 shadow-sm">
-      <div className="mb-2 inline-flex items-center gap-2 text-xs font-medium text-muted-foreground">
-        <ImageIcon className="h-3.5 w-3.5" />
-        Images
-      </div>
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-        {images.map((image) => (
-          <GalleryTile key={image.imageUrl} image={image} />
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function AssistantMessageView({
-  message,
-  showReasoning,
-}: {
-  message: AssistantMessage;
-  showReasoning: boolean;
-}) {
-  // Reasoning and tool cards are the "working" output; hide them unless the user opts in.
-  // Image search results are content, not working output, so their gallery always shows.
-  const visibleParts = message.parts.filter(
-    (part) =>
-      part.type !== "step-start" &&
-      (showReasoning ||
-        (part.type !== "reasoning" && !isToolPart(part)) ||
-        getGalleryImages(part).length > 0),
-  );
-
-  if (visibleParts.length === 0) {
-    return null;
-  }
-
-  return (
-    <div className="flex justify-start">
-      <div className="flex w-full max-w-[92%] flex-col gap-3">
-        {visibleParts.map((part, index) => {
-          if (part.type === "text") {
-            return (
-              <div
-                key={`${message.id}-text-${index}`}
-                className="rounded-[28px] border border-border/80 bg-card px-4 py-3 text-sm text-foreground shadow-sm"
-              >
-                <p className="whitespace-pre-wrap leading-6">{part.text}</p>
-              </div>
-            );
-          }
-
-          if (part.type === "reasoning") {
-            return <ReasoningCard key={`${message.id}-reasoning-${index}`} part={part} />;
-          }
-
-          if (isToolPart(part)) {
-            const images = getGalleryImages(part);
-            if (images.length > 0) {
-              return (
-                <div key={`${message.id}-tool-${index}`} className="flex flex-col gap-3">
-                  <ImageGallery images={images} />
-                  {showReasoning ? <ToolCard part={part} /> : null}
-                </div>
-              );
-            }
-
-            return <ToolCard key={`${message.id}-tool-${index}`} part={part} />;
-          }
-
-          if (part.type === "source-url") {
-            return (
-              <a
-                key={`${message.id}-source-${index}`}
-                href={part.url}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex w-fit items-center gap-2 rounded-full border border-border bg-background px-3 py-2 text-xs text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-              >
-                <ExternalLink className="h-3.5 w-3.5" />
-                {part.title ?? part.url}
-              </a>
-            );
-          }
-
-          return null;
-        })}
-      </div>
-    </div>
-  );
-}
-
 export function AdminAssistantPanel() {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
-  const { close, expanded, toggleExpanded, pendingPrompt, clearPendingPrompt } = useAdminAssistant();
+  const { close, expanded, toggleExpanded, pendingPrompt, clearPendingPrompt } =
+    useAdminAssistant();
   const pageContext = getAdminAssistantPageContext(pathname);
   const [draft, setDraft] = useState("");
 
@@ -429,24 +135,10 @@ export function AdminAssistantPanel() {
   const [showReasoning, setShowReasoning] = useState(false);
   const [showImages, setShowImages] = useState(false);
   const viewportRef = useRef<HTMLDivElement | null>(null);
-  const authToken = useAuthToken();
-  const authTokenRef = useRef<string | null>(authToken);
-  useEffect(() => {
-    authTokenRef.current = authToken;
-  }, [authToken]);
   const draftRef = useRef<HTMLTextAreaElement | null>(null);
   const hasScrolledRef = useRef(false);
-  const { messages, sendMessage, status, stop, error } = useChat<AssistantMessage>({
-    id: `megatrend-assistant:${selectedAgent}`,
-    transport: new DefaultChatTransport({
-      api: "/api/chat",
-      // Read the latest token at send time; the transport is created once.
-      headers: (): Record<string, string> =>
-        authTokenRef.current ? { Authorization: `Bearer ${authTokenRef.current}` } : {},
-    }),
-  });
-
-  const isBusy = status === "submitted" || status === "streaming";
+  const { messages, sendMessage, status, stop, error, isReady } = useAssistantChat(selectedAgent);
+  const isBusy = status === "streaming";
   const selectedModelOption = useMemo(
     () => models.find((model) => model.id === selectedModel) ?? null,
     [models, selectedModel],
@@ -578,392 +270,380 @@ export function AdminAssistantPanel() {
 
   // Another page (e.g. Search) asked to open the assistant with an agent and a question.
   useEffect(() => {
-    if (!pendingPrompt) return;
+    if (!pendingPrompt || isBusy) return;
     if (AGENT_OPTIONS.some((agent) => agent.id === pendingPrompt.agentId)) {
       setSelectedAgent(pendingPrompt.agentId);
     }
     setDraft(pendingPrompt.text);
     clearPendingPrompt();
-  }, [pendingPrompt, clearPendingPrompt]);
+  }, [pendingPrompt, clearPendingPrompt, isBusy]);
 
-  const getRequestOptions = () => ({
-    body: {
-      requestContext: {
-        selectedAgent,
-        selectedModel,
-        includeImages: String(showImages),
-      },
-      providerOptions: modelSupportsReasoning
-        ? {
-            openai: {
-              include_reasoning: true,
-            },
-          }
-        : undefined,
-    },
-  });
-
+  const sendSuggestion = async (text: string) => {
+    if (isReady && !isBusy) await sendMessage(text);
+  };
   const submitDraft = async () => {
     const text = draft.trim();
-    if (!text || isBusy) {
-      return;
-    }
-
+    if (!text || isBusy || !isReady) return;
     setDraft("");
-    await sendMessage(
-      {
-        role: "user",
-        parts: [{ type: "text", text }],
-      },
-      getRequestOptions(),
-    );
-  };
-
-  const sendSuggestion = async (suggestion: string) => {
-    if (isBusy) {
-      return;
-    }
-
-    await sendMessage(
-      {
-        role: "user",
-        parts: [{ type: "text", text: suggestion }],
-      },
-      getRequestOptions(),
-    );
+    await sendMessage(text);
   };
 
   return (
-    <div className="flex h-full min-h-0 flex-col bg-background">
-      <div className="shrink-0 border-b border-border px-5 py-4">
-        <div className="flex items-start gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-            <Sparkles className="h-4 w-4" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <h2 className="text-sm font-semibold text-foreground">Cyphersoft Assistant</h2>
-                <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-                  {pageContext.title}
+    <CopilotChatConfigurationProvider agentId={selectedAgent}>
+      <RichOutputContext.Provider
+        value={{
+          followUp: (prompt) => {
+            void sendSuggestion(prompt);
+          },
+          busy: isBusy || !isReady,
+          showReasoning,
+        }}
+      >
+        <div className="@container/assistant flex h-full min-h-0 flex-col bg-background">
+          <div className="shrink-0 border-b border-border px-5 py-4">
+            <div className="flex items-start gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                <Sparkles className="h-4 w-4" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <h2 className="text-sm font-semibold text-foreground">Cyphersoft Assistant</h2>
+                    <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                      {pageContext.title}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <div
+                      className={cn(
+                        "rounded-full px-2 py-1 font-mono text-[10px] uppercase tracking-[0.14em]",
+                        isBusy ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground",
+                      )}
+                    >
+                      {isBusy
+                        ? "Thinking"
+                        : !isReady
+                          ? "Connecting"
+                          : expanded
+                            ? "Full Page"
+                            : "Ready"}
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 rounded-full"
+                      onClick={toggleExpanded}
+                      aria-label={
+                        expanded ? "Collapse assistant to sidebar" : "Expand assistant to full page"
+                      }
+                      title={expanded ? "Collapse to sidebar" : "Expand to full page"}
+                    >
+                      {expanded ? (
+                        <Minimize2 className="h-4 w-4" />
+                      ) : (
+                        <Maximize2 className="h-4 w-4" />
+                      )}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 rounded-full"
+                      onClick={close}
+                      aria-label="Close assistant"
+                      title="Close assistant"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                  {pageContext.description}
                 </p>
               </div>
-              <div className="flex items-center gap-1">
-                <div
+            </div>
+          </div>
+
+          <ScrollArea className="min-h-0 flex-1" viewportRef={viewportRef}>
+            <div className="flex min-h-full flex-col gap-4 px-5 py-5">
+              {messages.length === 0 ? (
+                <div className="space-y-4">
+                  <div className="rounded-[28px] border border-border/80 bg-card px-4 py-4 shadow-sm">
+                    <p className="text-sm leading-6 text-foreground">{selectedAgentOption.intro}</p>
+                  </div>
+                  <div className="grid gap-2">
+                    {activeSuggestions.map((suggestion) => (
+                      <button
+                        key={suggestion}
+                        type="button"
+                        onClick={() => sendSuggestion(suggestion)}
+                        disabled={!isReady || isBusy}
+                        className="rounded-2xl border border-border bg-background px-4 py-3 text-left text-sm text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+                      >
+                        {suggestion}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+
+              {messages.map((message) => (
+                <AssistantMessageView
+                  key={message.id}
+                  message={message}
+                  messages={messages}
+                  showReasoning={showReasoning}
+                />
+              ))}
+
+              {isBusy ? (
+                <div className="flex justify-start">
+                  <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-2 text-xs text-muted-foreground shadow-sm">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    Thinking...
+                  </div>
+                </div>
+              ) : null}
+
+              {error ? (
+                <div className="rounded-2xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+                  {error.message}
+                </div>
+              ) : null}
+            </div>
+          </ScrollArea>
+
+          <div className="shrink-0 border-t border-border bg-background px-5 pb-3 pt-3">
+            <div className="mb-2 flex flex-wrap items-center gap-2">
+              <Popover open={isAgentPickerOpen} onOpenChange={setIsAgentPickerOpen}>
+                <PopoverTrigger asChild disabled={isBusy}>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="max-w-full justify-between gap-2 rounded-full"
+                  >
+                    <div className="flex min-w-0 items-center gap-2">
+                      <Sparkles className="h-4 w-4 text-primary" />
+                      <span className="truncate text-left">{selectedAgentOption.name}</span>
+                    </div>
+                    <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent align="start" className="w-[360px] p-0">
+                  <Command>
+                    <CommandInput placeholder="Search Mastra agents..." />
+                    <CommandList>
+                      <CommandEmpty>No agents found.</CommandEmpty>
+                      <CommandGroup>
+                        {AGENT_OPTIONS.map((agent) => (
+                          <CommandItem
+                            key={agent.id}
+                            value={`${agent.id} ${agent.name} ${agent.description}`}
+                            onSelect={() => {
+                              setSelectedAgent(agent.id);
+                              setIsAgentPickerOpen(false);
+                            }}
+                            className="items-start gap-3 py-3"
+                          >
+                            <Check
+                              className={cn(
+                                "mt-0.5 h-4 w-4",
+                                selectedAgent === agent.id ? "opacity-100" : "opacity-0",
+                              )}
+                            />
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-sm font-medium text-foreground">
+                                {agent.name}
+                              </p>
+                              <p className="line-clamp-2 text-xs leading-5 text-muted-foreground">
+                                {agent.description}
+                              </p>
+                              <p className="mt-2 truncate text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
+                                {agent.id}
+                              </p>
+                            </div>
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+
+              <Popover open={isModelPickerOpen} onOpenChange={setIsModelPickerOpen}>
+                <PopoverTrigger asChild disabled={isBusy}>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="max-w-full justify-between gap-2 rounded-full"
+                  >
+                    <div className="flex min-w-0 items-center gap-2">
+                      <Bot className="h-4 w-4 text-primary" />
+                      <span className="truncate text-left">{selectedModel}</span>
+                    </div>
+                    <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent align="start" className="w-[360px] p-0">
+                  <Command>
+                    <CommandInput placeholder="Search OpenRouter models..." />
+                    <CommandList>
+                      <CommandEmpty>No models found.</CommandEmpty>
+                      <CommandGroup>
+                        {models.map((model) => (
+                          <CommandItem
+                            key={model.id}
+                            value={`${model.id} ${model.name} ${model.description}`}
+                            onSelect={() => {
+                              setSelectedModel(model.id);
+                              setIsModelPickerOpen(false);
+                            }}
+                            className="items-start gap-3 py-3"
+                          >
+                            <Check
+                              className={cn(
+                                "mt-0.5 h-4 w-4",
+                                selectedModel === model.id ? "opacity-100" : "opacity-0",
+                              )}
+                            />
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-sm font-medium text-foreground">
+                                {model.id}
+                              </p>
+                              <p className="line-clamp-2 text-xs leading-5 text-muted-foreground">
+                                {model.description || model.name}
+                              </p>
+                              <div className="mt-2 flex flex-wrap gap-2 text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
+                                {model.contextLength ? (
+                                  <span>{formatContextLength(model.contextLength)} context</span>
+                                ) : null}
+                                {model.supportsTools ? <span>tools</span> : null}
+                                {model.supportsReasoning ? <span>reasoning</span> : null}
+                              </div>
+                            </div>
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+
+              <span className="rounded-full bg-muted px-3 py-1 text-xs text-muted-foreground">
+                {selectedAgentOption.name}
+              </span>
+              {selectedModelOption?.supportsTools ? (
+                <span className="rounded-full bg-muted px-3 py-1 text-xs text-muted-foreground">
+                  Tools enabled
+                </span>
+              ) : null}
+              <button
+                type="button"
+                onClick={toggleShowReasoning}
+                aria-pressed={showReasoning}
+                title={
+                  showReasoning
+                    ? "Hide reasoning and tool output"
+                    : "Show reasoning and tool output"
+                }
+                className={cn(
+                  "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs transition-colors",
+                  showReasoning
+                    ? "border-primary/30 bg-primary/10 text-primary hover:bg-primary/15"
+                    : "border-border bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+                )}
+              >
+                {showReasoning ? (
+                  <Eye className="h-3.5 w-3.5" />
+                ) : (
+                  <EyeOff className="h-3.5 w-3.5" />
+                )}
+                {showReasoning ? "Reasoning on" : "Reasoning off"}
+              </button>
+              {selectedAgent === "web-research-agent" ? (
+                <button
+                  type="button"
+                  onClick={toggleShowImages}
+                  aria-pressed={showImages}
+                  title={
+                    showImages
+                      ? "Stop adding images to research answers"
+                      : "Add images to research answers"
+                  }
                   className={cn(
-                    "rounded-full px-2 py-1 font-mono text-[10px] uppercase tracking-[0.14em]",
-                    isBusy ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground",
+                    "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs transition-colors",
+                    showImages
+                      ? "border-primary/30 bg-primary/10 text-primary hover:bg-primary/15"
+                      : "border-border bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground",
                   )}
                 >
-                  {isBusy ? "Thinking" : expanded ? "Full Page" : "Ready"}
-                </div>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 rounded-full"
-                  onClick={toggleExpanded}
-                  aria-label={
-                    expanded ? "Collapse assistant to sidebar" : "Expand assistant to full page"
-                  }
-                  title={expanded ? "Collapse to sidebar" : "Expand to full page"}
-                >
-                  {expanded ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 rounded-full"
-                  onClick={close}
-                  aria-label="Close assistant"
-                  title="Close assistant"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
+                  {showImages ? (
+                    <ImageIcon className="h-3.5 w-3.5" />
+                  ) : (
+                    <ImageOff className="h-3.5 w-3.5" />
+                  )}
+                  {showImages ? "Images on" : "Images off"}
+                </button>
+              ) : null}
+              {isModelsLoading ? (
+                <span className="inline-flex items-center gap-2 rounded-full bg-muted px-3 py-1 text-xs text-muted-foreground">
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  Loading models
+                </span>
+              ) : null}
             </div>
-            <p className="mt-2 text-sm leading-6 text-muted-foreground">
-              {pageContext.description}
+
+            <form
+              onSubmit={(event) => {
+                event.preventDefault();
+                void submitDraft();
+              }}
+              className="flex items-end gap-2 rounded-[24px] border border-border/80 bg-card p-2 shadow-sm focus-within:ring-1 focus-within:ring-ring"
+            >
+              <Textarea
+                ref={draftRef}
+                value={draft}
+                rows={1}
+                onChange={(event) => setDraft(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
+                    event.preventDefault();
+                    void submitDraft();
+                  }
+                }}
+                placeholder={selectedAgentOption.placeholder}
+                aria-label="Message the assistant"
+                className="max-h-40 min-h-[40px] flex-1 resize-none border-0 bg-transparent px-3 py-2 text-sm shadow-none focus-visible:ring-0"
+              />
+              {isBusy ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => stop()}
+                  className="rounded-full"
+                >
+                  <Square className="h-3.5 w-3.5" />
+                  Stop
+                </Button>
+              ) : null}
+              <Button
+                type="submit"
+                className="rounded-full"
+                disabled={!draft.trim() || isBusy || !isReady}
+              >
+                <ArrowUp className="h-4 w-4" />
+                Ask
+              </Button>
+            </form>
+
+            {modelsError ? <p className="mt-2 text-xs text-destructive">{modelsError}</p> : null}
+            <p className="mt-2 text-center text-[11px] text-muted-foreground">
+              AI can make mistakes. Check important info.
             </p>
           </div>
         </div>
-      </div>
-
-      <ScrollArea className="min-h-0 flex-1" viewportRef={viewportRef}>
-        <div className="flex min-h-full flex-col gap-4 px-5 py-5">
-          {messages.length === 0 ? (
-            <div className="space-y-4">
-              <div className="rounded-[28px] border border-border/80 bg-card px-4 py-4 shadow-sm">
-                <p className="text-sm leading-6 text-foreground">{selectedAgentOption.intro}</p>
-              </div>
-              <div className="grid gap-2">
-                {activeSuggestions.map((suggestion) => (
-                  <button
-                    key={suggestion}
-                    type="button"
-                    onClick={() => sendSuggestion(suggestion)}
-                    className="rounded-2xl border border-border bg-background px-4 py-3 text-left text-sm text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-                  >
-                    {suggestion}
-                  </button>
-                ))}
-              </div>
-            </div>
-          ) : null}
-
-          {messages.map((message) => {
-            if (message.role === "user") {
-              const text = getUserMessageText(message);
-
-              if (!text) {
-                return null;
-              }
-
-              return (
-                <div key={message.id} className="flex justify-end">
-                  <div className="max-w-[85%] rounded-[28px] bg-primary px-4 py-3 text-sm text-primary-foreground shadow-sm">
-                    <p className="whitespace-pre-wrap leading-6">{text}</p>
-                  </div>
-                </div>
-              );
-            }
-
-            return (
-              <AssistantMessageView
-                key={message.id}
-                message={message}
-                showReasoning={showReasoning}
-              />
-            );
-          })}
-
-          {isBusy ? (
-            <div className="flex justify-start">
-              <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-2 text-xs text-muted-foreground shadow-sm">
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                Thinking...
-              </div>
-            </div>
-          ) : null}
-
-          {error ? (
-            <div className="rounded-2xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-              {error.message}
-            </div>
-          ) : null}
-        </div>
-      </ScrollArea>
-
-      <div className="shrink-0 border-t border-border bg-background px-5 pb-3 pt-3">
-        <div className="mb-2 flex flex-wrap items-center gap-2">
-          <Popover open={isAgentPickerOpen} onOpenChange={setIsAgentPickerOpen}>
-            <PopoverTrigger asChild>
-              <Button
-                type="button"
-                variant="outline"
-                className="max-w-full justify-between gap-2 rounded-full"
-              >
-                <div className="flex min-w-0 items-center gap-2">
-                  <Sparkles className="h-4 w-4 text-primary" />
-                  <span className="truncate text-left">{selectedAgentOption.name}</span>
-                </div>
-                <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent align="start" className="w-[360px] p-0">
-              <Command>
-                <CommandInput placeholder="Search Mastra agents..." />
-                <CommandList>
-                  <CommandEmpty>No agents found.</CommandEmpty>
-                  <CommandGroup>
-                    {AGENT_OPTIONS.map((agent) => (
-                      <CommandItem
-                        key={agent.id}
-                        value={`${agent.id} ${agent.name} ${agent.description}`}
-                        onSelect={() => {
-                          setSelectedAgent(agent.id);
-                          setIsAgentPickerOpen(false);
-                        }}
-                        className="items-start gap-3 py-3"
-                      >
-                        <Check
-                          className={cn(
-                            "mt-0.5 h-4 w-4",
-                            selectedAgent === agent.id ? "opacity-100" : "opacity-0",
-                          )}
-                        />
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-medium text-foreground">
-                            {agent.name}
-                          </p>
-                          <p className="line-clamp-2 text-xs leading-5 text-muted-foreground">
-                            {agent.description}
-                          </p>
-                          <p className="mt-2 truncate text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
-                            {agent.id}
-                          </p>
-                        </div>
-                      </CommandItem>
-                    ))}
-                  </CommandGroup>
-                </CommandList>
-              </Command>
-            </PopoverContent>
-          </Popover>
-
-          <Popover open={isModelPickerOpen} onOpenChange={setIsModelPickerOpen}>
-            <PopoverTrigger asChild>
-              <Button
-                type="button"
-                variant="outline"
-                className="max-w-full justify-between gap-2 rounded-full"
-              >
-                <div className="flex min-w-0 items-center gap-2">
-                  <Bot className="h-4 w-4 text-primary" />
-                  <span className="truncate text-left">{selectedModel}</span>
-                </div>
-                <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent align="start" className="w-[360px] p-0">
-              <Command>
-                <CommandInput placeholder="Search OpenRouter models..." />
-                <CommandList>
-                  <CommandEmpty>No models found.</CommandEmpty>
-                  <CommandGroup>
-                    {models.map((model) => (
-                      <CommandItem
-                        key={model.id}
-                        value={`${model.id} ${model.name} ${model.description}`}
-                        onSelect={() => {
-                          setSelectedModel(model.id);
-                          setIsModelPickerOpen(false);
-                        }}
-                        className="items-start gap-3 py-3"
-                      >
-                        <Check
-                          className={cn(
-                            "mt-0.5 h-4 w-4",
-                            selectedModel === model.id ? "opacity-100" : "opacity-0",
-                          )}
-                        />
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-medium text-foreground">{model.id}</p>
-                          <p className="line-clamp-2 text-xs leading-5 text-muted-foreground">
-                            {model.description || model.name}
-                          </p>
-                          <div className="mt-2 flex flex-wrap gap-2 text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
-                            {model.contextLength ? (
-                              <span>{formatContextLength(model.contextLength)} context</span>
-                            ) : null}
-                            {model.supportsTools ? <span>tools</span> : null}
-                            {model.supportsReasoning ? <span>reasoning</span> : null}
-                          </div>
-                        </div>
-                      </CommandItem>
-                    ))}
-                  </CommandGroup>
-                </CommandList>
-              </Command>
-            </PopoverContent>
-          </Popover>
-
-          <span className="rounded-full bg-muted px-3 py-1 text-xs text-muted-foreground">
-            {selectedAgentOption.name}
-          </span>
-          {selectedModelOption?.supportsTools ? (
-            <span className="rounded-full bg-muted px-3 py-1 text-xs text-muted-foreground">
-              Tools enabled
-            </span>
-          ) : null}
-          <button
-            type="button"
-            onClick={toggleShowReasoning}
-            aria-pressed={showReasoning}
-            title={
-              showReasoning
-                ? "Hide reasoning and tool output"
-                : "Show reasoning and tool output"
-            }
-            className={cn(
-              "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs transition-colors",
-              showReasoning
-                ? "border-primary/30 bg-primary/10 text-primary hover:bg-primary/15"
-                : "border-border bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground",
-            )}
-          >
-            {showReasoning ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
-            {showReasoning ? "Reasoning on" : "Reasoning off"}
-          </button>
-          {selectedAgent === "web-research-agent" ? (
-            <button
-              type="button"
-              onClick={toggleShowImages}
-              aria-pressed={showImages}
-              title={
-                showImages
-                  ? "Stop adding images to research answers"
-                  : "Add images to research answers"
-              }
-              className={cn(
-                "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs transition-colors",
-                showImages
-                  ? "border-primary/30 bg-primary/10 text-primary hover:bg-primary/15"
-                  : "border-border bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground",
-              )}
-            >
-              {showImages ? <ImageIcon className="h-3.5 w-3.5" /> : <ImageOff className="h-3.5 w-3.5" />}
-              {showImages ? "Images on" : "Images off"}
-            </button>
-          ) : null}
-          {isModelsLoading ? (
-            <span className="inline-flex items-center gap-2 rounded-full bg-muted px-3 py-1 text-xs text-muted-foreground">
-              <Loader2 className="h-3 w-3 animate-spin" />
-              Loading models
-            </span>
-          ) : null}
-        </div>
-
-        <form
-          onSubmit={(event) => {
-            event.preventDefault();
-            void submitDraft();
-          }}
-          className="flex items-end gap-2 rounded-[24px] border border-border/80 bg-card p-2 shadow-sm focus-within:ring-1 focus-within:ring-ring"
-        >
-          <Textarea
-            ref={draftRef}
-            value={draft}
-            rows={1}
-            onChange={(event) => setDraft(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
-                event.preventDefault();
-                void submitDraft();
-              }
-            }}
-            placeholder={selectedAgentOption.placeholder}
-            aria-label="Message the assistant"
-            className="max-h-40 min-h-[40px] flex-1 resize-none border-0 bg-transparent px-3 py-2 text-sm shadow-none focus-visible:ring-0"
-          />
-          {isBusy ? (
-            <Button type="button" variant="outline" onClick={() => stop()} className="rounded-full">
-              <Square className="h-3.5 w-3.5" />
-              Stop
-            </Button>
-          ) : null}
-          <Button type="submit" className="rounded-full" disabled={!draft.trim() || isBusy}>
-            <ArrowUp className="h-4 w-4" />
-            Ask
-          </Button>
-        </form>
-
-        {modelsError ? <p className="mt-2 text-xs text-destructive">{modelsError}</p> : null}
-        <p className="mt-2 text-center text-[11px] text-muted-foreground">
-          AI can make mistakes. Check important info.
-        </p>
-      </div>
-    </div>
+      </RichOutputContext.Provider>
+    </CopilotChatConfigurationProvider>
   );
 }

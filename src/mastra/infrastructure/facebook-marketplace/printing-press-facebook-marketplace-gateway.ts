@@ -23,7 +23,7 @@ const cliPath = process.env.PRINTING_PRESS_FACEBOOK_MARKETPLACE_CLI_PATH || defa
 const searchVariablesTemplate = {
   __relay_internal__pv__GHLShouldChangeMarketplaceSponsoredDataFieldNamerelayprovider: false,
   count: 24,
-  cursor: null,
+  cursor: null as string | null,
   params: {
     bqf: {
       callsite: "COMMERCE_MKTPLACE_WWW",

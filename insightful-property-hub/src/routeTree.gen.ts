@@ -17,6 +17,7 @@ import { Route as PortalIndexRouteImport } from './routes/portal.index'
 import { Route as PortalClientSlugRouteImport } from './routes/portal.$clientSlug'
 import { Route as ApiTranscribeRouteImport } from './routes/api.transcribe'
 import { Route as ApiModelsRouteImport } from './routes/api.models'
+import { Route as ApiCopilotkitRouteImport } from './routes/api.copilotkit'
 import { Route as ApiChatRouteImport } from './routes/api.chat'
 import { Route as ApiAssistantRouteImport } from './routes/api.assistant'
 import { Route as AppTasksRouteImport } from './routes/_app.tasks'
@@ -87,6 +88,11 @@ const ApiTranscribeRoute = ApiTranscribeRouteImport.update({
 const ApiModelsRoute = ApiModelsRouteImport.update({
   id: '/api/models',
   path: '/api/models',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiCopilotkitRoute = ApiCopilotkitRouteImport.update({
+  id: '/api/copilotkit',
+  path: '/api/copilotkit',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiChatRoute = ApiChatRouteImport.update({
@@ -275,6 +281,7 @@ export interface FileRoutesByFullPath {
   '/tasks': typeof AppTasksRoute
   '/api/assistant': typeof ApiAssistantRoute
   '/api/chat': typeof ApiChatRoute
+  '/api/copilotkit': typeof ApiCopilotkitRoute
   '/api/models': typeof ApiModelsRoute
   '/api/transcribe': typeof ApiTranscribeRoute
   '/portal/$clientSlug': typeof PortalClientSlugRouteWithChildren
@@ -316,6 +323,7 @@ export interface FileRoutesByTo {
   '/tasks': typeof AppTasksRoute
   '/api/assistant': typeof ApiAssistantRoute
   '/api/chat': typeof ApiChatRoute
+  '/api/copilotkit': typeof ApiCopilotkitRoute
   '/api/models': typeof ApiModelsRoute
   '/api/transcribe': typeof ApiTranscribeRoute
   '/portal': typeof PortalIndexRoute
@@ -358,6 +366,7 @@ export interface FileRoutesById {
   '/_app/tasks': typeof AppTasksRoute
   '/api/assistant': typeof ApiAssistantRoute
   '/api/chat': typeof ApiChatRoute
+  '/api/copilotkit': typeof ApiCopilotkitRoute
   '/api/models': typeof ApiModelsRoute
   '/api/transcribe': typeof ApiTranscribeRoute
   '/portal/$clientSlug': typeof PortalClientSlugRouteWithChildren
@@ -401,6 +410,7 @@ export interface FileRouteTypes {
     | '/tasks'
     | '/api/assistant'
     | '/api/chat'
+    | '/api/copilotkit'
     | '/api/models'
     | '/api/transcribe'
     | '/portal/$clientSlug'
@@ -442,6 +452,7 @@ export interface FileRouteTypes {
     | '/tasks'
     | '/api/assistant'
     | '/api/chat'
+    | '/api/copilotkit'
     | '/api/models'
     | '/api/transcribe'
     | '/portal'
@@ -483,6 +494,7 @@ export interface FileRouteTypes {
     | '/_app/tasks'
     | '/api/assistant'
     | '/api/chat'
+    | '/api/copilotkit'
     | '/api/models'
     | '/api/transcribe'
     | '/portal/$clientSlug'
@@ -512,6 +524,7 @@ export interface RootRouteChildren {
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   ApiAssistantRoute: typeof ApiAssistantRoute
   ApiChatRoute: typeof ApiChatRoute
+  ApiCopilotkitRoute: typeof ApiCopilotkitRoute
   ApiModelsRoute: typeof ApiModelsRoute
   ApiTranscribeRoute: typeof ApiTranscribeRoute
   PortalClientSlugRoute: typeof PortalClientSlugRouteWithChildren
@@ -577,6 +590,13 @@ declare module '@tanstack/react-router' {
       path: '/api/models'
       fullPath: '/api/models'
       preLoaderRoute: typeof ApiModelsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/copilotkit': {
+      id: '/api/copilotkit'
+      path: '/api/copilotkit'
+      fullPath: '/api/copilotkit'
+      preLoaderRoute: typeof ApiCopilotkitRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/chat': {
@@ -961,6 +981,7 @@ const rootRouteChildren: RootRouteChildren = {
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   ApiAssistantRoute: ApiAssistantRoute,
   ApiChatRoute: ApiChatRoute,
+  ApiCopilotkitRoute: ApiCopilotkitRoute,
   ApiModelsRoute: ApiModelsRoute,
   ApiTranscribeRoute: ApiTranscribeRoute,
   PortalClientSlugRoute: PortalClientSlugRouteWithChildren,

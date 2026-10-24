@@ -1,31 +1,40 @@
 # Purpose
 
-- Owns the Cyphersoft assistant UI modules under `insightful-property-hub/src/components/admin-assistant/`.
+- Owns the staff assistant shell, CopilotKit connection, message rendering and designed response components.
 
 # Ownership
 
-- Owns `admin-assistant-context.tsx`, `admin-assistant-panel.tsx`, `admin-assistant-sheet.tsx`, and `page-context.ts`.
+- `admin-assistant-context.tsx` owns closed/sidebar/expanded state and pending prompts.
+- `copilot-provider.tsx` owns the authenticated CopilotKit v2 provider and in-session agent conversations; it stays mounted when the panel closes and clears on sign-out/user change.
+- `admin-assistant-sheet.tsx` owns the viewport-bound sidebar/full-page container and lazy-loads `assistant-workspace.tsx` on first open; keep that workspace mounted afterward so its provider and presentation tools survive closing.
+- `admin-assistant-panel.tsx` owns controls, suggestions, auto-scrolling messages and pinned composer. `use-assistant-chat.ts` owns AG-UI sending/cancellation; `assistant-message.tsx` renders messages through registered tool renderers. Shared runtime contexts live in `assistant-runtime-context.ts`.
+- `rich-output.tsx` owns presentation component schemas and rendering; `rich-output-data.ts` projects untrusted provider results into bounded safe display data.
 
 # Local Contracts
 
-- `admin-assistant-context.tsx` owns the assistant shell state: closed, sidebar-open, and full-page-expanded.
-- `admin-assistant-sheet.tsx` is the layout container that renders the assistant either as the right sidebar panel or as the full-page workspace inside the app shell.
-- `admin-assistant-panel.tsx` owns the interactive chat surface, including agent selection, model selection, suggestion chips, message rendering, and the expand/collapse/close controls.
-- Chat layout is ChatGPT-style: header → scrollable message list (the only scrolling region, auto-scrolled to the newest message) → composer pinned at the bottom (agent/model pickers, auto-growing textarea where Enter sends and Shift+Enter adds a newline, Stop/Ask). Suggestions show only in the empty state. The "Reasoning on/off" toggle in the composer shows or hides reasoning and tool-call cards (answer text always shows); it is off by default and persisted in localStorage `megatrend-assistant:show-reasoning`, and does not change what is requested from the model. The Web Research "Images on/off" toggle (localStorage `megatrend-assistant:show-images`, default off) sends `requestContext.includeImages`, which makes `web-research-agent` also run image search for research requests; explicit photo requests trigger it regardless. Results of `tool-windmill_searxng_image_search` render as an image gallery whether or not reasoning is shown. Never move the composer above the messages.
-- `admin-assistant-sheet.tsx` keeps the panel viewport-bound (`sticky top-14`, `h-[calc(100svh-3.5rem)]` below the `h-14` header) so the page never scrolls the composer out of view.
-- The agent selector must stay synchronized with the supported Mastra chat routes proxied by `src/routes/api.chat.ts`.
-- `page-context.ts` provides page-aware defaults only; it must not become the source of routing or agent-state truth.
+- Preserve the ChatGPT-style layout: header, scrolling messages, bottom composer; Enter sends, Shift+Enter inserts a newline, Stop aborts the active agent. Suggestions appear only in empty conversations.
+- Preserve sidebar/full-page/close behavior. The sheet stays `sticky top-14`, `h-[calc(100svh-3.5rem)]` below the header.
+- Agent IDs match the three allowlisted Mastra CopilotKit agents: `web-research-agent`, `okf-agent`, `facebook-marketplace-agent`.
+- Use CopilotKit v2 `useAgent`, `useComponent`, `useRenderTool` and `useRenderToolCall`; do not mix v1 hook signatures or the legacy AI SDK transport into the active panel.
+- Each agent singleton uses a `<staff-user-id>:<agent-id>:<uuid>` thread ID, retained across panel remounts. The server verifies this namespace and blocks history controls. Stop through `copilotkit.stopAgent` so both the run and pending frontend-tool continuations stop.
+- Reasoning preference (`megatrend-assistant:show-reasoning`, default off) hides reasoning/raw diagnostics only. Rich cards, tables, charts, evidence and galleries always remain visible.
+- Web Research image preference (`megatrend-assistant:show-images`, default off) is forwarded as request context; explicit image requests still work. Preserve the image-search tool result shape.
+- Preserve selected model/agent localStorage keys. `page-context.ts` supplies suggestions, not routing truth.
+- Keep agent/model pickers disabled during an active response; consume cross-page pending prompts after it finishes or stops so one turn keeps its agent and model context.
+- Presentation tools only explore/copy/navigate/ask follow-ups. No record-changing actions. Summaries, comparisons and numeric charts must cite retrieved sources/references; unknown values are not inferred.
+- Escape HTML in Markdown and permit only credential-free HTTP(S) source/image URLs. Never expose raw provider payloads unless reasoning is enabled.
 
 # Work Guidance
 
-- Keep assistant layout state in the shared context instead of duplicating it in the header, panel, or route components.
-- When adding another selectable agent, update the assistant panel copy and the route proxy together so the UI labels, stored agent id, and backend endpoint remain aligned.
-- Preserve the current interaction model: users can open the assistant as a sidebar, expand it to a full-page view, collapse it back to the sidebar, or close it entirely.
+- Reuse shared UI primitives and app styling. Keep loading, empty, malformed and failed results readable in narrow and expanded layouts.
+- Update `docs/assistant.md` when endpoint, environment or presentation contracts change.
+- User preference: designed components for all three chat agents, with exploration and follow-up interactions.
 
 # Verification
 
-- Run `npx eslint src/components/admin-assistant/admin-assistant-context.tsx src/components/admin-assistant/admin-assistant-sheet.tsx src/components/admin-assistant/admin-assistant-panel.tsx src/routes/_app.tsx src/routes/api.chat.ts` from `insightful-property-hub/` when assistant state, layout, or routing changes.
+- Run frontend TypeScript, targeted ESLint for this folder and `src/routes/api.copilotkit.ts`, frontend build and root `npm test` (includes normalization and proxy tests).
+- Verify streamed cards, source links, agent switching, close/reopen, sign-out cleanup, Stop, toggles and sidebar/expanded layouts.
 
 # Child DOX Index
 
-- No child DOX docs yet.
+- No child DOX docs.

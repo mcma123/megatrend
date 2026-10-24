@@ -19,7 +19,8 @@ const AdminAssistantContext = createContext<AdminAssistantContextValue | null>(n
 export function AdminAssistantProvider({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
   const [expanded, setExpanded] = useState(false);
-  const [pendingPrompt, setPendingPrompt] = useState<AdminAssistantContextValue["pendingPrompt"]>(null);
+  const [pendingPrompt, setPendingPrompt] =
+    useState<AdminAssistantContextValue["pendingPrompt"]>(null);
 
   const value = useMemo<AdminAssistantContextValue>(
     () => ({

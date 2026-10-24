@@ -14,6 +14,7 @@
 - Shared integrations belong behind stable ports and concrete infrastructure adapters.
 - Mastra tools are adapter surfaces; use-case orchestration belongs in `application/`.
 - Keep the chat route surface in `index.ts` synchronized with the registered agents. The current runtime exposes `/chat` for `web-research-agent`, `/chat/okf` for `okf-agent`, and `/chat/facebook-marketplace` for `facebook-marketplace-agent`.
+- Staff rich chat uses `POST /copilotkit` (CopilotKit v2 single-endpoint protocol), exposing only those three agents through request-scoped AG-UI adapters. Keep `@copilotkit/runtime` in bundler externals. Setup and UI contracts: `insightful-property-hub/docs/assistant.md`.
 - `routes/voice-assistant.ts` exposes `POST /voice/assist` for the web app's staff-only `/api/assistant`, authenticated with `MASTRA_VOICE_SERVICE_TOKEN`. It runs `voiceAssistantAgent`, whose tools only record client actions (navigate / fill_form / ask_user) and never persist anything.
 - `routes/property-sourcing.ts` exposes `POST /sourcing/research` for Convex background sourcing. It requires `Authorization: Bearer <MASTRA_SOURCING_SERVICE_TOKEN>` and fails closed when unconfigured. It resolves the existing `webResearchAgent`; research remains Windmill-backed. The endpoint shares the brief/result contract in `convex/lib/sourcing.ts`, returns JSON candidates/warnings, and has a four-minute execution deadline.
 

@@ -1,11 +1,12 @@
 import { Agent } from "@mastra/core/agent";
 
 import { facebookMarketplaceTools } from "../tools/facebook-marketplace-tools";
+import { richOutputInstructions } from "./rich-output-instructions";
 
 export const facebookMarketplaceAgent = new Agent({
   id: "facebook-marketplace-agent",
   name: "Facebook Marketplace Agent",
-  instructions: `
+  instructions: ({ requestContext }) => `
 You are a Facebook Marketplace assistant powered by the Printing Press CLI.
 
 Available tools:
@@ -23,7 +24,15 @@ Operating rules:
 - Do not claim that any listing search or detail fetch succeeded unless a tool actually returned results.
 - Treat watch creation as a local state change and explain that it requires approval.
 - Do not attempt Facebook write operations that are not exposed by your toolset.
-`.trim(),
-  model: process.env.OPENROUTER_MODEL || "openai/gpt-4.1-mini",
-  tools: facebookMarketplaceTools,
+`.trim() + richOutputInstructions(requestContext),
+  model: ({ requestContext }) => ({
+    id: (requestContext?.get("selectedModel") || process.env.OPENROUTER_MODEL || "openai/gpt-4.1-mini") as `${string}/${string}`,
+    url: process.env.OPENROUTER_BASE_URL || "https://openrouter.ai/api/v1",
+    apiKey: process.env.OPENROUTER_API_KEY || process.env.OPENAI_API_KEY,
+  }),
+  tools: ({ requestContext }) => {
+    if (requestContext?.get("richOutput") !== "true") return facebookMarketplaceTools;
+    const { facebook_marketplace_watch_add: _watch, ...readTools } = facebookMarketplaceTools;
+    return readTools;
+  },
 });

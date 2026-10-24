@@ -11,6 +11,7 @@
 - TanStack Start uses file-based routing here.
 - `routeTree.gen.ts` is generated; do not hand-edit it.
 - Shared UI primitives belong in `components/ui/`; domain-specific assistant UI belongs in `components/admin-assistant/`.
+- The staff assistant uses CopilotKit v2 through `/api/copilotkit`; its provider persists across panel close/expand and is destroyed at sign-out. Setup is in `docs/assistant.md`. The legacy `/api/chat` proxy remains available.
 
 # Work Guidance
 

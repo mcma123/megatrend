@@ -9,8 +9,10 @@ import { webResearchAgent } from "./agents/web-research-agent";
 import { windmillMcpServerProxies } from "./tools/windmill-tools";
 import { propertySourcingRoute } from "./routes/property-sourcing";
 import { voiceAssistantRoute } from "./routes/voice-assistant";
+import { copilotkitRoute } from "./routes/copilotkit";
 
 export const mastra = new Mastra({
+  bundler: { externals: ["@copilotkit/runtime"] },
   agents: {
     facebookMarketplaceAgent,
     insightDrafterAgent,
@@ -23,6 +25,7 @@ export const mastra = new Mastra({
   },
   server: {
     apiRoutes: [
+      copilotkitRoute,
       propertySourcingRoute,
       voiceAssistantRoute,
       chatRoute({

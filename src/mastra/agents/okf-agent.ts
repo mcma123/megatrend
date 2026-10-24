@@ -1,6 +1,7 @@
 import { Agent } from "@mastra/core/agent";
 
 import { okfTools } from "../tools/okf-tools";
+import { richOutputInstructions } from "./rich-output-instructions";
 
 const DEFAULT_MODEL = process.env.OPENROUTER_MODEL || "openai/gpt-4.1-mini";
 const OPENROUTER_URL = process.env.OPENROUTER_BASE_URL || "https://openrouter.ai/api/v1";
@@ -21,7 +22,7 @@ function resolveOpenRouterModel(selectedModel?: string) {
 export const okfAgent = new Agent({
   id: "okf-agent",
   name: "OKF Agent",
-  instructions: `
+  instructions: ({ requestContext }) => `
 You are an OKF document assistant for documents stored in the okfdata MinIO bucket.
 
 Available tools:
@@ -41,7 +42,7 @@ Behavior rules:
 - If the bucket search does not return enough evidence, say that clearly.
 - Quote or summarize only what the retrieved OKF content supports.
 - Mention the relevant bundle or object key when it helps the user verify the answer.
-`.trim(),
+`.trim() + richOutputInstructions(requestContext),
   model: ({ requestContext }) =>
     resolveOpenRouterModel((requestContext as RequestContextLike | undefined)?.get("selectedModel")),
   tools: okfTools,

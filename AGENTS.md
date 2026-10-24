@@ -31,6 +31,7 @@ Deploy mode: wmill sync push (no CI wiring detected).
 - Frontend deploy mode: GitHub `main` pushes auto-deploy through Dokploy at `https://admin.cyphersoftai.com`; check the existing deployment before triggering another build. Project `megatrend cyphersoft` (`DTHwIkrGDFxRu5PMv7D1O`), production environment `Gh5BE8xK1ajWOZH5Xbi8f`, application `cyphersoft-ai` (`a6APcV1FQrARkiITjO5SM`) serves `https://mega.cyphersoftai.com` on port 3000 using the root Dockerfile. Read the API key from local `.env.local` (`dokploy_API_Key`) without logging or committing it. Windmill deployment remains a separate scoped sync.
 - Root `npm run build` and `npm run start` are reserved for the active `insightful-property-hub/` production web deployment; use `npm run build:mastra` and `npm run start:mastra` only for the Mastra service.
 - Package manager is npm (`package-lock.json` at root and in `insightful-property-hub/`); the Dockerfile uses `npm ci`. Do not reintroduce pnpm/bun lockfiles: `mastra build` installs `.mastra/output` deps from the root lockfile/ranges, so a stale lock ships an older `@mastra/core` than the CLI that built the bundle. Keep `@mastra/*` ranges in `package.json` at the versions actually locked.
+- CopilotKit uses matching `@ag-ui/client` / `@ag-ui/core` versions in root and frontend manifests. Root Zod is pinned to `3.25.76` for CopilotKit's peer compatibility; verify both builds and `npm test` before changing these versions. Rich assistant setup: `insightful-property-hub/docs/assistant.md`.
 - Docker deployment can use `npm run start:platform` to run the portal and the built Mastra bundle in one container, with the web app on `PORT` and Mastra on `MASTRA_PORT`.
 - Private document previews use Dokploy compose `document-preview` (`voYPBjctefOyoaz1Ujprr`) in the portal's production environment and internal Docker network `document-preview` (managed network `oyioL9Ksh02hBvjA-w38g`). Windmill compose `GWrb7pCXXdox56KucsIgi` persists the worker network attachments in its raw compose file; preserve their existing Windmill network too. No public converter ports/domain. Credentials remain in Dokploy env and Windmill workspace secrets; Convex uses its separate `WINDMILL_PREVIEW_TOKEN`.
 - Keep AI document-processing business logic split clearly between:
@@ -150,7 +151,8 @@ Root-owned without a child AGENTS.md:
 - Root execution plans: `backend functionality.md` and `docling_file.md`; maintain phase completion and verification evidence with the corresponding implementation work.
 - `f/`: Windmill scripts, flows, folder metadata, and deployed automation assets.
 - `scripts/`: Runtime wrapper scripts such as `mastra-openrouter.mjs`.
-- Root manifests and workspace config: `package.json`, `wmill.yaml`, `tsconfig*.json`, `vitest.config.ts` (Convex and pure Mastra application tests, `npm test`), lockfiles, env files, `.wmill-config/`.
+- Root manifests and workspace config: `package.json`, `wmill.yaml`, `tsconfig*.json`, `vitest.config.ts` (Convex, Mastra, and pure frontend assistant/proxy tests, `npm test`), lockfiles, env files, `.wmill-config/`.
+- `vitest.config.ts` caps test workers at two so cold CopilotKit/Mastra imports do not starve Convex fixtures past the unchanged five-second test timeout. Run production builds separately from regression tests on this workstation.
 - Tooling metadata and caches: `.agents/`, `.claude/`, `.mastra/`, `.mastra-temp/`, `.pnpm-store/`, `node_modules/`, and other generated runtime outputs.
 
 
