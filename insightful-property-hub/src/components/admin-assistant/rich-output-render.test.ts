@@ -7,6 +7,7 @@ import { describe, expect, it, vi } from "vitest";
 vi.mock("@copilotkit/react-core/v2/headless", () => ({
   useComponent: vi.fn(),
   useRenderTool: vi.fn(),
+  useHumanInTheLoop: vi.fn(),
 }));
 import { AssistantMarkdown, ComparisonCard, DraftCard, SummaryCard } from "./rich-output";
 

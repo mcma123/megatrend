@@ -7,6 +7,7 @@ export type ResultCard = {
   label?: string;
   evidence?: string;
   reference?: string;
+  page?: number;
 };
 
 export function record(value: unknown): Record<string, unknown> {
@@ -124,10 +125,16 @@ export function normalizeResultCards(toolName: string, value: unknown): ResultCa
             (typeof listing.price === "string" ? listing.price : listing.location),
           160,
         ),
-        evidence: toolName.startsWith("okf_")
-          ? text(listing.content ?? listing.snippet, 12000)
-          : undefined,
+        evidence:
+          text(listing.content ?? listing.markdown ?? listing.snippet ?? listing.excerpt, 12000) ||
+          undefined,
         reference: reference || undefined,
+        page:
+          typeof (listing.page_number ?? listing.page) === "number" &&
+          Number.isInteger(listing.page_number ?? listing.page) &&
+          Number(listing.page_number ?? listing.page) > 0
+            ? Number(listing.page_number ?? listing.page)
+            : undefined,
       };
     });
 }
@@ -137,6 +144,10 @@ export const presentationNames = [
   "show_comparison",
   "show_chart",
   "show_listing_draft",
+  "show_search_form",
+  "show_map",
+  "show_calculator",
+  "ask_choice",
 ] as const;
 
 export function isRichTool(name: string): boolean {

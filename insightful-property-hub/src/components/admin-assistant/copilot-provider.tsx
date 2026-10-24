@@ -4,6 +4,8 @@ import { useCopilotKit } from "@copilotkit/react-core/v2/headless";
 import { useAuthToken } from "@convex-dev/auth/react";
 import { useCyphersoftAuth } from "@/lib/auth-session";
 import { RichOutputRegistry } from "./rich-output";
+import { AssistantInteractionProvider } from "./assistant-interactions";
+import { isIntentionalChoiceAbort } from "./interaction-data";
 
 import { AssistantConnectionContext } from "./assistant-runtime-context";
 
@@ -34,13 +36,14 @@ export function AssistantCopilotProvider({ children }: { children: ReactNode }) 
       runtimeUrl="/api/copilotkit"
       agentId="web-research-agent"
       useSingleEndpoint
-      onError={() =>
+      onError={(event) => {
+        if (isIntentionalChoiceAbort(event)) return;
         setConnectionError(
           new Error(
             "The assistant connection failed. Check the portal/Mastra configuration and refresh to reconnect.",
           ),
-        )
-      }
+        );
+      }}
       headers={() => {
         let model = "openai/gpt-4.1-mini";
         let images = "false";
@@ -59,13 +62,15 @@ export function AssistantCopilotProvider({ children }: { children: ReactNode }) 
       enableInspector={false}
       showDevConsole={false}
     >
-      <AssistantConnectionContext.Provider value={connectionError}>
-        <SessionCleanup />
-        <RichOutputRegistry agentId="web-research-agent" />
-        <RichOutputRegistry agentId="okf-agent" />
-        <RichOutputRegistry agentId="facebook-marketplace-agent" />
-        {children}
-      </AssistantConnectionContext.Provider>
+      <AssistantInteractionProvider>
+        <AssistantConnectionContext.Provider value={connectionError}>
+          <SessionCleanup />
+          <RichOutputRegistry agentId="web-research-agent" />
+          <RichOutputRegistry agentId="okf-agent" />
+          <RichOutputRegistry agentId="facebook-marketplace-agent" />
+          {children}
+        </AssistantConnectionContext.Provider>
+      </AssistantInteractionProvider>
     </CopilotKitProvider>
   );
 }

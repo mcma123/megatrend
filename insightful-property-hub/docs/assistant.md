@@ -61,6 +61,36 @@ owns application data and authorization.
   Closing or expanding the panel retains them. Signing out or changing staff
   identity destroys the provider and aborts active runs. Reloading clears history.
 
+## Interactive responses
+
+- **Guided search:** the panel's Guided search button and `show_search_form`
+  provide query/location/category/budget controls, or document-question/reference
+  controls for OKF. Submission sends the selected criteria to the current agent.
+- **Shortlists:** retrieved cards with a safe source URL or exact document
+  reference can be selected. Each agent retains up to eight selections during
+  the session. Compare selected requires two; Investigate selected requires one.
+  The tray can remove/clear selections without altering application records.
+- **Evidence:** View evidence opens a searchable, escaped retrieved excerpt,
+  original link and available document reference/page. Missing text is explicit;
+  Retrieve more evidence asks the agent to fetch the actual source.
+- **Maps:** `show_map` accepts at most 24 sourced coordinates. Selecting a result
+  focuses its marker on an OpenStreetMap embed with pan/zoom. Optional price
+  filtering uses a single stated unit and preserves unknown prices separately.
+  Coordinates must be retrieved, never guessed. The map loads from OpenStreetMap.
+- **Drafts:** Edit draft changes title/text/price locally; Copy uses the edited
+  content. Tone and Refine draft send the actual edited draft to the agent.
+- **Scenarios:** `show_calculator` computes simple annual gross/net yield from
+  purchase price and monthly rent/expenses. Prefilled amounts need sources;
+  blanks stay blank and edits are assumptions. Financing/taxes/vacancy are
+  excluded unless included in expenses. No scenario or draft is persisted.
+- **Progress:** Research activity shows actual current-turn tool calls and their
+  returned/failed/interrupted/input-needed states, with no invented percentages.
+- **Choices:** `ask_choice` uses CopilotKit v2 `useHumanInTheLoop` to pause for
+  2–8 real options or cancellation, then continue the same run. The provider
+  tracks the full logical run across frontend-tool execution and panel remounts;
+  Stop aborts pending choices and follow-up continuations. Choice results do not
+  authorize application writes. Unsent local form/draft edits reset on unmount.
+
 ## Verification and release
 
 Run `npm test`, frontend TypeScript, targeted assistant lint, `npm run build:web`

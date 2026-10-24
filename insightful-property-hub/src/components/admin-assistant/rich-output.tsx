@@ -1,5 +1,5 @@
-import { useContext, useState } from "react";
-import { useComponent, useRenderTool } from "@copilotkit/react-core/v2/headless";
+import { useContext, useEffect, useState } from "react";
+import { useComponent, useHumanInTheLoop, useRenderTool } from "@copilotkit/react-core/v2/headless";
 import { z } from "zod";
 import { ArrowUpRight, Copy, FileText, ImageOff, Loader2, Search } from "lucide-react";
 import { ChartCard, chartSchema } from "./assistant-chart";
@@ -18,6 +18,10 @@ import {
 } from "./rich-output-data";
 
 import { RichOutputContext } from "./assistant-runtime-context";
+import { EvidenceViewer, GuidedSearchCard, ShortlistToggle } from "./assistant-interactions";
+import { searchFormSchema } from "./interaction-data";
+import { ChoiceCard, MapCard, ScenarioCalculator } from "./advanced-interactions";
+import { calculatorSchema, choiceSchema, mapSchema } from "./advanced-interaction-data";
 
 export function AssistantMarkdown({ children }: { children: string }) {
   return (
@@ -74,6 +78,7 @@ function FollowUp({ prompt, label = "Explore this" }: { prompt: string; label?: 
 
 function CopyButton({ value }: { value: string }) {
   const [state, setState] = useState("Copy");
+  useEffect(() => setState("Copy"), [value]);
   return (
     <Button
       type="button"
@@ -113,7 +118,7 @@ function ResultImage({ src, title }: { src: string; title: string }) {
   );
 }
 
-function ResultCards({ cards, toolName }: { cards: ResultCard[]; toolName: string }) {
+export function ResultCards({ cards, toolName }: { cards: ResultCard[]; toolName: string }) {
   const isDocument = toolName.startsWith("okf_");
   return (
     <div className="grid min-w-0 gap-3 @lg/assistant:grid-cols-2">
@@ -124,6 +129,7 @@ function ResultCards({ cards, toolName }: { cards: ResultCard[]; toolName: strin
         >
           {card.imageUrl ? <ResultImage src={card.imageUrl} title={card.title} /> : null}
           <div className="space-y-2 p-4">
+            <ShortlistToggle card={card} />
             <div className="flex items-start gap-2">
               {isDocument ? <FileText className="mt-1 h-4 w-4 shrink-0 text-primary" /> : null}
               <h4 className="break-words text-sm font-semibold leading-6">{card.title}</h4>
@@ -139,14 +145,7 @@ function ResultCards({ cards, toolName }: { cards: ResultCard[]; toolName: strin
                 {card.reference}
               </p>
             ) : null}
-            {card.evidence ? (
-              <details className="text-xs">
-                <summary className="cursor-pointer py-1 font-medium">View evidence</summary>
-                <div className="mt-2 max-h-64 overflow-auto rounded-lg bg-muted p-3">
-                  <AssistantMarkdown>{card.evidence}</AssistantMarkdown>
-                </div>
-              </details>
-            ) : null}
+            <EvidenceViewer card={card} />
             <div className="flex flex-wrap items-center justify-between gap-2">
               {card.url ? (
                 <a
@@ -338,18 +337,94 @@ export function ComparisonCard(props: z.infer<typeof comparisonSchema>) {
 }
 
 export function DraftCard(props: z.infer<typeof draftSchema>) {
+  const [edited, setEdited] = useState<z.infer<typeof draftSchema> | null>(null);
+  const [editing, setEditing] = useState(false);
+  const [tone, setTone] = useState("professional");
+  const { busy, followUp } = useContext(RichOutputContext);
   const parsed = draftSchema.safeParse(props);
   if (!parsed.success) return <LoadingCard />;
-  const data = parsed.data;
+  const data = edited || parsed.data;
   return (
     <section className="space-y-3 rounded-2xl border bg-card p-4 shadow-sm">
       <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Listing draft</p>
-      <h3 className="font-semibold">{data.title}</h3>
-      <p className="text-sm font-medium text-primary">{data.price || "Price not specified"}</p>
-      <AssistantMarkdown>{data.body}</AssistantMarkdown>
+      {editing ? (
+        <div className="space-y-3">
+          <label className="block space-y-1 text-xs">
+            Title
+            <input
+              className="w-full rounded-md border bg-background p-2 text-sm"
+              value={data.title}
+              maxLength={240}
+              onChange={(event) => setEdited({ ...data, title: event.target.value })}
+            />
+          </label>
+          <label className="block space-y-1 text-xs">
+            Price
+            <input
+              className="w-full rounded-md border bg-background p-2 text-sm"
+              value={data.price}
+              maxLength={120}
+              onChange={(event) => setEdited({ ...data, price: event.target.value })}
+            />
+          </label>
+          <label className="block space-y-1 text-xs">
+            Listing text
+            <textarea
+              className="min-h-40 w-full rounded-md border bg-background p-2 text-sm"
+              value={data.body}
+              maxLength={12000}
+              onChange={(event) => setEdited({ ...data, body: event.target.value })}
+            />
+          </label>
+          <Button type="button" size="sm" variant="outline" onClick={() => setEditing(false)}>
+            Done editing
+          </Button>
+        </div>
+      ) : (
+        <>
+          <h3 className="font-semibold">{data.title}</h3>
+          <p className="text-sm font-medium text-primary">{data.price || "Price not specified"}</p>
+          <AssistantMarkdown>{data.body}</AssistantMarkdown>
+        </>
+      )}
       <div className="flex flex-wrap items-center gap-3">
         <CopyButton value={`${data.title}\n${data.price}\n\n${data.body}`} />
-        <FollowUp prompt={`Refine this listing draft: ${data.title}`} label="Refine draft" />
+        {!editing ? (
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            disabled={busy}
+            onClick={() => setEditing(true)}
+          >
+            Edit draft
+          </Button>
+        ) : null}
+        <label className="flex items-center gap-2 text-xs">
+          Tone
+          <select
+            value={tone}
+            onChange={(event) => setTone(event.target.value)}
+            className="rounded-md border bg-background p-1"
+          >
+            <option value="professional">Professional</option>
+            <option value="friendly">Friendly</option>
+            <option value="concise">Concise</option>
+          </select>
+        </label>
+        <Button
+          type="button"
+          size="sm"
+          variant="ghost"
+          disabled={busy}
+          onClick={() =>
+            followUp(
+              `Refine this user-edited listing draft in a ${tone} tone. Preserve the supplied facts; do not invent features or publish anything.\n${JSON.stringify(data)}`,
+            )
+          }
+        >
+          Refine draft
+        </Button>
       </div>
     </section>
   );
@@ -458,6 +533,52 @@ function BackendToolResult({
 
 /** Register presentation-only tools; browser actions here never persist records. */
 export function RichOutputRegistry({ agentId }: { agentId: string }) {
+  useHumanInTheLoop(
+    {
+      name: "ask_choice",
+      agentId,
+      followUp: true,
+      description:
+        "Pause to let the user choose between 2–8 real options before continuing. Offer one choice card at a time. Use stable option IDs. On cancellation stop the proposed task; on selection continue with that exact option.",
+      parameters: choiceSchema,
+      render: ChoiceCard,
+    },
+    [agentId],
+  );
+  useComponent(
+    {
+      name: "show_map",
+      agentId,
+      description:
+        "Show sourced locations on an interactive map with optional same-unit price filtering. Use actual retrieved latitude/longitude only, never guess or silently geocode. All optional prices share priceUnit; omit unknown prices. Maximum 24 locations.",
+      parameters: mapSchema,
+      render: MapCard,
+    },
+    [agentId],
+  );
+  useComponent(
+    {
+      name: "show_calculator",
+      agentId,
+      description:
+        "Offer an editable annualized rental yield scenario. Prefill only retrieved purchasePrice/monthlyRent/monthlyExpenses with exact sources; omit unknown inputs for the user to enter. Use one currency. User-edited values are assumptions and are not saved.",
+      parameters: calculatorSchema,
+      render: ScenarioCalculator,
+    },
+    [agentId],
+  );
+  useComponent(
+    {
+      name: "show_search_form",
+      agentId,
+      followUp: false,
+      description:
+        "Offer a guided search form when criteria are missing or the user wants to refine a search. Prefill only known query/location/category/documentReference. The user submits their criteria as a follow-up; wait for that message before searching.",
+      parameters: searchFormSchema,
+      render: GuidedSearchCard,
+    },
+    [agentId],
+  );
   useRenderTool(
     {
       name: "*",

@@ -2,6 +2,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useAssistantChat } from "./use-assistant-chat";
 import { AssistantMessageView } from "./assistant-message";
 import { RichOutputContext } from "./assistant-runtime-context";
+import { GuidedSearchCard, ShortlistTray } from "./assistant-interactions";
+import { ResearchProgress } from "./advanced-interactions";
+import { researchSteps } from "./advanced-interaction-data";
 import { CopilotChatConfigurationProvider } from "@copilotkit/react-core/v2/headless";
 import { useRouterState } from "@tanstack/react-router";
 import {
@@ -124,6 +127,7 @@ export function AdminAssistantPanel() {
     useAdminAssistant();
   const pageContext = getAdminAssistantPageContext(pathname);
   const [draft, setDraft] = useState("");
+  const [showGuidedSearch, setShowGuidedSearch] = useState(false);
 
   const [models, setModels] = useState<ModelOption[]>([]);
   const [isModelsLoading, setIsModelsLoading] = useState(true);
@@ -139,6 +143,7 @@ export function AdminAssistantPanel() {
   const hasScrolledRef = useRef(false);
   const { messages, sendMessage, status, stop, error, isReady } = useAssistantChat(selectedAgent);
   const isBusy = status === "streaming";
+  const isAwaitingChoice = isBusy && researchSteps(messages).some((step) => step.waiting);
   const selectedModelOption = useMemo(
     () => models.find((model) => model.id === selectedModel) ?? null,
     [models, selectedModel],
@@ -292,6 +297,7 @@ export function AdminAssistantPanel() {
     <CopilotChatConfigurationProvider agentId={selectedAgent}>
       <RichOutputContext.Provider
         value={{
+          agentId: selectedAgent,
           followUp: (prompt) => {
             void sendSuggestion(prompt);
           },
@@ -320,13 +326,15 @@ export function AdminAssistantPanel() {
                         isBusy ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground",
                       )}
                     >
-                      {isBusy
-                        ? "Thinking"
-                        : !isReady
-                          ? "Connecting"
-                          : expanded
-                            ? "Full Page"
-                            : "Ready"}
+                      {isAwaitingChoice
+                        ? "Your choice"
+                        : isBusy
+                          ? "Thinking"
+                          : !isReady
+                            ? "Connecting"
+                            : expanded
+                              ? "Full Page"
+                              : "Ready"}
                     </div>
                     <Button
                       type="button"
@@ -361,12 +369,33 @@ export function AdminAssistantPanel() {
                 <p className="mt-2 text-sm leading-6 text-muted-foreground">
                   {pageContext.description}
                 </p>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  className="mt-1 h-auto px-0 text-xs text-primary"
+                  onClick={() => setShowGuidedSearch((value) => !value)}
+                  aria-expanded={showGuidedSearch}
+                >
+                  {showGuidedSearch ? "Hide search options" : "Guided search"}
+                </Button>
               </div>
             </div>
           </div>
 
+          <ResearchProgress messages={messages} busy={isBusy} />
           <ScrollArea className="min-h-0 flex-1" viewportRef={viewportRef}>
             <div className="flex min-h-full flex-col gap-4 px-5 py-5">
+              {showGuidedSearch ? (
+                <GuidedSearchCard
+                  key={selectedAgent}
+                  title={
+                    selectedAgent === "okf-agent"
+                      ? "Search your documents"
+                      : "Find the right results"
+                  }
+                />
+              ) : null}
               {messages.length === 0 ? (
                 <div className="space-y-4">
                   <div className="rounded-[28px] border border-border/80 bg-card px-4 py-4 shadow-sm">
@@ -400,8 +429,12 @@ export function AdminAssistantPanel() {
               {isBusy ? (
                 <div className="flex justify-start">
                   <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-2 text-xs text-muted-foreground shadow-sm">
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    Thinking...
+                    {isAwaitingChoice ? (
+                      <Check className="h-3.5 w-3.5" />
+                    ) : (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    )}
+                    {isAwaitingChoice ? "Choose an option above to continue." : "Thinking..."}
                   </div>
                 </div>
               ) : null}
@@ -413,6 +446,7 @@ export function AdminAssistantPanel() {
               ) : null}
             </div>
           </ScrollArea>
+          <ShortlistTray />
 
           <div className="shrink-0 border-t border-border bg-background px-5 pb-3 pt-3">
             <div className="mb-2 flex flex-wrap items-center gap-2">
