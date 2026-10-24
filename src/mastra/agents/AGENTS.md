@@ -19,6 +19,7 @@
 # Work Guidance
 
 - `rich-output-instructions.ts` enables grounded cards/tables/charts/drafts only when the authenticated CopilotKit route sets `richOutput: "true"`. Do not change background sourcing or insight JSON contracts. Marketplace excludes the watch-creation tool in this read-only chat context; retain approval-based watches outside it.
+- Rich chat chooses bar, line, area, pie, donut, scatter or heatmap charts to suit the retrieved data and requested visualization. Match the frontend `show_chart` schema; source every numeric value, retrieve required dimensions and keep missing heatmap cells unknown.
 
 - Keep tool access explicit in each agent definition.
 - Prefer shared helper logic in adjacent modules over copying instructions or integration code across agents.

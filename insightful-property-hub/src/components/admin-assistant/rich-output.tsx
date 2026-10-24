@@ -2,7 +2,7 @@ import { useContext, useState } from "react";
 import { useComponent, useRenderTool } from "@copilotkit/react-core/v2/headless";
 import { z } from "zod";
 import { ArrowUpRight, Copy, FileText, ImageOff, Loader2, Search } from "lucide-react";
-import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { ChartCard, chartSchema } from "./assistant-chart";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Button } from "@/components/ui/button";
@@ -198,20 +198,6 @@ const comparisonSchema = z.object({
     )
     .max(30),
 });
-const chartSchema = z.object({
-  title: z.string().max(240),
-  unit: z.string().max(80),
-  points: z
-    .array(
-      z.object({
-        label: z.string().max(120),
-        value: z.number().finite(),
-        source: z.string().max(2000),
-      }),
-    )
-    .min(1)
-    .max(24),
-});
 const draftSchema = z.object({
   title: z.string().max(240),
   body: z.string().max(12000),
@@ -347,51 +333,6 @@ export function ComparisonCard(props: z.infer<typeof comparisonSchema>) {
           label="Explain the tradeoffs"
         />
       </div>
-    </section>
-  );
-}
-
-export function ChartCard(props: z.infer<typeof chartSchema>) {
-  const parsed = chartSchema.safeParse(props);
-  if (!parsed.success) return <LoadingCard />;
-  const data = parsed.data;
-  return (
-    <section className="min-w-0 space-y-3 rounded-2xl border bg-card p-4 shadow-sm">
-      <h3 className="font-semibold">{data.title}</h3>
-      <p className="text-xs text-muted-foreground">{data.unit}</p>
-      <div className="h-60 w-full">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data.points}>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} />
-            <XAxis dataKey="label" tick={{ fontSize: 10 }} />
-            <YAxis tick={{ fontSize: 10 }} width={48} />
-            <Tooltip />
-            <Bar dataKey="value" name={data.unit} fill="var(--primary)" radius={[4, 4, 0, 0]} />
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
-      <details className="text-xs">
-        <summary className="cursor-pointer">View values and sources</summary>
-        <ul className="space-y-2 pt-2">
-          {data.points.map((point, index) => (
-            <li key={index}>
-              {point.label}: {point.value} {data.unit} ·{" "}
-              {safeUrl(point.source) ? (
-                <a
-                  href={safeUrl(point.source)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-primary underline"
-                >
-                  Source
-                </a>
-              ) : (
-                point.source
-              )}
-            </li>
-          ))}
-        </ul>
-      </details>
     </section>
   );
 }
@@ -554,7 +495,7 @@ export function RichOutputRegistry({ agentId }: { agentId: string }) {
       name: "show_chart",
       agentId,
       description:
-        "Chart numeric facts found in tool results. Every point needs its retrieved source; never invent values or convert unknown values to zero.",
+        "Visualize retrieved numeric facts. Set type: bar for categories, line/area for ordered trends, pie/donut for non-negative parts of a whole, scatter for numeric relationships (point.x and value; xLabel includes x unit), heatmap for a matrix (point.label=row, group=column, value=intensity). Use at most 24 points, or 144 heatmap cells across at most 12 rows/columns. Every point needs a source URL or document reference; never invent values or fill unknown cells with zero. Preserve chronological order for trends.",
       parameters: chartSchema,
       render: ChartCard,
     },

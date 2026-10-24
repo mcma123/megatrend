@@ -46,6 +46,14 @@ owns application data and authorization.
 - Components only expand, sort, copy, follow links or send follow-up questions.
   They do not persist, publish or approve records. Markdown escapes HTML;
   links and images allow only credential-free HTTP(S) URLs.
+- `show_chart.type` supports `bar` (legacy default), `line`, `area`, `pie`,
+  `donut`, `scatter`, and `heatmap`. The agent chooses a suitable view and users
+  can switch compatible views locally. Points retain `label`, `value`, `source`;
+  scatter adds numeric `x` and optional `xLabel` (with unit), heatmaps add `group`
+  for the column while `label` is the row. Other charts allow 24 points;
+  heatmaps allow 144 cells in at most 12 rows/12 columns. Missing cells remain
+  Unknown, duplicate cells are rejected, and pie/donut values must be
+  non-negative with a positive finite total. All views retain source references.
 - Rich output is visible with reasoning off. Raw tool diagnostics and reasoning
   are opt-in. Images respect the existing research preference and explicit
   photo requests. Broken images show a placeholder.

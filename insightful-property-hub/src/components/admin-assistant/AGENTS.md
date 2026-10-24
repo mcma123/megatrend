@@ -9,6 +9,7 @@
 - `admin-assistant-sheet.tsx` owns the viewport-bound sidebar/full-page container and lazy-loads `assistant-workspace.tsx` on first open; keep that workspace mounted afterward so its provider and presentation tools survive closing.
 - `admin-assistant-panel.tsx` owns controls, suggestions, auto-scrolling messages and pinned composer. `use-assistant-chat.ts` owns AG-UI sending/cancellation; `assistant-message.tsx` renders messages through registered tool renderers. Shared runtime contexts live in `assistant-runtime-context.ts`.
 - `rich-output.tsx` owns presentation component schemas and rendering; `rich-output-data.ts` projects untrusted provider results into bounded safe display data.
+- `assistant-chart.tsx` owns the chart schema, validation and bar/line/area/pie/donut/scatter/heatmap rendering. Missing `type` preserves legacy bar responses; users can switch between compatible views. Scatter requires numeric `x`; heatmaps use `label` rows and `group` columns, with missing cells shown as Unknown. Every point retains a source; reject negative pie slices, duplicate heatmap cells and oversized matrices.
 
 # Local Contracts
 
@@ -29,6 +30,7 @@
 - Reuse shared UI primitives and app styling. Keep loading, empty, malformed and failed results readable in narrow and expanded layouts.
 - Update `docs/assistant.md` when endpoint, environment or presentation contracts change.
 - User preference: designed components for all three chat agents, with exploration and follow-up interactions.
+- User preference: offer varied charts, including pie charts and heatmaps, and choose the visualization to suit the data rather than always returning bars.
 
 # Verification
 
