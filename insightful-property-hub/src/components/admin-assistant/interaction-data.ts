@@ -14,10 +14,26 @@ export function isIntentionalChoiceAbort(event: {
 
 export const searchFormSchema = z.object({
   title: z.string().min(1).max(240),
-  query: z.string().max(2000).optional(),
-  location: z.string().max(240).optional(),
-  category: z.string().max(160).optional(),
-  documentReference: z.string().max(500).optional(),
+  query: z
+    .string()
+    .max(2000)
+    .nullish()
+    .transform((value) => value ?? undefined),
+  location: z
+    .string()
+    .max(240)
+    .nullish()
+    .transform((value) => value ?? undefined),
+  category: z
+    .string()
+    .max(160)
+    .nullish()
+    .transform((value) => value ?? undefined),
+  documentReference: z
+    .string()
+    .max(500)
+    .nullish()
+    .transform((value) => value ?? undefined),
 });
 export type SearchCriteria = {
   query: string;

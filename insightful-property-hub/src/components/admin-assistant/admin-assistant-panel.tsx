@@ -5,6 +5,7 @@ import { RichOutputContext } from "./assistant-runtime-context";
 import { GuidedSearchCard, ShortlistTray } from "./assistant-interactions";
 import { ResearchProgress } from "./advanced-interactions";
 import { researchSteps } from "./advanced-interaction-data";
+import { ChartFailureNotice } from "./assistant-chart";
 import { CopilotChatConfigurationProvider } from "@copilotkit/react-core/v2/headless";
 import { useRouterState } from "@tanstack/react-router";
 import {
@@ -425,6 +426,7 @@ export function AdminAssistantPanel() {
                   showReasoning={showReasoning}
                 />
               ))}
+              <ChartFailureNotice messages={messages} busy={isBusy} />
 
               {isBusy ? (
                 <div className="flex justify-start">

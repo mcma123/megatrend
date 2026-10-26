@@ -6,6 +6,7 @@ import { describe, expect, it, vi } from "vitest";
 // These checks exercise the actual presentation components without a chat server.
 vi.mock("@copilotkit/react-core/v2/headless", () => ({
   useComponent: vi.fn(),
+  useFrontendTool: vi.fn(),
   useRenderTool: vi.fn(),
   useHumanInTheLoop: vi.fn(),
 }));
@@ -25,7 +26,9 @@ describe("designed assistant responses", () => {
         title: "Lease findings",
         summary: "A **verified** summary.",
         facts: [{ label: "Expiry", value: "Unknown" }],
-        sources: [{ title: "Lease evidence", url: "https://example.com/lease" }],
+        sources: [
+          { title: "Lease evidence", url: "https://example.com/lease", reference: null },
+        ] as unknown as Parameters<typeof SummaryCard>[0]["sources"],
       }),
     );
     expect(html).toContain("Lease findings");

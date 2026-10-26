@@ -1,5 +1,13 @@
 import { useContext, useState } from "react";
-import { z } from "zod";
+import {
+  chartTypes,
+  chartProblem,
+  validateChartArguments,
+  chartFailures,
+  type ChartData,
+  type ChartType,
+} from "./assistant-chart-data";
+import type { Message } from "@ag-ui/core";
 import {
   Area,
   AreaChart,
@@ -21,42 +29,6 @@ import {
 import { RichOutputContext } from "./assistant-runtime-context";
 import { safeUrl } from "./rich-output-data";
 
-export const chartTypes = ["bar", "line", "area", "pie", "donut", "scatter", "heatmap"] as const;
-type ChartType = (typeof chartTypes)[number];
-export const chartSchema = z.object({
-  title: z.string().max(240),
-  type: z
-    .enum(chartTypes)
-    .optional()
-    .describe("Choose the chart appropriate to the data; defaults to bar for older responses."),
-  unit: z.string().max(80),
-  xLabel: z.string().max(80).optional().describe("Scatter x-axis label including unit."),
-  points: z
-    .array(
-      z.object({
-        label: z.string().min(1).max(120).describe("Category, ordered time label, or heatmap row."),
-        value: z
-          .number()
-          .finite()
-          .describe("Retrieved numeric value; also the scatter y coordinate."),
-        source: z.string().min(1).max(2000),
-        group: z
-          .string()
-          .min(1)
-          .max(120)
-          .optional()
-          .describe("Required for heatmaps: column category. One point per row/column pair."),
-        x: z
-          .number()
-          .finite()
-          .optional()
-          .describe("Required for scatter: retrieved numeric x coordinate."),
-      }),
-    )
-    .min(1)
-    .max(144),
-});
-type ChartData = z.infer<typeof chartSchema>;
 const names: Record<ChartType, string> = {
   bar: "Bar chart",
   line: "Line chart",
@@ -69,31 +41,6 @@ const names: Record<ChartType, string> = {
 const colors = ["#2563eb", "#0891b2", "#d97706", "#7c3aed", "#db2777", "#059669", "#64748b"];
 const format = (value: number) =>
   new Intl.NumberFormat(undefined, { maximumFractionDigits: 3 }).format(value);
-
-/** Keep invalid chart geometry out of Recharts and never fill gaps with zero. */
-export function chartProblem(data: ChartData, type: ChartType): string | null {
-  if (type !== "heatmap" && data.points.length > 24) return "Use at most 24 points for this chart.";
-  if (type === "pie" || type === "donut") {
-    const total = data.points.reduce((sum, point) => sum + point.value, 0);
-    if (data.points.some((point) => point.value < 0) || !Number.isFinite(total) || total <= 0)
-      return "Pie and donut charts need non-negative values with a positive total. Choose a bar or line chart for this data.";
-  }
-  if (type === "scatter" && data.points.some((point) => point.x === undefined))
-    return "A scatter plot needs a numeric x value for every point. Ask the assistant to retrieve both measures.";
-  if (type === "heatmap") {
-    if (data.points.some((point) => !point.group))
-      return "A heatmap needs a row and column for every value. Ask the assistant for grouped data.";
-    const cells = data.points.map((point) => JSON.stringify([point.label, point.group]));
-    if (new Set(cells).size !== cells.length)
-      return "This heatmap contains duplicate row/column values. Ask the assistant to clarify the grouping.";
-    if (
-      new Set(data.points.map((point) => point.label)).size > 12 ||
-      new Set(data.points.map((point) => point.group)).size > 12
-    )
-      return "Use at most 12 rows and 12 columns in a heatmap.";
-  }
-  return null;
-}
 
 function Heatmap({ data }: { data: ChartData }) {
   const rows = [...new Set(data.points.map((point) => point.label))];
@@ -325,13 +272,11 @@ function Plot({ data, type }: { data: ChartData; type: ChartType }) {
 export function ChartCard(props: ChartData) {
   const [selectedType, setSelectedType] = useState<ChartType>();
   const { busy } = useContext(RichOutputContext);
-  const parsed = chartSchema.safeParse(props);
+  const parsed = validateChartArguments(props, false);
   if (!parsed.success)
     return (
       <p role="status" className="rounded-2xl border p-4 text-xs text-muted-foreground">
-        {busy
-          ? "Preparing the chart…"
-          : "This chart is incomplete. Ask the assistant to try again."}
+        {busy ? "Preparing the chart…" : parsed.message}
       </p>
     );
   const data = parsed.data;
@@ -395,6 +340,52 @@ export function ChartCard(props: ChartData) {
           ))}
         </ul>
       </details>
+    </section>
+  );
+}
+
+export function ChartToolResult({
+  args,
+  status,
+  result,
+}: {
+  args: unknown;
+  status: string;
+  result?: unknown;
+}) {
+  const { busy, showReasoning } = useContext(RichOutputContext);
+  if (status !== "complete")
+    return busy ? (
+      <p role="status" className="rounded-2xl border p-4 text-xs text-muted-foreground">
+        Preparing the chart…
+      </p>
+    ) : null;
+  const parsed = validateChartArguments(args);
+  if (parsed.success) return <ChartCard {...parsed.data} />;
+  // The handler feeds validation failures back to the agent. Avoid painting one
+  // error card per retry; the panel presents a single notice if repair fails.
+  return showReasoning ? (
+    <details className="text-xs text-muted-foreground">
+      <summary>Chart validation details</summary>
+      <pre className="max-h-40 overflow-auto whitespace-pre-wrap">
+        {typeof result === "string" ? result : JSON.stringify(parsed.issues)}
+      </pre>
+    </details>
+  ) : null;
+}
+
+export function ChartFailureNotice({ messages, busy }: { messages: Message[]; busy: boolean }) {
+  if (busy) return null;
+  const failures = chartFailures(messages);
+  if (!failures.length) return null;
+  return (
+    <section role="status" className="space-y-2 rounded-2xl border bg-muted/30 p-4 text-sm">
+      <p>The remaining charts could not be created from the available data.</p>
+      <ul className="list-disc space-y-1 pl-4 text-xs text-muted-foreground">
+        {failures.slice(0, 3).map((message) => (
+          <li key={message}>{message}</li>
+        ))}
+      </ul>
     </section>
   );
 }

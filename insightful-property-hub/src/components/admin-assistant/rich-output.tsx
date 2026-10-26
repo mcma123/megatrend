@@ -1,8 +1,14 @@
 import { useContext, useEffect, useState } from "react";
-import { useComponent, useHumanInTheLoop, useRenderTool } from "@copilotkit/react-core/v2/headless";
+import {
+  useComponent,
+  useFrontendTool,
+  useHumanInTheLoop,
+  useRenderTool,
+} from "@copilotkit/react-core/v2/headless";
 import { z } from "zod";
 import { ArrowUpRight, Copy, FileText, ImageOff, Loader2, Search } from "lucide-react";
-import { ChartCard, chartSchema } from "./assistant-chart";
+import { ChartToolResult } from "./assistant-chart";
+import { chartSchema, chartToolFeedback } from "./assistant-chart-data";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Button } from "@/components/ui/button";
@@ -175,8 +181,16 @@ export function ResultCards({ cards, toolName }: { cards: ResultCard[]; toolName
 
 const sourceSchema = z.object({
   title: z.string().max(240),
-  url: z.string().max(2000).optional(),
-  reference: z.string().max(500).optional(),
+  url: z
+    .string()
+    .max(2000)
+    .nullish()
+    .transform((value) => value ?? undefined),
+  reference: z
+    .string()
+    .max(500)
+    .nullish()
+    .transform((value) => value ?? undefined),
 });
 const summarySchema = z.object({
   title: z.string().max(240),
@@ -611,14 +625,16 @@ export function RichOutputRegistry({ agentId }: { agentId: string }) {
     },
     [agentId],
   );
-  useComponent(
+  useFrontendTool(
     {
       name: "show_chart",
       agentId,
       description:
         "Visualize retrieved numeric facts. Set type: bar for categories, line/area for ordered trends, pie/donut for non-negative parts of a whole, scatter for numeric relationships (point.x and value; xLabel includes x unit), heatmap for a matrix (point.label=row, group=column, value=intensity). Use at most 24 points, or 144 heatmap cells across at most 12 rows/columns. Every point needs a source URL or document reference; never invent values or fill unknown cells with zero. Preserve chronological order for trends.",
       parameters: chartSchema,
-      render: ChartCard,
+      followUp: true,
+      handler: async (args, context) => chartToolFeedback(args, context.agent?.messages ?? []),
+      render: ChartToolResult,
     },
     [agentId],
   );

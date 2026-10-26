@@ -54,6 +54,15 @@ owns application data and authorization.
   heatmaps allow 144 cells in at most 12 rows/12 columns. Missing cells remain
   Unknown, duplicate cells are rejected, and pie/donut values must be
   non-negative with a positive finite total. All views retain source references.
+- Optional UI metadata accepts JSON `null` as absent, matching Mastra strict-mode
+  client tools. Null chart x/group/xLabel fields do not invalidate unrelated
+  chart types; optional guided-form, source, map, scenario and choice metadata
+  follows the same rule. Required numeric values and citations still reject null.
+- `show_chart` uses a validating frontend handler. A successful call returns
+  `rendered`; invalid data returns field-level feedback for one automatic
+  correction per title/type. Unavailable data must be explained without invented
+  values. Failed attempts stay out of the normal message UI; one notice shows
+  unresolved current-turn failures and clears after a valid repair.
 - Rich output is visible with reasoning off. Raw tool diagnostics and reasoning
   are opt-in. Images respect the existing research preference and explicit
   photo requests. Broken images show a placeholder.
@@ -66,6 +75,7 @@ owns application data and authorization.
 - **Guided search:** the panel's Guided search button and `show_search_form`
   provide query/location/category/budget controls, or document-question/reference
   controls for OKF. Submission sends the selected criteria to the current agent.
+  The form is optional: sufficient criteria typed in chat can be used directly.
 - **Shortlists:** retrieved cards with a safe source URL or exact document
   reference can be selected. Each agent retains up to eight selections during
   the session. Compare selected requires two; Investigate selected requires one.

@@ -7,7 +7,11 @@ export function toolFailed(result: unknown) {
 
 export const mapSchema = z.object({
   title: z.string().min(1).max(240),
-  priceUnit: z.string().max(80).optional(),
+  priceUnit: z
+    .string()
+    .max(80)
+    .nullish()
+    .transform((value) => value ?? undefined),
   locations: z
     .array(
       z.object({
@@ -15,7 +19,13 @@ export const mapSchema = z.object({
         latitude: z.number().finite().min(-85).max(85),
         longitude: z.number().finite().min(-180).max(180),
         source: z.string().min(1).max(2000),
-        price: z.number().finite().nonnegative().max(1e12).optional(),
+        price: z
+          .number()
+          .finite()
+          .nonnegative()
+          .max(1e12)
+          .nullish()
+          .transform((value) => value ?? undefined),
       }),
     )
     .min(1)
@@ -43,9 +53,9 @@ const scenarioValue = z.object({
 export const calculatorSchema = z.object({
   title: z.string().min(1).max(240),
   currency: z.string().min(1).max(20),
-  purchasePrice: scenarioValue.optional(),
-  monthlyRent: scenarioValue.optional(),
-  monthlyExpenses: scenarioValue.optional(),
+  purchasePrice: scenarioValue.nullish().transform((value) => value ?? undefined),
+  monthlyRent: scenarioValue.nullish().transform((value) => value ?? undefined),
+  monthlyExpenses: scenarioValue.nullish().transform((value) => value ?? undefined),
 });
 export function calculateScenario(
   purchasePrice: string,
@@ -75,7 +85,11 @@ export const choiceSchema = z.object({
       z.object({
         id: z.string().min(1).max(500),
         label: z.string().min(1).max(240),
-        description: z.string().max(1000).optional(),
+        description: z
+          .string()
+          .max(1000)
+          .nullish()
+          .transform((value) => value ?? undefined),
       }),
     )
     .min(2)

@@ -4,6 +4,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 vi.mock("@copilotkit/react-core/v2/headless", () => ({
   useComponent: vi.fn(),
+  useFrontendTool: vi.fn(),
   useRenderTool: vi.fn(),
   useHumanInTheLoop: vi.fn(),
 }));
@@ -26,7 +27,11 @@ import {
 } from "./advanced-interaction-data";
 import type { Message } from "@ag-ui/core";
 import type { ResultCard } from "./rich-output-data";
-import { useComponent, useHumanInTheLoop } from "@copilotkit/react-core/v2/headless";
+import {
+  useComponent,
+  useFrontendTool,
+  useHumanInTheLoop,
+} from "@copilotkit/react-core/v2/headless";
 
 const a: ResultCard = {
   title: "Office A",
@@ -94,6 +99,55 @@ describe("interactive assistant responses", () => {
     const html = render(createElement(GuidedSearchCard, { title: "Document search" }), "okf-agent");
     expect(html).toContain("Document reference");
     expect(html).not.toContain("Min budget");
+  });
+  it("renders strict-mode forms, maps, scenarios and choices when unused optional fields are null", () => {
+    expect(
+      render(
+        createElement(GuidedSearchCard, {
+          title: "Warehouse search",
+          query: "warehouses",
+          location: "Johannesburg",
+          category: null,
+          documentReference: null,
+        } as unknown as Parameters<typeof GuidedSearchCard>[0]),
+      ),
+    ).toContain("Search with these criteria");
+    const map = render(
+      createElement(MapCard, {
+        title: "Warehouse",
+        priceUnit: null,
+        locations: [
+          { title: "Warehouse A", latitude: -26.2, longitude: 28.04, price: null, source: a.url! },
+        ],
+      } as unknown as Parameters<typeof MapCard>[0]),
+    );
+    expect(map).toContain("Price unknown");
+    expect(map).not.toContain("incomplete");
+    const scenario = render(
+      createElement(ScenarioCalculator, {
+        title: "Scenario",
+        currency: "ZAR",
+        purchasePrice: null,
+        monthlyRent: null,
+        monthlyExpenses: null,
+      } as unknown as Parameters<typeof ScenarioCalculator>[0]),
+    );
+    expect(scenario).toContain("Enter all three values");
+    const choice = render(
+      createElement(ChoiceCard, {
+        args: {
+          title: "Choose",
+          question: "Which one?",
+          options: [
+            { id: "a", label: "A", description: null },
+            { id: "b", label: "B", description: null },
+          ],
+        },
+        status: "complete",
+        result: '{"choiceId":"a"}',
+      }),
+    );
+    expect(choice).toContain("Selected: A");
   });
   it("bounds shortlists, deduplicates by source and supports removal", () => {
     const selected = toggleShortlist([], a);
@@ -217,6 +271,7 @@ describe("interactive assistant responses", () => {
     expect(html).toContain("Tone");
     expect(html).not.toContain("Publish");
     vi.mocked(useComponent).mockClear();
+    vi.mocked(useFrontendTool).mockClear();
     vi.mocked(useHumanInTheLoop).mockClear();
     for (const agentId of ["web-research-agent", "okf-agent", "facebook-marketplace-agent"])
       render(createElement(RichOutputRegistry, { agentId }));
@@ -225,6 +280,13 @@ describe("interactive assistant responses", () => {
     ).toHaveLength(3);
     expect(
       vi.mocked(useComponent).mock.calls.filter(([config]) => config.name === "show_map"),
+    ).toHaveLength(3);
+    expect(
+      vi
+        .mocked(useFrontendTool)
+        .mock.calls.filter(
+          ([config]) => config.name === "show_chart" && typeof config.handler === "function",
+        ),
     ).toHaveLength(3);
     expect(vi.mocked(useHumanInTheLoop).mock.calls.map(([config]) => config.agentId)).toEqual([
       "web-research-agent",

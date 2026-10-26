@@ -20,6 +20,7 @@
 
 - `rich-output-instructions.ts` enables grounded cards/tables/charts/drafts only when the authenticated CopilotKit route sets `richOutput: "true"`. Do not change background sourcing or insight JSON contracts. Marketplace excludes the watch-creation tool in this read-only chat context; retain approval-based watches outside it.
 - Rich chat chooses bar, line, area, pie, donut, scatter or heatmap charts to suit the retrieved data and requested visualization. Match the frontend `show_chart` schema; source every numeric value, retrieve required dimensions and keep missing heatmap cells unknown.
+- Treat `show_chart` validation feedback as authoritative: correct an invalid call once when allowed, preserving its title/type, then explain unavailable facts rather than repeating failed calls or claiming a chart was displayed. Guided forms are optional; sufficient criteria supplied in chat should trigger a direct search.
 - Rich chat can offer `show_search_form`, sourced-coordinate `show_map`, sourced-input `show_calculator`, and `ask_choice`. Wait for submitted search criteria or the human choice result before continuing; offer one choice at a time and respect cancellation. Scenario edits are assumptions, draft edits preserve supplied facts, and shortlist follow-ups concern only selected sources. These tools never grant permission to persist/publish/approve records.
 
 - Keep tool access explicit in each agent definition.
