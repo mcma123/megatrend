@@ -12,6 +12,7 @@ includes:
   - "f/clitools/**"
   - "f/docling/**"
   - "f/firecrawl/**"
+  - "f/signing/**"
 
 # Additional glob patterns merged with includes (useful in workspace overrides)
 # extraIncludes: []

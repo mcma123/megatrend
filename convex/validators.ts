@@ -132,6 +132,7 @@ export const propertyStatus = v.union(
 
 // Stored lease state; "expiring soon" / "renewal window open" are derived from endDate.
 export const leaseStatus = v.union(
+  v.literal("pending"),
   v.literal("active"),
   v.literal("renewal_in_progress"),
   v.literal("client_decision_pending"),

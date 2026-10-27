@@ -1,0 +1,35 @@
+summary: Store and verify protected signing audit checkpoints
+description: Writes non-PII sequence/hash anchors to independently administered
+  retained storage and verifies latest anchors directly from that storage.
+lock: '!inline f/signing/audit_checkpoint.script.lock'
+has_on_behalf_of: false
+kind: script
+schema:
+  $schema: https://json-schema.org/draft/2020-12/schema
+  type: object
+  properties:
+    agreement_id:
+      type: string
+      description: ''
+      default: null
+      originalType: string
+    operation:
+      type: string
+      description: ''
+      default: null
+      originalType: string
+    payload:
+      type: object
+      description: ''
+      default: null
+      properties: {}
+    tenant_id:
+      type: string
+      description: ''
+      default: null
+      originalType: string
+  required:
+    - operation
+    - tenant_id
+    - agreement_id
+    - payload

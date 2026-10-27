@@ -26,6 +26,7 @@ export const PROPERTY_STATUS_LABELS: Record<PropertyStatus, string> = {
 };
 
 export const LEASE_STATUS_LABELS: Record<LeaseStatus, string> = {
+  pending: "Pending activation",
   active: "Active",
   renewal_in_progress: "Renewal in progress",
   client_decision_pending: "Client decision pending",

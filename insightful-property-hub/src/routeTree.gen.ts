@@ -11,11 +11,13 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as SignInRouteImport } from './routes/sign-in'
+import { Route as SignRouteImport } from './routes/sign'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PortalIndexRouteImport } from './routes/portal.index'
 import { Route as PortalClientSlugRouteImport } from './routes/portal.$clientSlug'
 import { Route as ApiTranscribeRouteImport } from './routes/api.transcribe'
+import { Route as ApiSigningRouteImport } from './routes/api.signing'
 import { Route as ApiModelsRouteImport } from './routes/api.models'
 import { Route as ApiCopilotkitRouteImport } from './routes/api.copilotkit'
 import { Route as ApiChatRouteImport } from './routes/api.chat'
@@ -34,6 +36,7 @@ import { Route as AppDocumentsRouteImport } from './routes/_app.documents'
 import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
 import { Route as AppClientsRouteImport } from './routes/_app.clients'
 import { Route as AppAutomationsRouteImport } from './routes/_app.automations'
+import { Route as AppAgreementsRouteImport } from './routes/_app.agreements'
 import { Route as PortalClientSlugIndexRouteImport } from './routes/portal.$clientSlug.index'
 import { Route as PortalClientSlugTeamRouteImport } from './routes/portal.$clientSlug.team'
 import { Route as PortalClientSlugInsightsRouteImport } from './routes/portal.$clientSlug.insights'
@@ -61,6 +64,11 @@ const SignInRoute = SignInRouteImport.update({
   path: '/sign-in',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SignRoute = SignRouteImport.update({
+  id: '/sign',
+  path: '/sign',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AppRoute = AppRouteImport.update({
   id: '/_app',
   getParentRoute: () => rootRouteImport,
@@ -83,6 +91,11 @@ const PortalClientSlugRoute = PortalClientSlugRouteImport.update({
 const ApiTranscribeRoute = ApiTranscribeRouteImport.update({
   id: '/api/transcribe',
   path: '/api/transcribe',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiSigningRoute = ApiSigningRouteImport.update({
+  id: '/api/signing',
+  path: '/api/signing',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiModelsRoute = ApiModelsRouteImport.update({
@@ -175,6 +188,11 @@ const AppAutomationsRoute = AppAutomationsRouteImport.update({
   path: '/automations',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAgreementsRoute = AppAgreementsRouteImport.update({
+  id: '/agreements',
+  path: '/agreements',
+  getParentRoute: () => AppRoute,
+} as any)
 const PortalClientSlugIndexRoute = PortalClientSlugIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -263,8 +281,10 @@ const PortalClientSlugPropertiesPropertyIdLeaseRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/sign': typeof SignRoute
   '/sign-in': typeof SignInRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/agreements': typeof AppAgreementsRoute
   '/automations': typeof AppAutomationsRouteWithChildren
   '/clients': typeof AppClientsRouteWithChildren
   '/dashboard': typeof AppDashboardRoute
@@ -283,6 +303,7 @@ export interface FileRoutesByFullPath {
   '/api/chat': typeof ApiChatRoute
   '/api/copilotkit': typeof ApiCopilotkitRoute
   '/api/models': typeof ApiModelsRoute
+  '/api/signing': typeof ApiSigningRoute
   '/api/transcribe': typeof ApiTranscribeRoute
   '/portal/$clientSlug': typeof PortalClientSlugRouteWithChildren
   '/portal/': typeof PortalIndexRoute
@@ -305,8 +326,10 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/sign': typeof SignRoute
   '/sign-in': typeof SignInRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/agreements': typeof AppAgreementsRoute
   '/automations': typeof AppAutomationsRouteWithChildren
   '/clients': typeof AppClientsRouteWithChildren
   '/dashboard': typeof AppDashboardRoute
@@ -325,6 +348,7 @@ export interface FileRoutesByTo {
   '/api/chat': typeof ApiChatRoute
   '/api/copilotkit': typeof ApiCopilotkitRoute
   '/api/models': typeof ApiModelsRoute
+  '/api/signing': typeof ApiSigningRoute
   '/api/transcribe': typeof ApiTranscribeRoute
   '/portal': typeof PortalIndexRoute
   '/automations/$id': typeof AppAutomationsIdRoute
@@ -348,8 +372,10 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_app': typeof AppRouteWithChildren
+  '/sign': typeof SignRoute
   '/sign-in': typeof SignInRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/_app/agreements': typeof AppAgreementsRoute
   '/_app/automations': typeof AppAutomationsRouteWithChildren
   '/_app/clients': typeof AppClientsRouteWithChildren
   '/_app/dashboard': typeof AppDashboardRoute
@@ -368,6 +394,7 @@ export interface FileRoutesById {
   '/api/chat': typeof ApiChatRoute
   '/api/copilotkit': typeof ApiCopilotkitRoute
   '/api/models': typeof ApiModelsRoute
+  '/api/signing': typeof ApiSigningRoute
   '/api/transcribe': typeof ApiTranscribeRoute
   '/portal/$clientSlug': typeof PortalClientSlugRouteWithChildren
   '/portal/': typeof PortalIndexRoute
@@ -392,8 +419,10 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/sign'
     | '/sign-in'
     | '/sitemap.xml'
+    | '/agreements'
     | '/automations'
     | '/clients'
     | '/dashboard'
@@ -412,6 +441,7 @@ export interface FileRouteTypes {
     | '/api/chat'
     | '/api/copilotkit'
     | '/api/models'
+    | '/api/signing'
     | '/api/transcribe'
     | '/portal/$clientSlug'
     | '/portal/'
@@ -434,8 +464,10 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/sign'
     | '/sign-in'
     | '/sitemap.xml'
+    | '/agreements'
     | '/automations'
     | '/clients'
     | '/dashboard'
@@ -454,6 +486,7 @@ export interface FileRouteTypes {
     | '/api/chat'
     | '/api/copilotkit'
     | '/api/models'
+    | '/api/signing'
     | '/api/transcribe'
     | '/portal'
     | '/automations/$id'
@@ -476,8 +509,10 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/_app'
+    | '/sign'
     | '/sign-in'
     | '/sitemap.xml'
+    | '/_app/agreements'
     | '/_app/automations'
     | '/_app/clients'
     | '/_app/dashboard'
@@ -496,6 +531,7 @@ export interface FileRouteTypes {
     | '/api/chat'
     | '/api/copilotkit'
     | '/api/models'
+    | '/api/signing'
     | '/api/transcribe'
     | '/portal/$clientSlug'
     | '/portal/'
@@ -520,12 +556,14 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AppRoute: typeof AppRouteWithChildren
+  SignRoute: typeof SignRoute
   SignInRoute: typeof SignInRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   ApiAssistantRoute: typeof ApiAssistantRoute
   ApiChatRoute: typeof ApiChatRoute
   ApiCopilotkitRoute: typeof ApiCopilotkitRoute
   ApiModelsRoute: typeof ApiModelsRoute
+  ApiSigningRoute: typeof ApiSigningRoute
   ApiTranscribeRoute: typeof ApiTranscribeRoute
   PortalClientSlugRoute: typeof PortalClientSlugRouteWithChildren
   PortalIndexRoute: typeof PortalIndexRoute
@@ -548,6 +586,13 @@ declare module '@tanstack/react-router' {
       path: '/sign-in'
       fullPath: '/sign-in'
       preLoaderRoute: typeof SignInRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sign': {
+      id: '/sign'
+      path: '/sign'
+      fullPath: '/sign'
+      preLoaderRoute: typeof SignRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_app': {
@@ -583,6 +628,13 @@ declare module '@tanstack/react-router' {
       path: '/api/transcribe'
       fullPath: '/api/transcribe'
       preLoaderRoute: typeof ApiTranscribeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/signing': {
+      id: '/api/signing'
+      path: '/api/signing'
+      fullPath: '/api/signing'
+      preLoaderRoute: typeof ApiSigningRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/models': {
@@ -709,6 +761,13 @@ declare module '@tanstack/react-router' {
       path: '/automations'
       fullPath: '/automations'
       preLoaderRoute: typeof AppAutomationsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/agreements': {
+      id: '/_app/agreements'
+      path: '/agreements'
+      fullPath: '/agreements'
+      preLoaderRoute: typeof AppAgreementsRouteImport
       parentRoute: typeof AppRoute
     }
     '/portal/$clientSlug/': {
@@ -887,6 +946,7 @@ const AppPropertiesRouteWithChildren = AppPropertiesRoute._addFileChildren(
 )
 
 interface AppRouteChildren {
+  AppAgreementsRoute: typeof AppAgreementsRoute
   AppAutomationsRoute: typeof AppAutomationsRouteWithChildren
   AppClientsRoute: typeof AppClientsRouteWithChildren
   AppDashboardRoute: typeof AppDashboardRoute
@@ -904,6 +964,7 @@ interface AppRouteChildren {
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppAgreementsRoute: AppAgreementsRoute,
   AppAutomationsRoute: AppAutomationsRouteWithChildren,
   AppClientsRoute: AppClientsRouteWithChildren,
   AppDashboardRoute: AppDashboardRoute,
@@ -977,12 +1038,14 @@ const PortalClientSlugRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRoute: AppRouteWithChildren,
+  SignRoute: SignRoute,
   SignInRoute: SignInRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   ApiAssistantRoute: ApiAssistantRoute,
   ApiChatRoute: ApiChatRoute,
   ApiCopilotkitRoute: ApiCopilotkitRoute,
   ApiModelsRoute: ApiModelsRoute,
+  ApiSigningRoute: ApiSigningRoute,
   ApiTranscribeRoute: ApiTranscribeRoute,
   PortalClientSlugRoute: PortalClientSlugRouteWithChildren,
   PortalIndexRoute: PortalIndexRoute,

@@ -29,6 +29,7 @@ const groups: { label: string; items: { title: string; url: string; icon: any }[
     items: [
       { title: "Clients", url: "/clients", icon: Users },
       { title: "Leases", url: "/leases", icon: ScrollText },
+      { title: "Agreements", url: "/agreements", icon: FileText },
       { title: "Documents", url: "/documents", icon: FileText },
       { title: "Insights", url: "/insights", icon: Lightbulb },
       { title: "Search", url: "/search", icon: Search },

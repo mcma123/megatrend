@@ -1,0 +1,51 @@
+# Purpose
+
+- Owns the staff signing workspace UI. Execution order and release gates live in root `signing_module.md`.
+
+# Ownership
+
+- Components own the agreement dashboard/wizard, participants/stages, PDF upload/order, field editor/preview, internal approval, invitation/delivery ledger and readiness. Convex owns authorization, immutable revisions and actual workflow state. The public signer verification and signing portal (`public/signing-access.js`, `public/signing-portal.js`, `/sign`, `/api/signing`) remains outside this staff subtree.
+
+# Local Contracts
+
+- Phase 10: `signing-portfolio.tsx` owns explicit owner/renter/unit and participant mapping, draft revision saves, completed-PDF term review, pinned-generation suggestions, exact preview/confirmation, payment evidence and separate activation/occupation controls. Never infer activation or occupation from completion, payment or task status. Relationship data lives in Convex; preserve unsaved input on MFA expiry, invalidate confirmation on input changes, and leave concurrent/stale review rejection to the server.
+- `signing-reporting.tsx` owns the company **Portfolio & reports** tab: additive party/unit creation, complete paged report aggregation and private departure handover requests/progress/reconciliation. Privileged controls require recent MFA. Every ZIP volume is bounded and SHA-256 verified before saving; abort active downloads on unmount/MFA changes, keep private URLs out of persistent storage, and obtain fresh links after 60 seconds. Report date inputs use SAST; cohorts/outcomes are explicitly labelled. Archive limitations and unavailable artifacts are never presented as a complete successful export.
+
+- Staff capability covers preparation, internal approval/freezing, gated invitation release, tracking, exceptions, finalisation evidence and (platform admins) release records and operational alerts. Server permissions and the release gate remain authoritative.
+- Only platform administrators with recent MFA see mutation controls; server permissions remain authoritative. Company staff read authorized records; clients have no signing workspace access. Preserve unsaved forms when MFA expires and require verification before saving.
+- Preserve the loaded revision while editing. Show concurrent changes and require explicit reload or server rejection instead of silently overwriting unsaved input.
+- `signing-security.tsx` handles private authenticator setup/recovery and five-minute step-up; never persist setup secrets or send them to external QR/analytics services. Security input disables dictation. `signing-policy.tsx` records actual review references with revision checks. References are attestations; neither references nor a DB hash alone prove legal validity or independent protection.
+- Never ingest contract contents into the assistant/voice system automatically.
+- `signing-files.tsx` uploads only through server-issued expiring quarantine forms. Ambiguous transfers offer verification of the existing upload ticket. Never preview raw uploads. Prepared previews fetch fresh authorized versioned URLs, verify SHA-256, use a local PDF.js overlay, and clear/abort/revoke on close, unmount or identity/bundle change. Private data/URLs stay out of persistent browser storage.
+- Render real job states. Unresolved ownership offers reconciliation after its waiting window, without a new preparation submission. File and metadata changes require a fresh bundle and approval. Missing service configuration disables uploads/preparation; it does not imply production readiness when present.
+- `signing-field-editor.tsx` uses PDF.js with local assets and SHA-verified private bytes from `private-pdf.ts`. Overlay rectangles use the backend's explicit unrotated crop coordinate system; rotation and user units are verified against each page. Drag/resize, keyboard controls and numeric alternatives must preserve stored coordinates across responsive widths and zoom. Keep canvas limits and stale-context gates.
+- Unsaved field definitions survive MFA expiry and concurrent context changes. Changed bundles abort/revoke rendering; explicit discard/reload replaces unsaved definitions. Participant previews are read-only demonstrations, never signing submissions. Repeat-initials placement requires a review/confirm step. Sensitive approved-value inputs opt out of voice dictation.
+- `signing-preparation.tsx` captures acknowledgement for one exact preparation hash, renders actual server blockers and controls internal approval/reject/return with reasons. Policy/context changes invalidate review; self-approval follows server policy. Frozen preparation is not a signed or externally issued agreement. Dashboard counts cover only loaded/filtered records.
+- `template-schema.ts` is the React-free Tiptap extension set that must match the server document schema exactly (no links, code, images or other StarterKit extras); `template-editor.tsx` is the editor UI. `signing-templates.tsx` manages libraries (approved versions read-only, new versions for edits, field/condition definitions, approval with a legal reference). `signing-generate.tsx` previews generation in a sandboxed `srcdoc` iframe, shows fact provenance, collects missing renter/unit/owner data and the schedule explicitly, and reuses one request ID across retries. Starter text is placeholder only; never present it as approved wording.
+- `signing-release.tsx` records/suspends the company release (pilot/live, allowlist, evidence references) and shows blockers; `signing-operations.tsx` shows platform-admin alerts (codes only); `signing-exceptions.tsx` offers void/extend/resume/replace/holds/held-stage actions, each with a reason. Invitation release requires the gate, a deadline and explicit confirmation, reusing one request ID and deadline across retries. Never present a recorded release as proof of legal or operational acceptance.
+- `signing-finalisation.tsx` shows finalisation attempts, plain-language errors, seal/timestamp facts and hashes. Retry/check controls require recent MFA (server-enforced). Sealed downloads verify SHA-256 locally (`private-pdf.ts`) before saving; **Verify integrity** is read-only. Never describe the platform seal as a participant signature, and never show Completed unless the server reports it.
+- Phase 9: `field-properties.tsx` edits choice options, one-level conditions and attachment purposes; `agreement-workspace.tsx` edits witness, notification channel/phone/WhatsApp opt-in and signature method, labelling SMS/WhatsApp/advanced as not yet accepted (server blockers stay authoritative); `signing-policy.tsx` records the witnessing approval reference. `signing-in-person.tsx` (from the invitation ledger) records a document type and last characters only after staff attest an in-person check, then shows a single-use kiosk link (`/sign#in-person:…`). `signing-attachments.tsx` lists supporting-document metadata and opens a document only after a recorded reason.
+- `signing-invitations.tsx` also lists immutable participant outcomes (signed, approved, declined, requested correction) with reasons from the server; a correction request is shown as a pause, never as signing. `signing-policy.tsx` records optional signer contact details that are frozen into approved preparations.
+- `signing-invitations.tsx` distinguishes provider acceptance, mail-server delivery and verified mailbox access; none implies document review/consent/signing. Display only server-redacted ledger facts, never links/codes/hashes/ciphertexts. Sending/reminder/reissue stays disabled behind release checks. Revoke requires a reason/version; reconciliation checks existing delivery without resending. Key local state by actor/agreement and clear private rendering at sign-out; retain reminder request IDs through uncertain retries.
+
+# Work Guidance
+
+- Use real Convex records and shared UI controls. Keep the public signer UI separate from staff/company layouts.
+
+# Verification
+
+- `signing-portfolio.test.ts` checks completed-versus-operational state, explicit review, escaped names/payment purposes, MFA/read-only boundaries, export progress and signed-out isolation. `convex/signingPortfolio.test.ts` checks server authorization, stale/concurrent/idempotent application, payment/activation independence, renewal/amendment history, complete pagination and owned export reconciliation. Neither replaces authenticated live/mobile acceptance.
+
+- Frontend TypeScript, changed-source ESLint and production build.
+- Backend behavior and isolation: root `npm test`, including `convex/signing.test.ts`.
+- `agreement-workspace.test.ts` covers isolated SSR release boundaries, administrator controls, missing-company handling and escaped draft titles. It does not replace interactive browser acceptance.
+- `signing-files.test.ts` covers quarantine/preview boundaries, read-only staff controls, unresolved-job UI and signed-out isolation.
+- `template-schema.test.ts` builds documents with Tiptap's real schema and checks them against the server schema/renderer, including all starters; `signing-templates.test.ts` covers library/generation panels.
+- `signing-exceptions.test.ts` covers exception/hold availability, MFA gating, escaped reasons, release suspension display and PII-free alerts; `signing-invitations.test.ts` also covers blocked-release explanations, confirmation before release and bulk reminders.
+- `signing-finalisation.test.ts` covers failed/unconfigured/completed states, escaped certificate subjects, MFA-gated retry and signed-out isolation.
+- `signing-invitations.test.ts` checks delivery/authentication distinctions, escaped names, release/MFA controls and signed-out isolation. `src/lib/signing-access.server.test.ts` checks first-party portal privacy, CSRF, cookies, response redaction, trusted-proxy boundaries and the server-side attachment forwarding path.
+- `signing-preparation.test.ts` covers stage/role presentation, read-only/MFA boundaries, review/self-approval gates and signed-out isolation. `signing-geometry.test.ts` runs in Node with the installed PDF.js/native-canvas bindings against `signing-geometry.fixture.ts` (synthetic PDF only) and checks crop/rotation/units at four zoom levels. Neither replaces authenticated browser/mobile interaction acceptance.
+
+# Child DOX Index
+
+- No child DOX docs yet.

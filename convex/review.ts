@@ -476,6 +476,10 @@ export const applyToLease = mutation({
         );
       }
       before = lease;
+      if (lease.signingApplicationId)
+        throw new ConvexError(
+          "Apply amendments through the signing portfolio review",
+        );
       const merged = { ...lease, ...leasePatch };
       if (merged.endDate <= merged.startDate) {
         throw new ConvexError(

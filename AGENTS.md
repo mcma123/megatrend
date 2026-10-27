@@ -14,12 +14,14 @@ include line if you don't want the managed guidance in this project.
 
 Deploy mode: wmill sync push (no CI wiring detected).
 - Windmill target: workspace `cyphersoft` on `http://automation-servers-windmill-7973c1-187-124-215-81.sslip.io/` (bound in `wmill.yaml`; CLI profile `cyphersoft`). Use `npm run wmill:push` / `npm run wmill:pull`, always after a `--dry-run`.
-- The `cyphersoft` workspace is shared with other projects (e.g. `f/rebsons`). `wmill.yaml` `includes` is scoped to `f/clitools/**`, `f/docling/**`, `f/firecrawl/**`; never widen it to `f/**`, or a push could delete and a pull could import other projects.
+- The `cyphersoft` workspace is shared with other projects (e.g. `f/rebsons`). `wmill.yaml` `includes` is scoped to `f/clitools/**`, `f/docling/**`, `f/firecrawl/**`, and the user-approved `f/signing/**`; never widen it to `f/**`, or a push could delete and a pull could import other projects.
 - `f/docling/*` reads MinIO from Windmill variables `f/docling/MINIO_ENDPOINT` (in repo) and the secrets `f/docling/MINIO_ACCESS_KEY` / `f/docling/MINIO_SECRET_KEY` (workspace only, a bucket-scoped key for `parsedinjson` and `okfdata`). Never hard-code MinIO credentials in scripts or flow defaults.
 - Workspace object storage (`wmill.write_s3_file`, used by `f/docling/scanner/save_scanned_document`) points at resource `f/docling/scanner/minio_storage` (MinIO bucket `scanner`, secret `f/docling/scanner/S3_SECRET_KEY`); keep that resource file in the repo so pushes don't delete it.
 - App document pipeline: flow `f/docling/process_document_for_app` (Docling parse → OKF bundle under `<tenant-slug>/<document-id>` → `f/docling/extract_document_fields` → compact summary) is started by Convex (`convex/processing.ts`). Extraction calls OpenRouter with the workspace secret `f/docling/OPENROUTER_API_KEY` (not in the repo). Keep the field keys in `extract_document_fields.py` stable; Convex stores them.
 - Roadmap for replacing static/mock data with real Convex data, document upload and processing: `backend functionality.md` (phased checklists). Tick boxes there as phases are completed.
 - Document-processing hardening execution plan: `docling_file.md`. Execute its phases in order and tick tasks/phases only after their implementation and acceptance checks pass; record verification evidence and track production rollout separately.
+- Contract/lease signing execution plan: `signing_module.md`. Implement and verify phase by phase; track implementation separately from rollout. South Africa and uploaded PDFs first; Resend and certificate/timestamp services are approved architectural choices, not provisioned services. Signing automation is scoped to `f/signing/**`; provisioning and review evidence are documented in `insightful-property-hub/docs/signing-prerequisites.md`. Legal sign-off and verified operational prerequisites gate external signing. Do not represent a platform seal as a participant's accredited advanced signature.
+- Signing-only Windmill releases must pass `--includes 'f/signing/**'` to both dry run and push (`npm run wmill:push -- --dry-run --includes 'f/signing/**'`). Do not apply unrelated automation drift as part of a signing release; shared-workspace configuration must be preserved.
 - App document flow results use `contract_version: 1` and optional `attempt_id` for legacy callers. New artifact paths include `<tenant-slug>/<document-id>/<attempt-id>`; keep attempt identity aligned with `convex/processing.ts`. Run `python scripts/test-docling-summary.py` when changing the compact summary contract.
 - The app flow accepts `retry_stage` (`parse`, `knowledge`, `extract`) and server-selected saved-parser inputs. Knowledge recovery skips field extraction; extraction recovery reuses parsing and the existing knowledge outcome. Keep conditional skips and error summaries aligned with Convex recovery ownership. Run `python scripts/test-docling-recovery.py` when changing saved-parser reuse; dependency locks remain valid when imports are unchanged.
 - Active product UI baseline: `insightful-property-hub/`.
@@ -143,14 +145,17 @@ When the user requests a durable behavior change, record it here or in the relev
 
 - `src/mastra/` -> `src/mastra/AGENTS.md`: Root Mastra server, agent registration, tool wiring, and chat API surface.
 - `convex/` -> `convex/AGENTS.md`: Convex backend rules, generated API surface, and Convex-specific operating constraints.
+- `f/signing/` -> `f/signing/AGENTS.md`: Signing audit anchors, quarantined PDF preparation/scanning, supporting documents, immutable bundles, encrypted delivery, sealed finalisation and private company handover exports.
 - `insightful-property-hub/` -> `insightful-property-hub/AGENTS.md`: Main TanStack Start frontend served by the root `dev:web` workflow.
 - `megatrend/` -> `megatrend/AGENTS.md`: Quarantined standalone TanStack Start starter app, not part of the active product baseline.
 
 Root-owned without a child AGENTS.md:
 - `docker-compose.preview.yml`: Private Gotenberg converter definition; operational setup is documented in `insightful-property-hub/docs/document-viewer.md`.
-- Root execution plans: `backend functionality.md` and `docling_file.md`; maintain phase completion and verification evidence with the corresponding implementation work.
-- `f/`: Windmill scripts, flows, folder metadata, and deployed automation assets.
-- `scripts/`: Runtime wrapper scripts such as `mastra-openrouter.mjs`.
+- `docker-compose.signing-renderer.yml`: Separate private Gotenberg (Chromium HTML only, no JavaScript or network) for signing template rendering; setup is in `insightful-property-hub/docs/signing-prerequisites.md`. Never enable Chromium on the document-preview converter instead.
+- Root execution plans: `backend functionality.md`, `docling_file.md`, and `signing_module.md`; maintain phase completion and verification evidence with the corresponding implementation work.
+- `f/` except its indexed signing child: Windmill scripts, flows, folder metadata, and deployed automation assets.
+- `scripts/`: Runtime wrappers such as `mastra-openrouter.mjs`, private signing MFA key preparation, and offline verification scripts.
+- `scripts/codegen-convex-local.mjs`: Local Convex API/server binding generation through the installed official templates; no remote staging request. Supports this app's optional-string env declarations and fails on unsupported shapes. Run from the repository root after backend API/env changes, then typecheck both projects. `npx convex codegen` performs remote component analysis even though it does not release functions; prefer the local generator for offline implementation verification.
 - Root manifests and workspace config: `package.json`, `wmill.yaml`, `tsconfig*.json`, `vitest.config.ts` (Convex, Mastra, and pure frontend assistant/proxy tests, `npm test`), lockfiles, env files, `.wmill-config/`.
 - `vitest.config.ts` caps test workers at two so cold CopilotKit/Mastra imports do not starve Convex fixtures past the unchanged five-second test timeout. Run production builds separately from regression tests on this workstation.
 - Tooling metadata and caches: `.agents/`, `.claude/`, `.mastra/`, `.mastra-temp/`, `.pnpm-store/`, `node_modules/`, and other generated runtime outputs.

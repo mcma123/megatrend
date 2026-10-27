@@ -31,11 +31,26 @@ type Env = {
   readonly CONVEX_CLOUD_URL: string;
   readonly CONVEX_SITE_URL: string;
   readonly PLATFORM_ADMIN_EMAILS: string | undefined;
+  readonly RESEND_SIGNING_WEBHOOK_SECRET: string | undefined;
+  readonly SIGNING_ACCESS_ACTIVE_KEY_ID: string | undefined;
+  readonly SIGNING_ACCESS_KEYS_JSON: string | undefined;
+  readonly SIGNING_MFA_ACTIVE_KEY_ID: string | undefined;
+  readonly SIGNING_MFA_KEYS_JSON: string | undefined;
+  readonly SIGNING_PORTAL_ORIGIN: string | undefined;
+  readonly SIGNING_PORTAL_SERVICE_TOKEN: string | undefined;
+  readonly SIGNING_RELEASE_MODE: string | undefined;
+  readonly SIGNING_SENDER_ADDRESS: string | undefined;
+  readonly SIGNING_WINDMILL_BASE_URL: string | undefined;
   readonly VOICE_DAILY_CAP: string | undefined;
   readonly VOICE_RATE_LIMIT_PER_MINUTE: string | undefined;
   readonly WINDMILL_BASE_URL: string | undefined;
   readonly WINDMILL_PREVIEW_TOKEN: string | undefined;
   readonly WINDMILL_PROCESSING_TOKEN: string | undefined;
+  readonly WINDMILL_SIGNING_DOCUMENTS_TOKEN: string | undefined;
+  readonly WINDMILL_SIGNING_EMAIL_TOKEN: string | undefined;
+  readonly WINDMILL_SIGNING_EXPORT_TOKEN: string | undefined;
+  readonly WINDMILL_SIGNING_FINALISE_TOKEN: string | undefined;
+  readonly WINDMILL_SIGNING_TOKEN: string | undefined;
   readonly WINDMILL_WORKSPACE: string | undefined;
 };
 

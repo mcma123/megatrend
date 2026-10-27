@@ -1,0 +1,6 @@
+summary: Contract and lease signing automation
+display_name: Signing
+extra_perms:
+  u/mcmarshfif: true
+owners:
+  - u/mcmarshfif

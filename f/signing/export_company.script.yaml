@@ -1,0 +1,44 @@
+summary: Build private company signing and portfolio handover volumes
+description: Captures no credentials. Packages a Convex-approved snapshot and
+  pinned, hash-verified private artifacts into retained write-once ZIP volumes.
+  Uses only f/signing/document_storage. Download operations verify stored
+  volumes first.
+lock: '!inline f/signing/export_company.script.lock'
+has_on_behalf_of: false
+kind: script
+schema:
+  $schema: https://json-schema.org/draft/2020-12/schema
+  type: object
+  properties:
+    export_id:
+      type: string
+      description: ''
+      default: null
+      originalType: string
+    operation:
+      type: string
+      description: ''
+      default: null
+      originalType: string
+    payload:
+      type: object
+      description: ''
+      default: null
+      properties: {}
+    snapshot_hash:
+      type: string
+      description: ''
+      default: null
+      originalType: string
+    tenant_id:
+      type: string
+      description: ''
+      default: null
+      originalType: string
+  required:
+    - operation
+    - tenant_id
+    - export_id
+    - snapshot_hash
+    - payload
+timeout: 300

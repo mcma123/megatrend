@@ -1,0 +1,38 @@
+summary: Finalise, seal and verify completed signing agreements
+description: Composes accepted values and a completion certificate onto the
+  frozen bundle, applies the platform seal with an RFC 3161 timestamp and PAdES
+  B-LT validation data, validates, and publishes retained artifacts. Requires
+  dedicated signing storage and platform seal resources.
+lock: '!inline f/signing/finalise_agreement.script.lock'
+has_on_behalf_of: false
+kind: script
+schema:
+  $schema: https://json-schema.org/draft/2020-12/schema
+  type: object
+  properties:
+    agreement_id:
+      type: string
+      description: ''
+      default: null
+      originalType: string
+    operation:
+      type: string
+      description: ''
+      default: null
+      originalType: string
+    payload:
+      type: object
+      description: ''
+      default: null
+      properties: {}
+    tenant_id:
+      type: string
+      description: ''
+      default: null
+      originalType: string
+  required:
+    - operation
+    - tenant_id
+    - agreement_id
+    - payload
+timeout: 300

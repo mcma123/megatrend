@@ -72,7 +72,12 @@ async function toLeaseRow(ctx: QueryCtx, lease: Doc<"leases">) {
     ...lease,
     client,
     property: property
-      ? { propertyId: property._id, name: property.name, city: property.city, sizeSqm: property.sizeSqm ?? null }
+      ? {
+          propertyId: property._id,
+          name: property.name,
+          city: property.city,
+          sizeSqm: property.sizeSqm ?? null,
+        }
       : null,
   };
 }
@@ -87,7 +92,9 @@ export const list = query({
       tenantIds = [args.tenantId];
     } else {
       const staff = await requireStaff(ctx);
-      tenantIds = (await listStaffTenants(ctx, staff)).map((tenant) => tenant._id);
+      tenantIds = (await listStaffTenants(ctx, staff)).map(
+        (tenant) => tenant._id,
+      );
     }
 
     const rows = [];
@@ -122,12 +129,17 @@ export const get = query({
       .withIndex("by_leaseId", (q) => q.eq("leaseId", lease._id))
       .take(100);
     const tenant = await ctx.db.get(lease.tenantId);
-    const settings = tenant?.settingsId ? await ctx.db.get(tenant.settingsId) : null;
+    const settings = tenant?.settingsId
+      ? await ctx.db.get(tenant.settingsId)
+      : null;
     return {
       ...(await toLeaseRow(ctx, lease)),
       clauses,
       renewalHorizonDays: settings?.renewalHorizonDays ?? 180,
-      canEdit: access.principalType === "staff" && access.roleKey !== "read_only_staff",
+      canEdit:
+        !lease.signingApplicationId &&
+        access.principalType === "staff" &&
+        access.roleKey !== "read_only_staff",
     };
   },
 });
@@ -178,9 +190,17 @@ export const update = mutation({
       throw new ConvexError("Lease not found");
     }
     const access = await requireTenantWriter(ctx, lease.tenantId);
+    if (lease.signingApplicationId)
+      throw new ConvexError(
+        "Use the signing portfolio approval to amend or activate this lease",
+      );
     const fields = cleanLeaseInput(input);
     const now = Date.now();
-    await ctx.db.patch(leaseId, { ...fields, updatedAt: now, updatedBy: access.user._id });
+    await ctx.db.patch(leaseId, {
+      ...fields,
+      updatedAt: now,
+      updatedBy: access.user._id,
+    });
 
     await appendAuditEvent(ctx, {
       tenantId: lease.tenantId,
@@ -211,8 +231,16 @@ export const archive = mutation({
       throw new ConvexError("Lease not found");
     }
     const access = await requireTenantWriter(ctx, lease.tenantId);
+    if (lease.signingApplicationId)
+      throw new ConvexError(
+        "Signing-managed leases require a reviewed signing lifecycle change",
+      );
     const now = Date.now();
-    await ctx.db.patch(args.leaseId, { archivedAt: now, updatedAt: now, updatedBy: access.user._id });
+    await ctx.db.patch(args.leaseId, {
+      archivedAt: now,
+      updatedAt: now,
+      updatedBy: access.user._id,
+    });
 
     await appendAuditEvent(ctx, {
       tenantId: lease.tenantId,
@@ -237,6 +265,10 @@ export const addClause = mutation({
       throw new ConvexError("Lease not found");
     }
     const access = await requireTenantWriter(ctx, lease.tenantId);
+    if (lease.signingApplicationId)
+      throw new ConvexError(
+        "Apply signed amendments through the signing portfolio review",
+      );
     const now = Date.now();
     const clauseId = await ctx.db.insert("leaseClauses", {
       tenantId: lease.tenantId,
@@ -271,6 +303,11 @@ export const removeClause = mutation({
       throw new ConvexError("Clause not found");
     }
     const access = await requireTenantWriter(ctx, clause.tenantId);
+    const lease = await ctx.db.get(clause.leaseId);
+    if (lease?.signingApplicationId)
+      throw new ConvexError(
+        "Apply signed amendments through the signing portfolio review",
+      );
     const now = Date.now();
     await ctx.db.delete(args.clauseId);
 
@@ -284,7 +321,10 @@ export const removeClause = mutation({
       correlationId: `lease:${clause.leaseId}`,
       sourceSystem: "convex",
       occurredAt: now,
-      payloadBefore: JSON.stringify({ title: clause.title, detail: clause.detail }),
+      payloadBefore: JSON.stringify({
+        title: clause.title,
+        detail: clause.detail,
+      }),
     });
     return { clauseId: args.clauseId };
   },

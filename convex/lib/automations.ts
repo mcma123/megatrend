@@ -73,7 +73,8 @@ export const RENEWAL_STEPS: Array<{
     dueInDays: 14,
     notifyClient: false,
     draftInsight: false,
-    description: (property) => `Market context, current rental vs comparables and scenarios for ${property}.`,
+    description: (property) =>
+      `Market context, current rental vs comparables and scenarios for ${property}.`,
   },
   {
     daysBefore: 120,
@@ -84,7 +85,8 @@ export const RENEWAL_STEPS: Array<{
     dueInDays: 14,
     notifyClient: false,
     draftInsight: false,
-    description: (property) => `Walk the client through the renewal briefing pack for ${property}.`,
+    description: (property) =>
+      `Walk the client through the renewal briefing pack for ${property}.`,
   },
   {
     daysBefore: 90,
@@ -95,7 +97,8 @@ export const RENEWAL_STEPS: Array<{
     dueInDays: 14,
     notifyClient: false,
     draftInsight: false,
-    description: (property) => `Re-run sourcing across listed and off-market inventory near ${property}.`,
+    description: (property) =>
+      `Re-run sourcing across listed and off-market inventory near ${property}.`,
   },
   {
     daysBefore: 30,
@@ -106,7 +109,8 @@ export const RENEWAL_STEPS: Array<{
     dueInDays: 7,
     notifyClient: false,
     draftInsight: false,
-    description: (property) => `Review the invoice trend and anomalies for ${property} before negotiating.`,
+    description: (property) =>
+      `Review the invoice trend and anomalies for ${property} before negotiating.`,
   },
   {
     daysBefore: 7,
@@ -169,13 +173,24 @@ export async function recordRun(
     triggeredBy: args.triggeredBy,
     summary: args.summary.slice(0, 500),
     stats: args.stats,
-    items: args.items.slice(0, 50).map((item) => ({ ...item, label: item.label.slice(0, 200), detail: item.detail.slice(0, 300) })),
+    items: args.items
+      .slice(0, 50)
+      .map((item) => ({
+        ...item,
+        label: item.label.slice(0, 200),
+        detail: item.detail.slice(0, 300),
+      })),
     error: args.error,
   });
   if (args.mode !== "dry_run") {
     const row = await getAutomationRow(ctx, args.key);
     if (row) {
-      await ctx.db.patch(row._id, { runCount: row.runCount + 1, lastRunAt: now, lastRunStatus: status, updatedAt: now });
+      await ctx.db.patch(row._id, {
+        runCount: row.runCount + 1,
+        lastRunAt: now,
+        lastRunStatus: status,
+        updatedAt: now,
+      });
     } else {
       await ctx.db.insert("automations", {
         key: args.key,
@@ -213,11 +228,14 @@ export async function planRenewalCadence(ctx: QueryCtx, now: number) {
       .withIndex("by_tenantId", (q) => q.eq("tenantId", tenant._id))
       .take(500);
     for (const lease of leases) {
-      if (!isLiveLease(lease)) continue;
+      if (!isLiveLease(lease) || lease.signingRenewalReminders === false)
+        continue;
       leasesChecked += 1;
       const daysLeft = daysUntil(lease.endDate, now);
       if (daysLeft < 0) continue;
-      const reached = RENEWAL_STEPS.filter((step) => daysLeft <= step.daysBefore);
+      const reached = RENEWAL_STEPS.filter(
+        (step) => daysLeft <= step.daysBefore,
+      );
       if (reached.length === 0) continue;
       const handled = new Set(
         (
@@ -248,12 +266,18 @@ export async function planRenewalCadence(ctx: QueryCtx, now: number) {
 }
 
 function formatEnd(isoDate: string) {
-  return new Intl.DateTimeFormat("en-ZA", { day: "numeric", month: "long", year: "numeric" }).format(
-    new Date(`${isoDate}T00:00:00Z`),
-  );
+  return new Intl.DateTimeFormat("en-ZA", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  }).format(new Date(`${isoDate}T00:00:00Z`));
 }
 
-export async function runRenewalCadence(ctx: MutationCtx, mode: RunMode, triggeredBy?: Id<"users">) {
+export async function runRenewalCadence(
+  ctx: MutationCtx,
+  mode: RunMode,
+  triggeredBy?: Id<"users">,
+) {
   const startedAt = Date.now();
   const { planned, leasesChecked } = await planRenewalCadence(ctx, startedAt);
   const fired = planned.filter((item) => item.action === "fire");
@@ -287,7 +311,9 @@ export async function runRenewalCadence(ctx: MutationCtx, mode: RunMode, trigger
   }
 
   const runItems: RunItem[] = [];
-  const pendingMilestones: Array<Omit<Doc<"renewalMilestones">, "_id" | "_creationTime" | "runId">> = [];
+  const pendingMilestones: Array<
+    Omit<Doc<"renewalMilestones">, "_id" | "_creationTime" | "runId">
+  > = [];
   for (const item of planned) {
     const endLabel = formatEnd(item.lease.endDate);
     if (item.action === "skip") {
@@ -322,10 +348,13 @@ export async function runRenewalCadence(ctx: MutationCtx, mode: RunMode, trigger
         tenantId: item.tenant._id,
         propertyId: item.lease.propertyId,
         leaseId: item.lease._id,
-        documentIds: item.lease.sourceDocumentId ? [item.lease.sourceDocumentId] : [],
+        documentIds: item.lease.sourceDocumentId
+          ? [item.lease.sourceDocumentId]
+          : [],
         title: `Renewal window open for ${item.propertyName}`,
         body: `The lease for ${item.propertyName} ends on ${endLabel}, ${item.daysLeft} days from today. This is the time to decide whether to renew, renegotiate or relocate; Cyphersoft is preparing a briefing pack with market comparables.`,
-        recommendedAction: "Share your plans for this site so we can prepare the right options.",
+        recommendedAction:
+          "Share your plans for this site so we can prepare the right options.",
         category: "renewal",
         priority: item.daysLeft <= 90 ? "critical" : "high",
         status: "draft",
@@ -381,7 +410,10 @@ export async function runRenewalCadence(ctx: MutationCtx, mode: RunMode, trigger
       correlationId: `lease:${item.lease._id}`,
       sourceSystem: "convex",
       occurredAt: Date.now(),
-      payloadAfter: JSON.stringify({ daysBefore: item.step.daysBefore, actionId }),
+      payloadAfter: JSON.stringify({
+        daysBefore: item.step.daysBefore,
+        actionId,
+      }),
     });
   }
 
@@ -395,7 +427,10 @@ export async function runRenewalCadence(ctx: MutationCtx, mode: RunMode, trigger
         ? `No renewal steps due across ${leasesChecked} live lease${leasesChecked === 1 ? "" : "s"}.`
         : `${stats.stepsFired} renewal step${stats.stepsFired === 1 ? "" : "s"} fired across ${leasesChecked} live lease${leasesChecked === 1 ? "" : "s"}.`,
     stats,
-    items: [...runItems, ...items.filter((item) => item.label.startsWith("Skip"))],
+    items: [
+      ...runItems,
+      ...items.filter((item) => item.label.startsWith("Skip")),
+    ],
   });
   for (const milestone of pendingMilestones) {
     await ctx.db.insert("renewalMilestones", { ...milestone, runId });
@@ -407,25 +442,43 @@ export async function runRenewalCadence(ctx: MutationCtx, mode: RunMode, trigger
 
 const REMINDER_INTERVAL_MS = 6 * DAY_MS;
 
-export async function runOverdueReminders(ctx: MutationCtx, mode: RunMode, triggeredBy?: Id<"users">) {
+export async function runOverdueReminders(
+  ctx: MutationCtx,
+  mode: RunMode,
+  triggeredBy?: Id<"users">,
+) {
   const startedAt = Date.now();
   const today = new Date(startedAt).toISOString().slice(0, 10);
   const tenants = await ctx.db.query("tenants").take(500);
   const items: RunItem[] = [];
-  const stats: Record<string, number> = { actionsChecked: 0, remindersSent: 0, notificationsSent: 0 };
+  const stats: Record<string, number> = {
+    actionsChecked: 0,
+    remindersSent: 0,
+    notificationsSent: 0,
+  };
 
   for (const tenant of tenants) {
     if (tenant.status !== "active") continue;
     const waiting = await ctx.db
       .query("actions")
-      .withIndex("by_tenantId_and_status", (q) => q.eq("tenantId", tenant._id).eq("status", "waiting_on_client"))
+      .withIndex("by_tenantId_and_status", (q) =>
+        q.eq("tenantId", tenant._id).eq("status", "waiting_on_client"),
+      )
       .take(300);
     for (const action of waiting) {
       if (!action.visibleToClient || !action.dueDate) continue;
       stats.actionsChecked += 1;
       if (action.dueDate >= today) continue;
-      if (action.lastReminderAt && startedAt - action.lastReminderAt < REMINDER_INTERVAL_MS) continue;
-      items.push({ tenantId: tenant._id, label: action.title, detail: `Overdue since ${action.dueDate}` });
+      if (
+        action.lastReminderAt &&
+        startedAt - action.lastReminderAt < REMINDER_INTERVAL_MS
+      )
+        continue;
+      items.push({
+        tenantId: tenant._id,
+        label: action.title,
+        detail: `Overdue since ${action.dueDate}`,
+      });
       stats.remindersSent += 1;
       if (mode === "dry_run") continue;
       stats.notificationsSent += await notify(ctx, {

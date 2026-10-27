@@ -37,6 +37,8 @@
     "ai": "^6.0.207",
     "convex": "^1.42.1",
     "openai": "7.43.0",
+    "otpauth": "9.5.2",
+    "svix": "2.9.0",
     "zod": "3.25.76"
   },
   "devDependencies": {

@@ -1,0 +1,36 @@
+# Private agreement renderer for f/signing/render_template (Phase 8). Separate from the
+# document-preview converter, which keeps Chromium disabled. Chromium may read only the HTML
+# file Gotenberg writes locally: no JavaScript, no outbound network, no LibreOffice routes,
+# no host ports or public domain. Attach Windmill workers to signing-renderer as well.
+# Verify every flag against the pinned Gotenberg release during acceptance.
+services:
+  signing-renderer:
+    image: gotenberg/gotenberg:8.38.0
+    restart: unless-stopped
+    command:
+      - gotenberg
+      - --api-timeout=120s
+      - --api-body-limit=2MB
+      - --api-enable-basic-auth
+      - --api-disable-download-from
+      - --webhook-disable
+      - --libreoffice-disable-routes
+      - --chromium-disable-javascript
+      - --chromium-allow-list=^file:///tmp/.*
+      - --chromium-max-queue-size=4
+    environment:
+      GOTENBERG_API_BASIC_AUTH_USERNAME: ${SIGNING_RENDERER_USERNAME:?Set a private renderer username}
+      GOTENBERG_API_BASIC_AUTH_PASSWORD: ${SIGNING_RENDERER_PASSWORD:?Set a private renderer password}
+    networks:
+      - signing-renderer
+    mem_limit: 2g
+    cpus: 2
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+networks:
+  signing-renderer:
+    name: signing-renderer
+    internal: true

@@ -1,0 +1,48 @@
+summary: Deliver encrypted signing notifications through Resend
+description: Signing-only email adapter using f/signing/email_delivery. Requires
+  a verified sender domain with open/click tracking disabled. Decrypts bounded
+  short-lived envelopes; preserves provider idempotency and reports ambiguous
+  results without retrying sends. Lookup is read-only. Never logs recipients,
+  codes, links or bodies.
+lock: '!inline f/signing/deliver_email.script.lock'
+has_on_behalf_of: false
+kind: script
+schema:
+  $schema: https://json-schema.org/draft/2020-12/schema
+  type: object
+  properties:
+    delivery_id:
+      type: string
+      description: ''
+      default: null
+      originalType: string
+    kind:
+      type: string
+      description: ''
+      default: null
+      originalType: string
+    operation:
+      type: string
+      description: ''
+      default: null
+      originalType: string
+    payload_digest:
+      type: string
+      description: ''
+      default: ''
+      originalType: string
+    provider_id:
+      type: string
+      description: ''
+      default: ''
+      originalType: string
+    sealed:
+      type: string
+      description: ''
+      default: ''
+      originalType: string
+  required:
+    - operation
+    - delivery_id
+    - kind
+timeout: 120

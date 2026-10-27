@@ -1,0 +1,37 @@
+summary: Quarantine and prepare immutable signing PDF bundles
+description: Private version-pinned PDF uploads, fail-closed ClamAV scanning,
+  bounded static PDF preparation, retained manifests and verified private
+  downloads. Requires dedicated signing storage and scanner resources.
+lock: '!inline f/signing/prepare_bundle.script.lock'
+has_on_behalf_of: false
+kind: script
+schema:
+  $schema: https://json-schema.org/draft/2020-12/schema
+  type: object
+  properties:
+    agreement_id:
+      type: string
+      description: ''
+      default: null
+      originalType: string
+    operation:
+      type: string
+      description: ''
+      default: null
+      originalType: string
+    payload:
+      type: object
+      description: ''
+      default: null
+      properties: {}
+    tenant_id:
+      type: string
+      description: ''
+      default: null
+      originalType: string
+  required:
+    - operation
+    - tenant_id
+    - agreement_id
+    - payload
+timeout: 300

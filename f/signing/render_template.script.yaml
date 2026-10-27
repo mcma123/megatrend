@@ -1,0 +1,38 @@
+summary: Render generated agreement HTML to PDF in signing quarantine
+description: Verifies server-rendered HTML, converts it through the private
+  network-isolated signing renderer, normalises volatile PDF metadata and stores
+  the result once in quarantine for scanning and preparation. Requires
+  f/signing/document_storage and f/signing/template_renderer.
+lock: '!inline f/signing/render_template.script.lock'
+has_on_behalf_of: false
+kind: script
+schema:
+  $schema: https://json-schema.org/draft/2020-12/schema
+  type: object
+  properties:
+    agreement_id:
+      type: string
+      description: ''
+      default: null
+      originalType: string
+    operation:
+      type: string
+      description: ''
+      default: null
+      originalType: string
+    payload:
+      type: object
+      description: ''
+      default: null
+      properties: {}
+    tenant_id:
+      type: string
+      description: ''
+      default: null
+      originalType: string
+  required:
+    - operation
+    - tenant_id
+    - agreement_id
+    - payload
+timeout: 240
