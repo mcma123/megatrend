@@ -38,6 +38,7 @@ import { Route as AppClientsRouteImport } from './routes/_app.clients'
 import { Route as AppAutomationsRouteImport } from './routes/_app.automations'
 import { Route as AppAgreementsRouteImport } from './routes/_app.agreements'
 import { Route as PortalClientSlugIndexRouteImport } from './routes/portal.$clientSlug.index'
+import { Route as AppDocumentsIndexRouteImport } from './routes/_app.documents.index'
 import { Route as PortalClientSlugTeamRouteImport } from './routes/portal.$clientSlug.team'
 import { Route as PortalClientSlugInsightsRouteImport } from './routes/portal.$clientSlug.insights'
 import { Route as PortalClientSlugDocumentsRouteImport } from './routes/portal.$clientSlug.documents'
@@ -198,6 +199,11 @@ const PortalClientSlugIndexRoute = PortalClientSlugIndexRouteImport.update({
   path: '/',
   getParentRoute: () => PortalClientSlugRoute,
 } as any)
+const AppDocumentsIndexRoute = AppDocumentsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppDocumentsRoute,
+} as any)
 const PortalClientSlugTeamRoute = PortalClientSlugTeamRouteImport.update({
   id: '/team',
   path: '/team',
@@ -319,6 +325,7 @@ export interface FileRoutesByFullPath {
   '/portal/$clientSlug/documents': typeof PortalClientSlugDocumentsRouteWithChildren
   '/portal/$clientSlug/insights': typeof PortalClientSlugInsightsRoute
   '/portal/$clientSlug/team': typeof PortalClientSlugTeamRoute
+  '/documents/': typeof AppDocumentsIndexRoute
   '/portal/$clientSlug/': typeof PortalClientSlugIndexRoute
   '/portal/$clientSlug/documents/scanner': typeof PortalClientSlugDocumentsScannerRoute
   '/portal/$clientSlug/properties/$propertyId': typeof PortalClientSlugPropertiesPropertyIdRouteWithChildren
@@ -333,7 +340,6 @@ export interface FileRoutesByTo {
   '/automations': typeof AppAutomationsRouteWithChildren
   '/clients': typeof AppClientsRouteWithChildren
   '/dashboard': typeof AppDashboardRoute
-  '/documents': typeof AppDocumentsRouteWithChildren
   '/insights': typeof AppInsightsRoute
   '/invoices': typeof AppInvoicesRoute
   '/leases': typeof AppLeasesRouteWithChildren
@@ -363,6 +369,7 @@ export interface FileRoutesByTo {
   '/portal/$clientSlug/documents': typeof PortalClientSlugDocumentsRouteWithChildren
   '/portal/$clientSlug/insights': typeof PortalClientSlugInsightsRoute
   '/portal/$clientSlug/team': typeof PortalClientSlugTeamRoute
+  '/documents': typeof AppDocumentsIndexRoute
   '/portal/$clientSlug': typeof PortalClientSlugIndexRoute
   '/portal/$clientSlug/documents/scanner': typeof PortalClientSlugDocumentsScannerRoute
   '/portal/$clientSlug/properties/$propertyId': typeof PortalClientSlugPropertiesPropertyIdRouteWithChildren
@@ -410,6 +417,7 @@ export interface FileRoutesById {
   '/portal/$clientSlug/documents': typeof PortalClientSlugDocumentsRouteWithChildren
   '/portal/$clientSlug/insights': typeof PortalClientSlugInsightsRoute
   '/portal/$clientSlug/team': typeof PortalClientSlugTeamRoute
+  '/_app/documents/': typeof AppDocumentsIndexRoute
   '/portal/$clientSlug/': typeof PortalClientSlugIndexRoute
   '/portal/$clientSlug/documents/scanner': typeof PortalClientSlugDocumentsScannerRoute
   '/portal/$clientSlug/properties/$propertyId': typeof PortalClientSlugPropertiesPropertyIdRouteWithChildren
@@ -457,6 +465,7 @@ export interface FileRouteTypes {
     | '/portal/$clientSlug/documents'
     | '/portal/$clientSlug/insights'
     | '/portal/$clientSlug/team'
+    | '/documents/'
     | '/portal/$clientSlug/'
     | '/portal/$clientSlug/documents/scanner'
     | '/portal/$clientSlug/properties/$propertyId'
@@ -471,7 +480,6 @@ export interface FileRouteTypes {
     | '/automations'
     | '/clients'
     | '/dashboard'
-    | '/documents'
     | '/insights'
     | '/invoices'
     | '/leases'
@@ -501,6 +509,7 @@ export interface FileRouteTypes {
     | '/portal/$clientSlug/documents'
     | '/portal/$clientSlug/insights'
     | '/portal/$clientSlug/team'
+    | '/documents'
     | '/portal/$clientSlug'
     | '/portal/$clientSlug/documents/scanner'
     | '/portal/$clientSlug/properties/$propertyId'
@@ -547,6 +556,7 @@ export interface FileRouteTypes {
     | '/portal/$clientSlug/documents'
     | '/portal/$clientSlug/insights'
     | '/portal/$clientSlug/team'
+    | '/_app/documents/'
     | '/portal/$clientSlug/'
     | '/portal/$clientSlug/documents/scanner'
     | '/portal/$clientSlug/properties/$propertyId'
@@ -777,6 +787,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PortalClientSlugIndexRouteImport
       parentRoute: typeof PortalClientSlugRoute
     }
+    '/_app/documents/': {
+      id: '/_app/documents/'
+      path: '/'
+      fullPath: '/documents/'
+      preLoaderRoute: typeof AppDocumentsIndexRouteImport
+      parentRoute: typeof AppDocumentsRoute
+    }
     '/portal/$clientSlug/team': {
       id: '/portal/$clientSlug/team'
       path: '/team'
@@ -911,10 +928,12 @@ const AppClientsRouteWithChildren = AppClientsRoute._addFileChildren(
 
 interface AppDocumentsRouteChildren {
   AppDocumentsIdRoute: typeof AppDocumentsIdRoute
+  AppDocumentsIndexRoute: typeof AppDocumentsIndexRoute
 }
 
 const AppDocumentsRouteChildren: AppDocumentsRouteChildren = {
   AppDocumentsIdRoute: AppDocumentsIdRoute,
+  AppDocumentsIndexRoute: AppDocumentsIndexRoute,
 }
 
 const AppDocumentsRouteWithChildren = AppDocumentsRoute._addFileChildren(

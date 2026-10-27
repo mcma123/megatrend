@@ -420,6 +420,14 @@ function DocumentDetail() {
 
         <Card className="surface-elevated p-5 lg:col-span-2">
           <h3 className="font-display text-lg">Extracted fields</h3>
+          {document.isStaff &&
+          document.canManage &&
+          (document.status === "review_required" || document.status === "extraction_complete") ? (
+            <p className="mt-2 text-sm text-muted-foreground">
+              Check these values against the original. Approve, correct or reject each field, then
+              select Complete review. You can review documents you uploaded yourself.
+            </p>
+          ) : null}
           {document.summary ? (
             <p className="mt-1 text-sm text-muted-foreground">{document.summary}</p>
           ) : null}
