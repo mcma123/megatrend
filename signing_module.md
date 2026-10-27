@@ -785,6 +785,26 @@ Remaining Phase 10 acceptance/rollout gates:
 
 ## Verification and rollout
 
+Client presentation demo (2026-10-27):
+
+- User preference: client presentations must be possible immediately without configuring
+  signing MFA or external services. **Start client demo** on `/agreements` opens
+  `/agreements?demo=1`, a separate staff-only presentation using editable fictional data.
+- Demonstrates sample preparation, visual/keyboard field placement, explicit internal review,
+  simulated staged invitations, visible sample code `123456`, participant consent/typed
+  signature adoption, finalisation and independent/idempotent portfolio decisions. Decline,
+  correction, restart, watermarked print and explicitly marked demo JSON are included.
+- Demo state is React memory only. No signing backend calls, real records, emails, uploaded
+  files, money movement, certificates or timestamps; live MFA/release controls are unchanged.
+  Leaving, restarting or signing out clears the walkthrough. Demo output is not legal evidence.
+- Root `npm test`: **41 files / 395 tests passed**; frontend TypeScript, changed-source ESLint,
+  Prettier and web production build passed. Isolated Chrome interaction completed the full
+  journey with **zero fetch calls**, verifying that payment does not activate/authorise a lease.
+  Desktop and 500px narrow-screen field-layout screenshots were inspected. The fixture and
+  synthetic staff identity exist only in ignored local tooling artifacts, never production.
+- Frontend-only delivery follows the existing main → Dokploy workflow. No Convex/Windmill
+  change or service provisioning is required; all live acceptance/pilot gates remain open.
+
 - Backend: `npm test` plus isolation, stage/expiry races, stale jobs, duplicate signing,
   correction/replacement, OTP/MFA limits and artifact/audit tampering.
 - PDF: synthetic scanned/rotated/mixed-size/Unicode/long fixtures and real crypto checks.

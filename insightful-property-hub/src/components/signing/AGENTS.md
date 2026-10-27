@@ -8,6 +8,8 @@
 
 # Local Contracts
 
+- Client presentations must work without MFA keys or signing service provisioning. `signing-demo-state.ts`/`signing-demo.tsx` implement the explicit staff-only `/agreements?demo=1` exception: fictional editable sample data, field placement, approval, staged invitations, visible demo code, consent/typed signatures, simulated completion and independent portfolio actions. Use React memory only: no Convex/Windmill calls, real IDs, browser storage, external email, service credentials or production writes. Clear on restart/navigation/sign-out. Mark every outcome/download/print as DEMO; never claim a real signature, seal, timestamp or payment. Preserve live MFA, approval and release guards unchanged.
+
 - Phase 10: `signing-portfolio.tsx` owns explicit owner/renter/unit and participant mapping, draft revision saves, completed-PDF term review, pinned-generation suggestions, exact preview/confirmation, payment evidence and separate activation/occupation controls. Never infer activation or occupation from completion, payment or task status. Relationship data lives in Convex; preserve unsaved input on MFA expiry, invalidate confirmation on input changes, and leave concurrent/stale review rejection to the server.
 - `signing-reporting.tsx` owns the company **Portfolio & reports** tab: additive party/unit creation, complete paged report aggregation and private departure handover requests/progress/reconciliation. Privileged controls require recent MFA. Every ZIP volume is bounded and SHA-256 verified before saving; abort active downloads on unmount/MFA changes, keep private URLs out of persistent storage, and obtain fresh links after 60 seconds. Report date inputs use SAST; cohorts/outcomes are explicitly labelled. Archive limitations and unavailable artifacts are never presented as a complete successful export.
 
@@ -30,9 +32,11 @@
 
 # Work Guidance
 
-- Use real Convex records and shared UI controls. Keep the public signer UI separate from staff/company layouts.
+- Use real Convex records in the live workspace and shared UI controls. The explicit client-demo components above use fictional data only. Keep the public signer UI separate from staff/company layouts.
 
 # Verification
+
+- `signing-demo.test.ts` checks service-free staff rendering, complete simulated progression, required signature fields, approval/OTP/consent/order gates, decline/correction/reset, immutable post-approval sample details and independent/idempotent portfolio state. The demo is presentation behavior, not live signing acceptance.
 
 - `signing-portfolio.test.ts` checks completed-versus-operational state, explicit review, escaped names/payment purposes, MFA/read-only boundaries, export progress and signed-out isolation. `convex/signingPortfolio.test.ts` checks server authorization, stale/concurrent/idempotent application, payment/activation independence, renewal/amendment history, complete pagination and owned export reconciliation. Neither replaces authenticated live/mobile acceptance.
 

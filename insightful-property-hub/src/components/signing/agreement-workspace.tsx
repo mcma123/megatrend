@@ -98,6 +98,18 @@ export function AgreementWorkspace() {
           ) : null
         }
       />
+      <Card className="mb-6 flex flex-wrap items-center justify-between gap-4 border-primary/30 bg-primary/5 p-5">
+        <div>
+          <p className="font-semibold">Present the full signing workflow today</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Try a ready-made client demo with sample documents, signer journeys and portfolio
+            handover. No MFA or service setup needed.
+          </p>
+        </div>
+        <Button asChild>
+          <a href="/agreements?demo=1">Start client demo</a>
+        </Button>
+      </Card>
       {profile?.isPlatformAdmin && <SigningSecurity status={security} />}
       {profile?.isPlatformAdmin && (
         <div className="mb-6">

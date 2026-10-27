@@ -45,5 +45,5 @@
 - `components/admin-assistant/` -> `insightful-property-hub/src/components/admin-assistant/AGENTS.md`: Assistant panel state, agent selection, sidebar/full-page behavior, and Mastra chat UI wiring.
 - `components/document-scanner/` -> `insightful-property-hub/src/components/document-scanner/AGENTS.md`: Reusable client-portal scanner capture, edit, enhancement, page-management, and PDF export UI.
 - `components/documents/` -> `insightful-property-hub/src/components/documents/AGENTS.md`: In-app file viewer, document links, upload, status and staff field-review components.
-- `components/signing/` -> `insightful-property-hub/src/components/signing/AGENTS.md`: Staff agreement preparation, private files, approval, delivery, finalisation, portfolio application, independent operational approvals, reports and company handover exports.
+- `components/signing/` -> `insightful-property-hub/src/components/signing/AGENTS.md`: Staff agreement preparation, private files, approval, delivery, finalisation, portfolio application, reports/exports and the isolated client presentation demo.
 - `components/`, `hooks/`, and `lib/` remain owned by this doc until they need more specific local contracts.

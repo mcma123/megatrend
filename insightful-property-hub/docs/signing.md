@@ -1,18 +1,47 @@
 # Agreement signing module
 
-The execution tracker is [`signing_module.md`](../../signing_module.md). Work is
-currently an MFA-protected preparation foundation, not a production electronic-signature
-service. Private PDF preparation, field placement, internal approval, invitation/delivery
+The execution tracker is [`signing_module.md`](../../signing_module.md). The software is
+deployed; live electronic signing remains gated on service configuration and acceptance.
+Private PDF preparation, field placement, internal approval, invitation/delivery
 infrastructure, email verification and the account-free signer portal (review, consent,
 entries, signature adoption and immutable submissions) and certificate-backed finalisation
 (composition, completion certificate, platform seal, trusted timestamp, PAdES B-LT
-validation and retained publication) are implemented locally, with Phase 7 tracking,
+validation and retained publication) are implemented, with Phase 7 tracking,
 exceptions, monitoring, retention and a two-key controlled release. External sending
 stays closed until an operator sets the deployment release key and a company release is
 recorded. Storage/scanner/email/seal/timestamp provisioning and live
 acceptance are still required before using the workflow in production.
 
 ## Current workspace
+
+### Client demo — no service setup
+
+For a presentation, sign in as staff and open **Agreements → Start client demo**, or visit
+`/agreements?demo=1`. The separate walkthrough does not require signing MFA, policy references,
+storage/scanning, email, certificates or any other signing configuration. It never calls the
+signing backend. All details are fictional and editable, and state stays in browser memory.
+
+1. Keep or customise the pre-filled company, property, unit, rent/deposit and participants.
+   Choose **Prepare sample agreement**; the built-in document needs no upload.
+2. Choose **Use sample field layout**, or assign a field type/participant and click the sample
+   page to place it. Select a field and click elsewhere, use arrow keys or enter percentage
+   coordinates to move it. Both participants need a signature field.
+3. **Review preparation**, tick the sample review acknowledgement, then **Approve and simulate
+   invitations**.
+4. **Open renter demo journey**, enter the displayed code **123456**, confirm review/consent,
+   and adopt a typed signature with **Finish demo signing**. Repeat for the owner. The renter
+   signs first; the owner is the next stage. Decline and correction can also be demonstrated.
+5. **Simulate finalisation**, then **Apply to demo lease register**. Record a sample deposit,
+   approve lease activation and authorise occupation independently. Repeated actions do not
+   duplicate sample work. Download the clearly marked demo activity JSON or print the
+   watermarked sample agreement if useful.
+
+**Restart demo** restores the sample immediately. Leaving the page or signing out clears its
+state. No emails are sent, real files uploaded, production records changed, money moved or legal
+signatures/seals/timestamps produced. This is a presentation aid; live workflow acceptance and
+security requirements below remain unchanged.
+
+### Live workspace
 
 Staff open **Agreements** (`/agreements`) and select a client company. Platform
 administrators with recent signing MFA can create, edit or cancel drafts, place fields and approve prepared agreements, and prepare named participants

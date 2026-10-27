@@ -24,6 +24,8 @@
 
 # Work Guidance
 
+- `/agreements?demo=1` selects the separate staff-only, browser-memory client walkthrough before mounting live agreement hooks. Its optional `demo` search flag never reaches a signing backend endpoint or relaxes live authorization. The live `/agreements` page exposes **Start client demo** even when signing MFA/services are unconfigured.
+
 - `/agreements` supports preparation/approval, gated issuance, delivery tracking, finalisation, reviewed portfolio application and company reports/exports. Only platform admins with recent signing MFA see mutation controls. External issuance requires both deployment/company release keys and all prerequisites; a completed agreement never implicitly activates a lease or authorises occupation.
 - `/sign` is a standalone server HTML response that bypasses the root application shell as well as `_app` and company membership. `/api/signing` proxies explicit verification and signer-portal POST actions (session cookie only; per-operation body limits) plus GET read/resume, `?view=portal` and `?view=document|download` (and `?view=final` for completed participants' sealed copy), which streams the frozen PDF only after server-side SHA-256 verification and never returns storage URLs. POST `?upload=attachment` accepts only PDF/JPEG/PNG bytes (≤10 MB) for a session cookie and forwards them server-side to the quarantine form, then requests the scan; `kiosk_exchange` is the in-person counterpart of `exchange`. GET has no signing/mail side effects; outcomes are submitted only by explicit POST `submit`/`decline`/`request_correction`. Keep credentials in URL fragments before immediate local scrubbing, never query strings; do not log request bodies/cookies or attach telemetry on this path.
 
